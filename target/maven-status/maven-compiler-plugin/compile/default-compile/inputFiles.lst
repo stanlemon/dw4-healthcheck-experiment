@@ -1,0 +1,9 @@
+/Users/stlemon/Code/dw-test2/src/main/java/com/example/dw/metrics/MetricsService.java
+/Users/stlemon/Code/dw-test2/src/main/java/com/example/dw/DwConfiguration.java
+/Users/stlemon/Code/dw-test2/src/main/java/com/example/dw/health/ApplicationHealthCheck.java
+/Users/stlemon/Code/dw-test2/src/main/java/com/example/dw/DwApplication.java
+/Users/stlemon/Code/dw-test2/src/main/java/com/example/dw/resources/MetricsResource.java
+/Users/stlemon/Code/dw-test2/src/main/java/com/example/dw/resources/ErrorResource.java
+/Users/stlemon/Code/dw-test2/src/main/java/com/example/dw/exceptions/GlobalExceptionMapper.java
+/Users/stlemon/Code/dw-test2/src/main/java/com/example/dw/resources/HelloWorldResource.java
+/Users/stlemon/Code/dw-test2/src/main/java/com/example/dw/resources/TestErrorsResource.java
