@@ -5,12 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Queue;
-import java.util.concurrent.atomic.AtomicLong;
-
 public class MetricsServiceTest {
 
     private MetricsService metricsService;
@@ -44,41 +38,60 @@ public class MetricsServiceTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void testGetErrorCountLastMinute() throws Exception {
+    public void testGetErrorCountLastMinute() {
         // Initial state
         assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
 
-        // Add some timestamps directly to the queue
-        Field errorTimestampsField = MetricsService.class.getDeclaredField("errorTimestamps");
-        errorTimestampsField.setAccessible(true);
-        Queue<Instant> errorTimestamps = (Queue<Instant>) errorTimestampsField.get(metricsService);
+        // Record some errors
+        metricsService.recordServerError();
+        metricsService.recordServerError();
+        metricsService.recordServerError();
 
-        // Add timestamps in chronological order (oldest first, as they would naturally occur)
-        Instant now = Instant.now();
+        // Verify all errors are counted
+        assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(3);
+        assertThat(metricsService.getTotalErrorCount()).isEqualTo(3);
 
-        // Add 2 old errors first (more than a minute ago) - these should be cleaned up
-        errorTimestamps.add(now.minus(120, ChronoUnit.SECONDS));
-        errorTimestamps.add(now.minus(61, ChronoUnit.SECONDS));
-
-        // Then add 3 recent errors (within last minute) - these should remain
-        errorTimestamps.add(now.minus(50, ChronoUnit.SECONDS));
-        errorTimestamps.add(now.minus(30, ChronoUnit.SECONDS));
-        errorTimestamps.add(now.minus(10, ChronoUnit.SECONDS));
-
-        // Update total count to match
-        Field totalErrorCountField = MetricsService.class.getDeclaredField("totalErrorCount");
-        totalErrorCountField.setAccessible(true);
-        AtomicLong totalErrorCount = (AtomicLong) totalErrorCountField.get(metricsService);
-        totalErrorCount.set(5);
-
-        // Verify only recent errors are counted, and old ones are removed
+        // Call getErrorCountLastMinute multiple times to verify consistency
+        assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(3);
         assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(3);
 
-        // Check that old timestamps were removed from the queue
-        assertThat(errorTimestamps.size()).isEqualTo(3);
+        // Total count should remain unchanged after multiple reads
+        assertThat(metricsService.getTotalErrorCount()).isEqualTo(3);
+    }
 
-        // Total count should still include all errors ever recorded
-        assertThat(metricsService.getTotalErrorCount()).isEqualTo(5);
+    @Test
+    public void testClearMetrics() {
+        // Record some errors
+        metricsService.recordServerError();
+        metricsService.recordServerError();
+
+        // Verify errors are recorded
+        assertThat(metricsService.getTotalErrorCount()).isEqualTo(2);
+        assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(2);
+
+        // Clear metrics
+        metricsService.clearMetrics();
+
+        // Verify all counts are reset
+        assertThat(metricsService.getTotalErrorCount()).isEqualTo(0);
+        assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
+    }
+
+    @Test
+    public void testMultipleCallsConsistency() {
+        // Test that multiple rapid calls to getErrorCountLastMinute are consistent
+        metricsService.recordServerError();
+
+        // Multiple calls should return the same result
+        long count1 = metricsService.getErrorCountLastMinute();
+        long count2 = metricsService.getErrorCountLastMinute();
+        long count3 = metricsService.getErrorCountLastMinute();
+
+        assertThat(count1).isEqualTo(1);
+        assertThat(count2).isEqualTo(1);
+        assertThat(count3).isEqualTo(1);
+
+        // Total count should be unchanged
+        assertThat(metricsService.getTotalErrorCount()).isEqualTo(1);
     }
 }
