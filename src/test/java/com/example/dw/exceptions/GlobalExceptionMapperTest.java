@@ -130,7 +130,7 @@ public class GlobalExceptionMapperTest {
     @Test
     public void testToResponseStatus599() {
         // Setup - Test the upper bound of 5xx range (covers status < 600 branch)
-        WebApplicationException exception = new WebApplicationException("Status 599", 
+        WebApplicationException exception = new WebApplicationException("Status 599",
             Response.status(599).build());
 
         // Execute
@@ -146,7 +146,7 @@ public class GlobalExceptionMapperTest {
     @Test
     public void testToResponseStatus600() {
         // Setup - Test outside 5xx range (status >= 600, should NOT record error)
-        WebApplicationException exception = new WebApplicationException("Status 600", 
+        WebApplicationException exception = new WebApplicationException("Status 600",
             Response.status(600).build());
 
         // Execute
