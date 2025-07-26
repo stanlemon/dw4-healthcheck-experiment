@@ -55,12 +55,15 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Comment coverage on PR
-      uses: 5monkeys/cobertura-action@master
+      uses: madrapps/jacoco-report@v1.6.1
       if: github.event_name == 'pull_request'
       with:
-        path: target/site/jacoco/jacoco.xml
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        minimum_coverage: 70
+        paths: target/site/jacoco/jacoco.xml
+        token: ${{ secrets.GITHUB_TOKEN }}
+        min-coverage-overall: 70
+        min-coverage-changed-files: 70
+        title: 📊 Test Coverage Report
+        update-comment: true
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
