@@ -6,6 +6,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonCreator;
 
 @Path("/metrics")
 @Produces(MediaType.APPLICATION_JSON)
@@ -25,7 +26,9 @@ public class MetricsResource {
         private final long errorsLastMinute;
         private final long totalErrors;
 
-        public MetricsResponse(long errorsLastMinute, long totalErrors) {
+        @JsonCreator
+        public MetricsResponse(@JsonProperty("errorsLastMinute") long errorsLastMinute,
+                             @JsonProperty("totalErrors") long totalErrors) {
             this.errorsLastMinute = errorsLastMinute;
             this.totalErrors = totalErrors;
         }

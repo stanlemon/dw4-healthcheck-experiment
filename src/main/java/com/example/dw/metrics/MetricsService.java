@@ -57,4 +57,12 @@ public class MetricsService {
     public long getTotalErrorCount() {
         return totalErrorCount.get();
     }
+
+    /**
+     * Clear all metrics (useful for testing)
+     */
+    public void clearMetrics() {
+        errorTimestamps.clear();
+        totalErrorCount.set(0);
+    }
 }

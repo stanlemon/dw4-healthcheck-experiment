@@ -1,12 +1,14 @@
 package com.example.dw.resources;
 
 import com.example.dw.DwConfiguration;
+import com.example.dw.metrics.MetricsService;
 import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.core.Response;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -20,6 +22,12 @@ public class ResourceIntegrationTest {
 
     public static final DropwizardAppExtension<DwConfiguration> APP = new DropwizardAppExtension<>(
             DwApplication.class, CONFIG_PATH);
+
+    @BeforeEach
+    public void setUp() {
+        // Clear metrics before each test since MetricsService is a singleton
+        MetricsService.getInstance().clearMetrics();
+    }
 
     @Test
     public void testHelloEndpoint() {

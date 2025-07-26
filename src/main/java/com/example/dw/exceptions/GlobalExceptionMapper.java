@@ -50,7 +50,8 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
 
     private int determineStatusCode(Throwable exception) {
         // If it's a WebApplicationException, use its status
-        if (exception instanceof WebApplicationException webAppException) {
+        if (exception instanceof WebApplicationException webAppException &&
+            webAppException.getResponse() != null) {
             return webAppException.getResponse().getStatus();
         }
 

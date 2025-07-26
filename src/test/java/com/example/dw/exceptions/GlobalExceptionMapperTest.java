@@ -50,6 +50,7 @@ public class GlobalExceptionMapperTest {
         verify(mockMetricsService).recordServerError();
 
         // Get and verify response entity
+        @SuppressWarnings("unchecked")
         Map<String, Object> entity = (Map<String, Object>) response.getEntity();
         assertThat(entity.get("code")).isEqualTo(500);
         assertThat(entity.get("message")).isEqualTo("Test runtime exception");
@@ -97,7 +98,64 @@ public class GlobalExceptionMapperTest {
         assertThat(response.getStatus()).isEqualTo(500);
 
         // Get and verify response entity uses default message
+        @SuppressWarnings("unchecked")
         Map<String, Object> entity = (Map<String, Object>) response.getEntity();
         assertThat(entity.get("message")).isEqualTo("Server Error");
+    }
+
+    @Test
+    public void testToResponseWebApplicationExceptionWithNullResponse() {
+        // Setup - WebApplicationException with null response (covers missing branch)
+        WebApplicationException exception = new WebApplicationException("Test exception") {
+            @Override
+            public Response getResponse() {
+                return null; // This triggers the missing branch
+            }
+        };
+
+        // Execute
+        Response response = exceptionMapper.toResponse(exception);
+
+        // Verify - should return a generic response since original response is null
+        assertThat(response.getStatus()).isEqualTo(500);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> entity = (Map<String, Object>) response.getEntity();
+        assertThat(entity.get("code")).isEqualTo(500);
+        assertThat(entity.get("message")).isEqualTo("Test exception");
+
+        // Verify metrics were recorded (5xx error)
+        verify(mockMetricsService).recordServerError();
+    }
+
+    @Test
+    public void testToResponseStatus599() {
+        // Setup - Test the upper bound of 5xx range (covers status < 600 branch)
+        WebApplicationException exception = new WebApplicationException("Status 599", 
+            Response.status(599).build());
+
+        // Execute
+        Response response = exceptionMapper.toResponse(exception);
+
+        // Verify
+        assertThat(response.getStatus()).isEqualTo(599);
+
+        // Verify metrics were recorded (5xx error)
+        verify(mockMetricsService).recordServerError();
+    }
+
+    @Test
+    public void testToResponseStatus600() {
+        // Setup - Test outside 5xx range (status >= 600, should NOT record error)
+        WebApplicationException exception = new WebApplicationException("Status 600", 
+            Response.status(600).build());
+
+        // Execute
+        Response response = exceptionMapper.toResponse(exception);
+
+        // Verify
+        assertThat(response.getStatus()).isEqualTo(600);
+
+        // Verify metrics were NOT recorded (not in 5xx range)
+        verify(mockMetricsService, never()).recordServerError();
     }
 }
