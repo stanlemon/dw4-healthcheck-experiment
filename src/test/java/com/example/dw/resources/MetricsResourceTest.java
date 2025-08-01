@@ -39,8 +39,8 @@ public class MetricsResourceTest {
 
         // Verify
         assertThat(response).isNotNull();
-        assertThat(response.getErrorsLastMinute()).isEqualTo(10);
-        assertThat(response.getTotalErrors()).isEqualTo(50);
+        assertThat(response.errorsLastMinute()).isEqualTo(10);
+        assertThat(response.totalErrors()).isEqualTo(50);
         assertThat(response.isHealthy()).isTrue();
     }
 
@@ -55,8 +55,8 @@ public class MetricsResourceTest {
 
         // Verify
         assertThat(response).isNotNull();
-        assertThat(response.getErrorsLastMinute()).isEqualTo(101);
-        assertThat(response.getTotalErrors()).isEqualTo(150);
+        assertThat(response.errorsLastMinute()).isEqualTo(101);
+        assertThat(response.totalErrors()).isEqualTo(150);
         assertThat(response.isHealthy()).isFalse();
     }
 }

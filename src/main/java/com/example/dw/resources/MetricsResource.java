@@ -6,7 +6,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonCreator;
 
 @Path("/metrics")
 @Produces(MediaType.APPLICATION_JSON)
@@ -22,30 +21,27 @@ public class MetricsResource {
         return new MetricsResponse(errorsLastMinute, totalErrors);
     }
 
-    public static class MetricsResponse {
-        private final long errorsLastMinute;
-        private final long totalErrors;
-
-        @JsonCreator
-        public MetricsResponse(@JsonProperty("errorsLastMinute") long errorsLastMinute,
-                             @JsonProperty("totalErrors") long totalErrors) {
-            this.errorsLastMinute = errorsLastMinute;
-            this.totalErrors = totalErrors;
-        }
-
-        @JsonProperty
-        public long getErrorsLastMinute() {
-            return errorsLastMinute;
-        }
-
-        @JsonProperty
-        public long getTotalErrors() {
-            return totalErrors;
-        }
-
-        @JsonProperty
-        public boolean isHealthy() {
-            return errorsLastMinute <= 100;
-        }
+    public void resetMetrics() {
+        metricsService.resetMetrics();
     }
+
+    public record MetricsResponse(long errorsLastMinute, long totalErrors) {
+
+        @Override
+        @JsonProperty
+            public long errorsLastMinute() {
+                return errorsLastMinute;
+            }
+
+            @Override
+            @JsonProperty
+            public long totalErrors() {
+                return totalErrors;
+            }
+
+            @JsonProperty
+            public boolean isHealthy() {
+                return errorsLastMinute <= 100;
+            }
+        }
 }

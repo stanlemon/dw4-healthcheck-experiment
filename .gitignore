@@ -23,19 +23,3 @@
 hs_err_pid*
 replay_pid*
 .DS_Store
-
-# Maven
-target/
-dependency-reduced-pom.xml
-
-# IDE
-.idea/
-*.iml
-.vscode/
-.settings/
-.project
-.classpath
-
-# OS
-.DS_Store
-Thumbs.db
