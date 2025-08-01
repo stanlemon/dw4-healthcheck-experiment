@@ -28,8 +28,8 @@ public class MetricsService {
     /**
      * Record a new 500 error
      */
-    public void recordServerError(final Instant timestamp) {
-        errorTimestamps.add(timestamp == null ? Instant.now() : timestamp);
+    public void recordServerError() {
+        errorTimestamps.add(Instant.now());
         totalErrorCount.incrementAndGet();
     }
 

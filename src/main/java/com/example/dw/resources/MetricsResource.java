@@ -21,10 +21,6 @@ public class MetricsResource {
         return new MetricsResponse(errorsLastMinute, totalErrors);
     }
 
-    public void resetMetrics() {
-        metricsService.resetMetrics();
-    }
-
     public record MetricsResponse(long errorsLastMinute, long totalErrors) {
 
         @Override
