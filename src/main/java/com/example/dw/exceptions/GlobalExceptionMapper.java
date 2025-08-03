@@ -7,7 +7,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
+
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Global exception mapper that catches all exceptions and tracks 500 errors
@@ -15,6 +18,8 @@ import java.util.Map;
  */
 @Provider
 public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
+
+    private static final Set<Integer> TRACKED_CODES = Set.of(500);
 
     private final MetricsService metricsService;
 
@@ -27,8 +32,16 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
         // First, determine the status code
         int status = determineStatusCode(exception);
 
-        // Track all 5xx errors
-        if (status >= 500 && status < 600) {
+        // Track all specific errors
+        // It makes sense to track some 5xx errors, but we don't want to track all of them.
+        // For example, 501 Not Implemented and 505 HTTP Version Not Supported are not
+        // Also, we don't want to track 5xx from our downstream services such as 502 Bad Gateway or 503 Service Unavailable.
+
+        // Alternatively, we could have a more complex logic to determine which 5xx errors to track.
+        // Tag proxied errors
+        // Have our downstream clients add a header like `X-Upstream-Error: true` and then exclude responses
+        // that carry this head from our metrics.
+        if (TRACKED_CODES.contains(status)) {
             metricsService.recordServerError();
         }
 
