@@ -5,7 +5,6 @@ import static org.mockito.Mockito.*;
 
 import com.example.dw.metrics.Metrics;
 import com.example.dw.metrics.MetricsService;
-import com.example.dw.metrics.QueueMetricsService;
 
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
