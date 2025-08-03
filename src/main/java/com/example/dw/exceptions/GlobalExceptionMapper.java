@@ -1,5 +1,6 @@
 package com.example.dw.exceptions;
 
+import com.example.dw.metrics.Metrics;
 import com.example.dw.metrics.MetricsService;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
@@ -18,7 +19,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
     private final MetricsService metricsService;
 
     public GlobalExceptionMapper() {
-        this.metricsService = MetricsService.getInstance();
+        this.metricsService = Metrics.get();
     }
 
     @Override

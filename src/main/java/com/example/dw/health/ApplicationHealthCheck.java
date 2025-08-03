@@ -1,6 +1,7 @@
 package com.example.dw.health;
 
 import com.codahale.metrics.health.HealthCheck;
+import com.example.dw.metrics.Metrics;
 import com.example.dw.metrics.MetricsService;
 
 public class ApplicationHealthCheck extends HealthCheck {
@@ -8,8 +9,12 @@ public class ApplicationHealthCheck extends HealthCheck {
 
     private final MetricsService metricsService;
 
+    public ApplicationHealthCheck(MetricsService metricsService) {
+        this.metricsService = metricsService;
+    }
+
     public ApplicationHealthCheck() {
-        this.metricsService = MetricsService.getInstance();
+        this.metricsService = Metrics.get();
     }
 
     @Override

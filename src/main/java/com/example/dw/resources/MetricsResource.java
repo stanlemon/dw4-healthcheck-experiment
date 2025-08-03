@@ -1,5 +1,6 @@
 package com.example.dw.resources;
 
+import com.example.dw.metrics.Metrics;
 import com.example.dw.metrics.MetricsService;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -11,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Produces(MediaType.APPLICATION_JSON)
 public class MetricsResource {
 
-    private final MetricsService metricsService = MetricsService.getInstance();
+    private final MetricsService metricsService = Metrics.get();
 
     @GET
     public MetricsResponse getMetrics() {

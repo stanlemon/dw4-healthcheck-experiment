@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 import com.codahale.metrics.health.HealthCheck.Result;
+import com.example.dw.metrics.Metrics;
 import com.example.dw.metrics.MetricsService;
+import com.example.dw.metrics.QueueMetricsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,23 +18,29 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class ApplicationHealthCheckTest {
 
     @Mock
-    private MetricsService mockMetricsService;
+    private QueueMetricsService metricsService;
+
+    @Mock
+    private Metrics metrics;
 
     private ApplicationHealthCheck healthCheck;
 
     @BeforeEach
     public void setUp() {
-        // Use a try-with-resources with MockedStatic if you want to mock the static method directly
-        try (MockedStatic<MetricsService> mockedStatic = mockStatic(MetricsService.class)) {
-            mockedStatic.when(MetricsService::getInstance).thenReturn(mockMetricsService);
-            healthCheck = new ApplicationHealthCheck();
+
+        // Mock the MetricsService to return a mock instance
+        try (MockedStatic<Metrics> mockedStatic = mockStatic(Metrics.class)) {
+            mockedStatic.when(Metrics::get).thenReturn(metricsService);
+            when(metricsService.getErrorCountLastMinute()).thenReturn(0L); // Default to 0 for setup
         }
+
+        healthCheck = new ApplicationHealthCheck(metricsService);
     }
 
     @Test
     public void testCheckHealthy() {
         // Setup - below threshold
-        when(mockMetricsService.getErrorCountLastMinute()).thenReturn(50L);
+        when(metricsService.getErrorCountLastMinute()).thenReturn(50L);
 
         // Execute
         Result result = healthCheck.check();
@@ -46,7 +54,7 @@ public class ApplicationHealthCheckTest {
     @Test
     public void testCheckExactThreshold() {
         // Setup - at threshold (100 errors)
-        when(mockMetricsService.getErrorCountLastMinute()).thenReturn(100L);
+        when(metricsService.getErrorCountLastMinute()).thenReturn(100L);
 
         // Execute
         Result result = healthCheck.check();
@@ -60,7 +68,7 @@ public class ApplicationHealthCheckTest {
     @Test
     public void testCheckUnhealthy() {
         // Setup - above threshold
-        when(mockMetricsService.getErrorCountLastMinute()).thenReturn(101L);
+        when(metricsService.getErrorCountLastMinute()).thenReturn(101L);
 
         // Execute
         Result result = healthCheck.check();

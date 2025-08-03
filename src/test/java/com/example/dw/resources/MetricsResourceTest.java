@@ -3,7 +3,9 @@ package com.example.dw.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+import com.example.dw.metrics.Metrics;
 import com.example.dw.metrics.MetricsService;
+import com.example.dw.metrics.QueueMetricsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,15 +17,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class MetricsResourceTest {
 
     @Mock
+    private Metrics metrics;
+
+    @Mock
     private MetricsService mockMetricsService;
 
     private MetricsResource resource;
 
     @BeforeEach
     public void setUp() {
-        // Use a try-with-resources with MockedStatic if you want to mock the static method directly
-        try (MockedStatic<MetricsService> mockedStatic = mockStatic(MetricsService.class)) {
-            mockedStatic.when(MetricsService::getInstance).thenReturn(mockMetricsService);
+
+        mockMetricsService = mock(MetricsService.class);
+
+        // Mock the MetricsService to return a mock instance
+        try (MockedStatic<Metrics> mockedStatic = mockStatic(Metrics.class)) {
+            mockedStatic.when(Metrics::get).thenReturn(mockMetricsService);
             resource = new MetricsResource();
         }
     }

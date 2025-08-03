@@ -2,41 +2,24 @@ package com.example.dw.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.lang.reflect.Field;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLong;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class MetricsServiceTest {
+public abstract class AbstractMetricsServiceTest {
 
-    private MetricsService metricsService;
+    protected MetricsService metricsService;
+
+    protected abstract MetricsService createMetricsService();
 
     @BeforeEach
-    public void setUp() throws Exception {
-        // Get the singleton instance
-        metricsService = MetricsService.getInstance();
-
-        // Reset the error timestamps and counter using reflection
-        resetErrorTimestamps();
-        resetTotalErrorCount();
-    }
-
-    private void resetErrorTimestamps() throws Exception {
-        Field errorTimestampsField = MetricsService.class.getDeclaredField("errorTimestamps");
-        errorTimestampsField.setAccessible(true);
-        Queue<Instant> errorTimestamps = (Queue<Instant>) errorTimestampsField.get(metricsService);
-        errorTimestamps.clear();
-    }
-
-    private void resetTotalErrorCount() throws Exception {
-        Field totalErrorCountField = MetricsService.class.getDeclaredField("totalErrorCount");
-        totalErrorCountField.setAccessible(true);
-        AtomicLong totalErrorCount = (AtomicLong) totalErrorCountField.get(metricsService);
-        totalErrorCount.set(0);
+    public void setUp() {
+        metricsService = createMetricsService();
+        metricsService.resetMetrics();
     }
 
     @Test
@@ -45,7 +28,7 @@ public class MetricsServiceTest {
         assertThat(metricsService.getTotalErrorCount()).isEqualTo(0);
         assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
 
-        // Record an error
+        // Record a server error
         metricsService.recordServerError();
 
         // Verify counts increased
@@ -66,33 +49,29 @@ public class MetricsServiceTest {
         assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
 
         // Add some timestamps directly to the queue
-        Field errorTimestampsField = MetricsService.class.getDeclaredField("errorTimestamps");
+        Field errorTimestampsField = metricsService.getClass().getDeclaredField("errorTimestamps");
         errorTimestampsField.setAccessible(true);
         Queue<Instant> errorTimestamps = (Queue<Instant>) errorTimestampsField.get(metricsService);
 
-        // Add 3 recent errors (within last minute)
+        // Add recent errors (within last minute)
         Instant now = Instant.now();
         errorTimestamps.add(now.minus(10, ChronoUnit.SECONDS));
         errorTimestamps.add(now.minus(30, ChronoUnit.SECONDS));
         errorTimestamps.add(now.minus(50, ChronoUnit.SECONDS));
 
-        // Add 2 old errors (more than a minute ago)
+        // Add older errors (more than a minute ago)
         errorTimestamps.add(now.minus(61, ChronoUnit.SECONDS));
         errorTimestamps.add(now.minus(120, ChronoUnit.SECONDS));
 
-        // Update total count to match
-        Field totalErrorCountField = MetricsService.class.getDeclaredField("totalErrorCount");
+        // Update the total error count to match
+        Field totalErrorCountField = metricsService.getClass().getDeclaredField("totalErrorCount");
         totalErrorCountField.setAccessible(true);
         AtomicLong totalErrorCount = (AtomicLong) totalErrorCountField.get(metricsService);
         totalErrorCount.set(5);
 
-        // Verify only recent errors are counted, and old ones are removed
+        // Verify only recent errors are counted and old ones are removed
         assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(3);
-
-        // Check that old timestamps were removed from the queue
         assertThat(errorTimestamps.size()).isEqualTo(3);
-
-        // Total count should still include all errors ever recorded
         assertThat(metricsService.getTotalErrorCount()).isEqualTo(5);
     }
 }

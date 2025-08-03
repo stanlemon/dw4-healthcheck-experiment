@@ -3,7 +3,9 @@ package com.example.dw.exceptions;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+import com.example.dw.metrics.Metrics;
 import com.example.dw.metrics.MetricsService;
+import com.example.dw.metrics.QueueMetricsService;
 
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
@@ -27,9 +29,12 @@ public class GlobalExceptionMapperTest {
 
     @BeforeEach
     public void setUp() {
-        // Use a try-with-resources with MockedStatic if you want to mock the static method directly
-        try (MockedStatic<MetricsService> mockedStatic = mockStatic(MetricsService.class)) {
-            mockedStatic.when(MetricsService::getInstance).thenReturn(mockMetricsService);
+
+        mockMetricsService = mock(MetricsService.class);
+
+        // Mock the MetricsService to return a mock instance
+        try (MockedStatic<Metrics> mockedStatic = mockStatic(Metrics.class)) {
+            mockedStatic.when(Metrics::get).thenReturn(mockMetricsService);
             exceptionMapper = new GlobalExceptionMapper();
         }
     }
