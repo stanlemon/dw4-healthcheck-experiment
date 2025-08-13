@@ -9,53 +9,53 @@ import jakarta.ws.rs.ext.Provider;
 import java.util.Map;
 
 /**
- * Global exception mapper that catches all exceptions and tracks 500 errors
- * for health monitoring.
+ * Global exception mapper that catches all exceptions and tracks 500 errors for health monitoring.
  */
 @Provider
 public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
 
-    private final MetricsService metricsService;
+  private final MetricsService metricsService;
 
-    public GlobalExceptionMapper() {
-        this.metricsService = MetricsService.getInstance();
+  public GlobalExceptionMapper() {
+    this.metricsService = MetricsService.getInstance();
+  }
+
+  @Override
+  public Response toResponse(Throwable exception) {
+    // First, determine the status code
+    int status = determineStatusCode(exception);
+
+    // Track all 5xx errors
+    if (status >= 500 && status < 600) {
+      metricsService.recordServerError();
     }
 
-    @Override
-    public Response toResponse(Throwable exception) {
-        // First, determine the status code
-        int status = determineStatusCode(exception);
-
-        // Track all 5xx errors
-        if (status >= 500 && status < 600) {
-            metricsService.recordServerError();
-        }
-
-        // If it's a WebApplicationException, use its response if available
-        if (exception instanceof WebApplicationException webAppException &&
-            webAppException.getResponse() != null) {
-            return webAppException.getResponse();
-        }
-
-        // Otherwise, build a generic error response
-        return Response.status(status)
-            .type(MediaType.APPLICATION_JSON_TYPE)
-            .entity(Map.of(
-                "code", status,
-                "message", exception.getMessage() != null ?
-                          exception.getMessage() : "Server Error"
-            ))
-            .build();
+    // If it's a WebApplicationException, use its response if available
+    if (exception instanceof WebApplicationException webAppException
+        && webAppException.getResponse() != null) {
+      return webAppException.getResponse();
     }
 
-    private int determineStatusCode(Throwable exception) {
-        // If it's a WebApplicationException, use its status
-        if (exception instanceof WebApplicationException webAppException &&
-            webAppException.getResponse() != null) {
-            return webAppException.getResponse().getStatus();
-        }
+    // Otherwise, build a generic error response
+    return Response.status(status)
+        .type(MediaType.APPLICATION_JSON_TYPE)
+        .entity(
+            Map.of(
+                "code",
+                status,
+                "message",
+                exception.getMessage() != null ? exception.getMessage() : "Server Error"))
+        .build();
+  }
 
-        // By default, return 500 for all other exceptions
-        return Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
+  private int determineStatusCode(Throwable exception) {
+    // If it's a WebApplicationException, use its status
+    if (exception instanceof WebApplicationException webAppException
+        && webAppException.getResponse() != null) {
+      return webAppException.getResponse().getStatus();
     }
+
+    // By default, return 500 for all other exceptions
+    return Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
+  }
 }

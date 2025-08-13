@@ -9,128 +9,129 @@ import org.junit.jupiter.api.Test;
 
 public class ApplicationHealthCheckTest {
 
-    private MetricsService metricsService;
-    private ApplicationHealthCheck healthCheck;
+  private MetricsService metricsService;
+  private ApplicationHealthCheck healthCheck;
 
-    @BeforeEach
-    public void setUp() {
-        // Get the real MetricsService and clear its state for test isolation
-        metricsService = MetricsService.getInstance();
-        metricsService.clearMetrics();
-        healthCheck = new ApplicationHealthCheck();
+  @BeforeEach
+  public void setUp() {
+    // Get the real MetricsService and clear its state for test isolation
+    metricsService = MetricsService.getInstance();
+    metricsService.clearMetrics();
+    healthCheck = new ApplicationHealthCheck();
+  }
+
+  @Test
+  public void testCheckHealthy() {
+    // Setup - record errors and latency below thresholds
+    for (int i = 0; i < 50; i++) {
+      metricsService.recordServerError();
+    }
+    for (int i = 0; i < 10; i++) {
+      metricsService.recordRequestLatency(300); // 300ms per request = 300ms average
     }
 
-    @Test
-    public void testCheckHealthy() {
-        // Setup - record errors and latency below thresholds
-        for (int i = 0; i < 50; i++) {
-            metricsService.recordServerError();
-        }
-        for (int i = 0; i < 10; i++) {
-            metricsService.recordRequestLatency(300); // 300ms per request = 300ms average
-        }
+    // Execute
+    Result result = healthCheck.check();
 
-        // Execute
-        Result result = healthCheck.check();
+    // Verify
+    assertThat(result.isHealthy()).isTrue();
+    assertThat(result.getMessage()).contains("OK");
+    assertThat(result.getMessage()).contains("50 errors");
+    assertThat(result.getMessage()).contains("300.0ms");
+  }
 
-        // Verify
-        assertThat(result.isHealthy()).isTrue();
-        assertThat(result.getMessage()).contains("OK");
-        assertThat(result.getMessage()).contains("50 errors");
-        assertThat(result.getMessage()).contains("300.0ms");
+  @Test
+  public void testCheckErrorThresholdBreached() {
+    // Setup - record errors above threshold (100), latency OK
+    for (int i = 0; i < 150; i++) {
+      metricsService.recordServerError();
+    }
+    for (int i = 0; i < 10; i++) {
+      metricsService.recordRequestLatency(300); // 300ms per request = 300ms average
     }
 
-    @Test
-    public void testCheckErrorThresholdBreached() {
-        // Setup - record errors above threshold (100), latency OK
-        for (int i = 0; i < 150; i++) {
-            metricsService.recordServerError();
-        }
-        for (int i = 0; i < 10; i++) {
-            metricsService.recordRequestLatency(300); // 300ms per request = 300ms average
-        }
+    // Execute
+    Result result = healthCheck.check();
 
-        // Execute
-        Result result = healthCheck.check();
+    // Verify
+    assertThat(result.isHealthy()).isFalse();
+    assertThat(result.getMessage()).contains("Too many errors");
+    assertThat(result.getMessage()).contains("150 errors");
+    assertThat(result.getMessage()).contains("threshold: 100");
+  }
 
-        // Verify
-        assertThat(result.isHealthy()).isFalse();
-        assertThat(result.getMessage()).contains("Too many errors");
-        assertThat(result.getMessage()).contains("150 errors");
-        assertThat(result.getMessage()).contains("threshold: 100");
+  @Test
+  public void testCheckLatencyThresholdBreached() {
+    // Setup - latency threshold breached (500ms+), errors OK
+    for (int i = 0; i < 50; i++) {
+      metricsService.recordServerError();
+    }
+    for (int i = 0; i < 10; i++) {
+      metricsService.recordRequestLatency(700); // 700ms per request = 700ms average
     }
 
-    @Test
-    public void testCheckLatencyThresholdBreached() {
-        // Setup - latency threshold breached (500ms+), errors OK
-        for (int i = 0; i < 50; i++) {
-            metricsService.recordServerError();
-        }
-        for (int i = 0; i < 10; i++) {
-            metricsService.recordRequestLatency(700); // 700ms per request = 700ms average
-        }
+    // Execute
+    Result result = healthCheck.check();
 
-        // Execute
-        Result result = healthCheck.check();
+    // Verify
+    assertThat(result.isHealthy()).isFalse();
+    assertThat(result.getMessage()).contains("High latency");
+    assertThat(result.getMessage()).contains("700.0ms");
+    assertThat(result.getMessage()).contains("threshold: 500ms");
+  }
 
-        // Verify
-        assertThat(result.isHealthy()).isFalse();
-        assertThat(result.getMessage()).contains("High latency");
-        assertThat(result.getMessage()).contains("700.0ms");
-        assertThat(result.getMessage()).contains("threshold: 500ms");
+  @Test
+  public void testCheckBothThresholdsBreached() {
+    // Setup - both thresholds breached
+    for (int i = 0; i < 150; i++) {
+      metricsService.recordServerError();
+    }
+    for (int i = 0; i < 10; i++) {
+      metricsService.recordRequestLatency(700); // 700ms per request = 700ms average
     }
 
-    @Test
-    public void testCheckBothThresholdsBreached() {
-        // Setup - both thresholds breached
-        for (int i = 0; i < 150; i++) {
-            metricsService.recordServerError();
-        }
-        for (int i = 0; i < 10; i++) {
-            metricsService.recordRequestLatency(700); // 700ms per request = 700ms average
-        }
+    // Execute
+    Result result = healthCheck.check();
 
-        // Execute
-        Result result = healthCheck.check();
+    // Verify
+    assertThat(result.isHealthy()).isFalse();
+    assertThat(result.getMessage())
+        .contains("Critical: Both error and latency thresholds breached");
+    assertThat(result.getMessage()).contains("150 errors");
+    assertThat(result.getMessage()).contains("700.0ms");
+  }
 
-        // Verify
-        assertThat(result.isHealthy()).isFalse();
-        assertThat(result.getMessage()).contains("Critical: Both error and latency thresholds breached");
-        assertThat(result.getMessage()).contains("150 errors");
-        assertThat(result.getMessage()).contains("700.0ms");
+  @Test
+  public void testCheckAtExactThresholds() {
+    // Setup - at exact thresholds (should not breach)
+    for (int i = 0; i < 100; i++) {
+      metricsService.recordServerError();
+    }
+    for (int i = 0; i < 10; i++) {
+      metricsService.recordRequestLatency(500); // 500ms per request = 500ms average
     }
 
-    @Test
-    public void testCheckAtExactThresholds() {
-        // Setup - at exact thresholds (should not breach)
-        for (int i = 0; i < 100; i++) {
-            metricsService.recordServerError();
-        }
-        for (int i = 0; i < 10; i++) {
-            metricsService.recordRequestLatency(500); // 500ms per request = 500ms average
-        }
+    // Execute
+    Result result = healthCheck.check();
 
-        // Execute
-        Result result = healthCheck.check();
+    // Verify - should still be healthy at exactly the thresholds
+    assertThat(result.isHealthy()).isTrue();
+    assertThat(result.getMessage()).contains("OK");
+    assertThat(result.getMessage()).contains("100 errors");
+    assertThat(result.getMessage()).contains("500.0ms");
+  }
 
-        // Verify - should still be healthy at exactly the thresholds
-        assertThat(result.isHealthy()).isTrue();
-        assertThat(result.getMessage()).contains("OK");
-        assertThat(result.getMessage()).contains("100 errors");
-        assertThat(result.getMessage()).contains("500.0ms");
-    }
+  @Test
+  public void testCheckWithZeroValues() {
+    // Setup - no errors or latency data (clearMetrics already called in setUp)
 
-    @Test
-    public void testCheckWithZeroValues() {
-        // Setup - no errors or latency data (clearMetrics already called in setUp)
+    // Execute
+    Result result = healthCheck.check();
 
-        // Execute
-        Result result = healthCheck.check();
-
-        // Verify
-        assertThat(result.isHealthy()).isTrue();
-        assertThat(result.getMessage()).contains("OK");
-        assertThat(result.getMessage()).contains("0 errors");
-        assertThat(result.getMessage()).contains("0.0ms");
-    }
+    // Verify
+    assertThat(result.isHealthy()).isTrue();
+    assertThat(result.getMessage()).contains("OK");
+    assertThat(result.getMessage()).contains("0 errors");
+    assertThat(result.getMessage()).contains("0.0ms");
+  }
 }

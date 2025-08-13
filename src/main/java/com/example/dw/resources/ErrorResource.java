@@ -10,12 +10,13 @@ import jakarta.ws.rs.core.Response;
 @Produces(MediaType.APPLICATION_JSON)
 public class ErrorResource {
 
-    @GET
-    public Response triggerError() {
-        // We don't need to manually record the error anymore
-        // as the GlobalExceptionMapper will handle that
+  @GET
+  public Response triggerError() {
+    // We don't need to manually record the error anymore
+    // as the GlobalExceptionMapper will handle that
 
-        // Deliberately throw a runtime exception that will be caught by our mapper
-        throw new RuntimeException("This is a deliberate error that will be caught by our global handler");
-    }
+    // Deliberately throw a runtime exception that will be caught by our mapper
+    throw new RuntimeException(
+        "This is a deliberate error that will be caught by our global handler");
+  }
 }

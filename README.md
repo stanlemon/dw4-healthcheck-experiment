@@ -191,6 +191,43 @@ Coverage reports are generated in HTML format and include:
 - Per-class detailed coverage with highlighted source code
 - Identification of untested code paths
 
+## Code Formatting
+
+The project uses [Spotless](https://github.com/diffplug/spotless) with Google Java Format to maintain consistent code formatting across the codebase.
+
+### Checking Code Format
+
+To check if all code follows the Google Java Format style:
+
+```bash
+mvn spotless:check
+```
+
+### Applying Code Format
+
+To automatically format all Java code according to Google Java Format:
+
+```bash
+mvn spotless:apply
+```
+
+### Code Format Features
+
+- **Google Java Format**: Uses Google's official Java formatting style
+- **Import Organization**: Removes unused imports automatically
+- **Whitespace Management**: Trims trailing whitespace and ensures files end with newlines
+- **Consistent Style**: Enforces consistent indentation, spacing, and line breaks
+
+The Spotless plugin is configured to:
+
+- Format all Java files in `src/main/java` and `src/test/java`
+- Use Google Java Format version 1.19.2 with GOOGLE style
+- Remove unused imports automatically
+- Trim trailing whitespace
+- Ensure files end with a newline
+
+**Tip**: Run `mvn spotless:apply` before committing code to ensure consistent formatting.
+
 ## Example Usage
 
 ### Monitoring Latency in Real-Time

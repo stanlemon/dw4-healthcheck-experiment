@@ -12,32 +12,30 @@ import jakarta.ws.rs.core.Response;
 @Produces(MediaType.APPLICATION_JSON)
 public class TestErrorsResource {
 
-    @GET
-    @Path("/runtime/{message}")
-    public String testRuntimeException(@PathParam("message") String message) {
-        throw new RuntimeException(message);
-    }
+  @GET
+  @Path("/runtime/{message}")
+  public String testRuntimeException(@PathParam("message") String message) {
+    throw new RuntimeException(message);
+  }
 
-    @GET
-    @Path("/web-app/{code}")
-    public String testWebAppException(@PathParam("code") int code) {
-        throw new WebApplicationException(
-            "Web application exception with code " + code,
-            Response.Status.fromStatusCode(code)
-        );
-    }
+  @GET
+  @Path("/web-app/{code}")
+  public String testWebAppException(@PathParam("code") int code) {
+    throw new WebApplicationException(
+        "Web application exception with code " + code, Response.Status.fromStatusCode(code));
+  }
 
-    @GET
-    @Path("/arithmetic")
-    public int testArithmeticException() {
-        // Division by zero
-        return 42 / 0;
-    }
+  @GET
+  @Path("/arithmetic")
+  public int testArithmeticException() {
+    // Division by zero
+    return 42 / 0;
+  }
 
-    @GET
-    @Path("/null-pointer")
-    public String testNullPointerException() {
-        String nullString = null;
-        return nullString.toLowerCase();
-    }
+  @GET
+  @Path("/null-pointer")
+  public String testNullPointerException() {
+    String nullString = null;
+    return nullString.toLowerCase();
+  }
 }
