@@ -4,8 +4,6 @@ import com.codahale.metrics.health.HealthCheck;
 import com.example.dw.metrics.MetricsService;
 
 public class ApplicationHealthCheck extends HealthCheck {
-    private static final int ERROR_THRESHOLD = 100;
-
     private final MetricsService metricsService;
 
     public ApplicationHealthCheck() {
@@ -15,13 +13,30 @@ public class ApplicationHealthCheck extends HealthCheck {
     @Override
     protected Result check() {
         long errorCount = metricsService.getErrorCountLastMinute();
+        double avgLatency = metricsService.getAverageLatencyLast60Minutes();
 
-        if (errorCount > ERROR_THRESHOLD) {
-            return Result.unhealthy("Too many errors: %d errors in the last minute (threshold: %d)",
-                    errorCount, ERROR_THRESHOLD);
+        boolean errorThresholdBreached = metricsService.isErrorThresholdBreached();
+        boolean latencyThresholdBreached = metricsService.isLatencyThresholdBreached();
+
+        if (errorThresholdBreached && latencyThresholdBreached) {
+            return Result.unhealthy("Critical: Both error and latency thresholds breached - " +
+                    "%d errors in last minute (threshold: 100), " +
+                    "%.1fms average latency in last 60 minutes (threshold: 500ms)",
+                    errorCount, avgLatency);
         }
 
-        return Result.healthy("ok - %d errors in last minute (threshold: %d)",
-                errorCount, ERROR_THRESHOLD);
+        if (errorThresholdBreached) {
+            return Result.unhealthy("Too many errors: %d errors in last minute (threshold: 100)",
+                    errorCount);
+        }
+
+        if (latencyThresholdBreached) {
+            return Result.unhealthy("High latency: %.1fms average latency in last 60 minutes (threshold: 500ms)",
+                    avgLatency);
+        }
+
+        return Result.healthy("OK - %d errors in last minute (threshold: 100), " +
+                "%.1fms average latency in last 60 minutes (threshold: 500ms)",
+                errorCount, avgLatency);
     }
 }

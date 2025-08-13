@@ -9,6 +9,7 @@ import com.example.dw.resources.ErrorResource;
 import com.example.dw.resources.MetricsResource;
 import com.example.dw.resources.TestErrorsResource;
 import com.example.dw.exceptions.GlobalExceptionMapper;
+import com.example.dw.filters.LatencyTrackingFilter;
 
 public class DwApplication extends Application<DwConfiguration> {
 
@@ -28,6 +29,9 @@ public class DwApplication extends Application<DwConfiguration> {
 
     @Override
     public void run(DwConfiguration configuration, Environment environment) {
+        // Register latency tracking filter to measure all request latencies
+        environment.jersey().register(new LatencyTrackingFilter());
+
         // Register resources
         final HelloWorldResource helloWorldResource = new HelloWorldResource();
         environment.jersey().register(helloWorldResource);

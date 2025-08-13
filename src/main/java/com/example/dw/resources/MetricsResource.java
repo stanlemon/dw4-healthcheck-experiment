@@ -18,19 +18,32 @@ public class MetricsResource {
     public MetricsResponse getMetrics() {
         long errorsLastMinute = metricsService.getErrorCountLastMinute();
         long totalErrors = metricsService.getTotalErrorCount();
+        double avgLatencyLast60Minutes = metricsService.getAverageLatencyLast60Minutes();
+        boolean errorThresholdBreached = metricsService.isErrorThresholdBreached();
+        boolean latencyThresholdBreached = metricsService.isLatencyThresholdBreached();
 
-        return new MetricsResponse(errorsLastMinute, totalErrors);
+        return new MetricsResponse(errorsLastMinute, totalErrors, avgLatencyLast60Minutes,
+                                 errorThresholdBreached, latencyThresholdBreached);
     }
 
     public static class MetricsResponse {
         private final long errorsLastMinute;
         private final long totalErrors;
+        private final double avgLatencyLast60Minutes;
+        private final boolean errorThresholdBreached;
+        private final boolean latencyThresholdBreached;
 
         @JsonCreator
         public MetricsResponse(@JsonProperty("errorsLastMinute") long errorsLastMinute,
-                             @JsonProperty("totalErrors") long totalErrors) {
+                             @JsonProperty("totalErrors") long totalErrors,
+                             @JsonProperty("avgLatencyLast60Minutes") double avgLatencyLast60Minutes,
+                             @JsonProperty("errorThresholdBreached") boolean errorThresholdBreached,
+                             @JsonProperty("latencyThresholdBreached") boolean latencyThresholdBreached) {
             this.errorsLastMinute = errorsLastMinute;
             this.totalErrors = totalErrors;
+            this.avgLatencyLast60Minutes = avgLatencyLast60Minutes;
+            this.errorThresholdBreached = errorThresholdBreached;
+            this.latencyThresholdBreached = latencyThresholdBreached;
         }
 
         @JsonProperty
@@ -44,8 +57,23 @@ public class MetricsResource {
         }
 
         @JsonProperty
+        public double getAvgLatencyLast60Minutes() {
+            return avgLatencyLast60Minutes;
+        }
+
+        @JsonProperty
+        public boolean isErrorThresholdBreached() {
+            return errorThresholdBreached;
+        }
+
+        @JsonProperty
+        public boolean isLatencyThresholdBreached() {
+            return latencyThresholdBreached;
+        }
+
+        @JsonProperty
         public boolean isHealthy() {
-            return errorsLastMinute <= 100;
+            return !errorThresholdBreached && !latencyThresholdBreached;
         }
     }
 }

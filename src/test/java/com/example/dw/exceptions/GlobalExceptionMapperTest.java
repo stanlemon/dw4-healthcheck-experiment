@@ -1,7 +1,6 @@
 package com.example.dw.exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
 
 import com.example.dw.metrics.MetricsService;
 
@@ -10,34 +9,27 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.MediaType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Map;
 
-@ExtendWith(MockitoExtension.class)
 public class GlobalExceptionMapperTest {
 
-    @Mock
-    private MetricsService mockMetricsService;
-
+    private MetricsService metricsService;
     private GlobalExceptionMapper exceptionMapper;
 
     @BeforeEach
     public void setUp() {
-        // Use a try-with-resources with MockedStatic if you want to mock the static method directly
-        try (MockedStatic<MetricsService> mockedStatic = mockStatic(MetricsService.class)) {
-            mockedStatic.when(MetricsService::getInstance).thenReturn(mockMetricsService);
-            exceptionMapper = new GlobalExceptionMapper();
-        }
+        // Get the real MetricsService and clear its state for test isolation
+        metricsService = MetricsService.getInstance();
+        metricsService.clearMetrics();
+        exceptionMapper = new GlobalExceptionMapper();
     }
 
     @Test
     public void testToResponseRuntimeException() {
         // Setup
         RuntimeException exception = new RuntimeException("Test runtime exception");
+        long initialErrorCount = metricsService.getErrorCountLastMinute();
 
         // Execute
         Response response = exceptionMapper.toResponse(exception);
@@ -47,7 +39,7 @@ public class GlobalExceptionMapperTest {
         assertThat(response.getMediaType()).isEqualTo(MediaType.APPLICATION_JSON_TYPE);
 
         // Verify metrics were recorded (500 error)
-        verify(mockMetricsService).recordServerError();
+        assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(initialErrorCount + 1);
 
         // Get and verify response entity
         @SuppressWarnings("unchecked")
@@ -60,6 +52,7 @@ public class GlobalExceptionMapperTest {
     public void testToResponseWebApplicationException400() {
         // Setup - 400 Bad Request
         WebApplicationException exception = new WebApplicationException("Bad request", Response.Status.BAD_REQUEST);
+        long initialErrorCount = metricsService.getErrorCountLastMinute();
 
         // Execute
         Response response = exceptionMapper.toResponse(exception);
@@ -68,13 +61,14 @@ public class GlobalExceptionMapperTest {
         assertThat(response.getStatus()).isEqualTo(400);
 
         // Verify metrics were NOT recorded (not a 5xx error)
-        verify(mockMetricsService, never()).recordServerError();
+        assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(initialErrorCount);
     }
 
     @Test
     public void testToResponseWebApplicationException503() {
         // Setup - 503 Service Unavailable
         WebApplicationException exception = new WebApplicationException("Service unavailable", Response.Status.SERVICE_UNAVAILABLE);
+        long initialErrorCount = metricsService.getErrorCountLastMinute();
 
         // Execute
         Response response = exceptionMapper.toResponse(exception);
@@ -83,19 +77,23 @@ public class GlobalExceptionMapperTest {
         assertThat(response.getStatus()).isEqualTo(503);
 
         // Verify metrics were recorded (5xx error)
-        verify(mockMetricsService).recordServerError();
+        assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(initialErrorCount + 1);
     }
 
     @Test
     public void testToResponseNullMessage() {
         // Setup - exception with null message
         NullPointerException exception = new NullPointerException();
+        long initialErrorCount = metricsService.getErrorCountLastMinute();
 
         // Execute
         Response response = exceptionMapper.toResponse(exception);
 
         // Verify
         assertThat(response.getStatus()).isEqualTo(500);
+
+        // Verify metrics were recorded (5xx error)
+        assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(initialErrorCount + 1);
 
         // Get and verify response entity uses default message
         @SuppressWarnings("unchecked")
@@ -112,6 +110,7 @@ public class GlobalExceptionMapperTest {
                 return null; // This triggers the missing branch
             }
         };
+        long initialErrorCount = metricsService.getErrorCountLastMinute();
 
         // Execute
         Response response = exceptionMapper.toResponse(exception);
@@ -124,7 +123,7 @@ public class GlobalExceptionMapperTest {
         assertThat(entity.get("message")).isEqualTo("Test exception");
 
         // Verify metrics were recorded (5xx error)
-        verify(mockMetricsService).recordServerError();
+        assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(initialErrorCount + 1);
     }
 
     @Test
@@ -132,6 +131,7 @@ public class GlobalExceptionMapperTest {
         // Setup - Test the upper bound of 5xx range (covers status < 600 branch)
         WebApplicationException exception = new WebApplicationException("Status 599",
             Response.status(599).build());
+        long initialErrorCount = metricsService.getErrorCountLastMinute();
 
         // Execute
         Response response = exceptionMapper.toResponse(exception);
@@ -140,7 +140,7 @@ public class GlobalExceptionMapperTest {
         assertThat(response.getStatus()).isEqualTo(599);
 
         // Verify metrics were recorded (5xx error)
-        verify(mockMetricsService).recordServerError();
+        assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(initialErrorCount + 1);
     }
 
     @Test
@@ -148,6 +148,7 @@ public class GlobalExceptionMapperTest {
         // Setup - Test outside 5xx range (status >= 600, should NOT record error)
         WebApplicationException exception = new WebApplicationException("Status 600",
             Response.status(600).build());
+        long initialErrorCount = metricsService.getErrorCountLastMinute();
 
         // Execute
         Response response = exceptionMapper.toResponse(exception);
@@ -156,6 +157,6 @@ public class GlobalExceptionMapperTest {
         assertThat(response.getStatus()).isEqualTo(600);
 
         // Verify metrics were NOT recorded (not in 5xx range)
-        verify(mockMetricsService, never()).recordServerError();
+        assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(initialErrorCount);
     }
 }

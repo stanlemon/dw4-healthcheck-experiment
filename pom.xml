@@ -154,6 +154,15 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>${mainClass}</mainClass>
+                    <commandlineArgs>server config.yml</commandlineArgs>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

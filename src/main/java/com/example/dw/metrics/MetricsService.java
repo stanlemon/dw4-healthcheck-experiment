@@ -4,26 +4,47 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Service to track application metrics, including error counts in a sliding window.
- * Uses a high-performance circular buffer approach with 60 buckets (one per second).
+ * Service to track application metrics, including error counts and request latency in sliding windows.
+ * Uses a high-performance circular buffer approach with 60 buckets for error tracking (one per second)
+ * and 60 buckets for latency tracking (one per minute).
  */
 public class MetricsService {
     private static final MetricsService INSTANCE = new MetricsService();
 
-    // Use 60 buckets for a 60-second sliding window (one bucket per second)
-    private static final int BUCKET_COUNT = 60;
+    // Use 60 buckets for a 60-second sliding window (one bucket per second) for errors
+    private static final int ERROR_BUCKET_COUNT = 60;
+    // Use 60 buckets for a 60-minute sliding window (one bucket per minute) for latency
+    private static final int LATENCY_BUCKET_COUNT = 60;
+    // Default error threshold for last minute
+    private static final long DEFAULT_ERROR_THRESHOLD = 100;
+    // Default latency threshold in milliseconds
+    private static final double DEFAULT_LATENCY_THRESHOLD_MS = 500.0;
 
     // Circular buffer of error counts per second
-    private final AtomicLong[] errorBuckets = new AtomicLong[BUCKET_COUNT];
+    private final AtomicLong[] errorBuckets = new AtomicLong[ERROR_BUCKET_COUNT];
     // Track the last bucket we wrote to
     private volatile long lastBucketTime = -1;
     // Total count of errors (for logging/metrics purposes)
     private final AtomicLong totalErrorCount = new AtomicLong(0);
 
+    // Latency tracking with 60-minute sliding window
+    // Array to track total latency per minute bucket
+    private final AtomicLong[] latencyTotalBuckets = new AtomicLong[LATENCY_BUCKET_COUNT];
+    // Array to track count of requests per minute bucket
+    private final AtomicLong[] latencyCountBuckets = new AtomicLong[LATENCY_BUCKET_COUNT];
+    // Track the last minute bucket we wrote to for latency
+    private volatile long lastLatencyBucketTime = -1;
+
     private MetricsService() {
-        // Initialize all buckets
-        for (int i = 0; i < BUCKET_COUNT; i++) {
+        // Initialize all error buckets
+        for (int i = 0; i < ERROR_BUCKET_COUNT; i++) {
             errorBuckets[i] = new AtomicLong(0);
+        }
+
+        // Initialize all latency buckets
+        for (int i = 0; i < LATENCY_BUCKET_COUNT; i++) {
+            latencyTotalBuckets[i] = new AtomicLong(0);
+            latencyCountBuckets[i] = new AtomicLong(0);
         }
     }
 
@@ -36,7 +57,7 @@ public class MetricsService {
      */
     public void recordServerError() {
         long nowSeconds = Instant.now().getEpochSecond();
-        int bucketIndex = (int) (nowSeconds % BUCKET_COUNT);
+        int bucketIndex = (int) (nowSeconds % ERROR_BUCKET_COUNT);
 
         // Clear bucket if we've moved to a new time period
         clearOldBuckets(nowSeconds);
@@ -72,7 +93,7 @@ public class MetricsService {
      */
     private void clearOldBuckets(long currentSeconds) {
         // If this is the first write or we've moved significantly forward in time
-        if (lastBucketTime == -1 || currentSeconds - lastBucketTime >= BUCKET_COUNT) {
+        if (lastBucketTime == -1 || currentSeconds - lastBucketTime >= ERROR_BUCKET_COUNT) {
             // Clear all buckets if we've jumped forward more than our window
             for (AtomicLong bucket : errorBuckets) {
                 bucket.set(0);
@@ -80,8 +101,8 @@ public class MetricsService {
         } else {
             // Clear only the buckets that are now stale
             for (long time = lastBucketTime + 1; time <= currentSeconds; time++) {
-                if (time - currentSeconds < BUCKET_COUNT) { // Only clear if within our window
-                    int bucketIndex = (int) (time % BUCKET_COUNT);
+                if (currentSeconds - time < ERROR_BUCKET_COUNT) { // Only clear if within our window
+                    int bucketIndex = (int) (time % ERROR_BUCKET_COUNT);
                     errorBuckets[bucketIndex].set(0);
                 }
             }
@@ -97,6 +118,107 @@ public class MetricsService {
     }
 
     /**
+     * Check if the current error count in the last minute exceeds the specified threshold
+     * @param threshold the threshold for error count
+     * @return true if the error count exceeds the threshold
+     */
+    public boolean isErrorThresholdBreached(long threshold) {
+        return getErrorCountLastMinute() > threshold;
+    }
+
+    /**
+     * Check if the current error count in the last minute exceeds the default threshold (100)
+     * @return true if the error count exceeds the default threshold
+     */
+    public boolean isErrorThresholdBreached() {
+        return isErrorThresholdBreached(DEFAULT_ERROR_THRESHOLD);
+    }
+
+    /**
+     * Record request latency in milliseconds
+     * @param latencyMs the latency in milliseconds
+     */
+    public void recordRequestLatency(long latencyMs) {
+        long nowMinutes = Instant.now().getEpochSecond() / 60; // Convert to minutes
+        int bucketIndex = (int) (nowMinutes % LATENCY_BUCKET_COUNT);
+
+        // Clear old latency buckets if we've moved to a new time period
+        clearOldLatencyBuckets(nowMinutes);
+
+        // Add to the current bucket
+        latencyTotalBuckets[bucketIndex].addAndGet(latencyMs);
+        latencyCountBuckets[bucketIndex].incrementAndGet();
+
+        lastLatencyBucketTime = nowMinutes;
+    }
+
+    /**
+     * Get the average request latency over the last 60 minutes
+     * @return average latency in milliseconds, or 0 if no requests recorded
+     */
+    public double getAverageLatencyLast60Minutes() {
+        long nowMinutes = Instant.now().getEpochSecond() / 60;
+
+        // Clear any old buckets first
+        clearOldLatencyBuckets(nowMinutes);
+
+        // Sum all buckets
+        long totalLatency = 0;
+        long totalCount = 0;
+
+        for (int i = 0; i < LATENCY_BUCKET_COUNT; i++) {
+            totalLatency += latencyTotalBuckets[i].get();
+            totalCount += latencyCountBuckets[i].get();
+        }
+
+        if (totalCount == 0) {
+            return 0.0;
+        }
+
+        return (double) totalLatency / totalCount;
+    }
+
+    /**
+     * Check if the current average latency exceeds the specified threshold
+     * @param thresholdMs the threshold in milliseconds
+     * @return true if the average latency exceeds the threshold
+     */
+    public boolean isLatencyThresholdBreached(double thresholdMs) {
+        return getAverageLatencyLast60Minutes() > thresholdMs;
+    }
+
+    /**
+     * Check if the current average latency exceeds the default threshold (500ms)
+     * @return true if the average latency exceeds the default threshold
+     */
+    public boolean isLatencyThresholdBreached() {
+        return isLatencyThresholdBreached(DEFAULT_LATENCY_THRESHOLD_MS);
+    }
+
+    /**
+     * Clear latency buckets that are older than 60 minutes
+     */
+    private void clearOldLatencyBuckets(long currentMinutes) {
+        // If this is the first write or we've moved significantly forward in time
+        if (lastLatencyBucketTime == -1 || currentMinutes - lastLatencyBucketTime >= LATENCY_BUCKET_COUNT) {
+            // Clear all buckets if we've jumped forward more than our window
+            for (int i = 0; i < LATENCY_BUCKET_COUNT; i++) {
+                latencyTotalBuckets[i].set(0);
+                latencyCountBuckets[i].set(0);
+            }
+        } else {
+            // Clear only the buckets that are now stale
+            for (long time = lastLatencyBucketTime + 1; time <= currentMinutes; time++) {
+                if (currentMinutes - time < LATENCY_BUCKET_COUNT) { // Only clear if within our window
+                    int bucketIndex = (int) (time % LATENCY_BUCKET_COUNT);
+                    latencyTotalBuckets[bucketIndex].set(0);
+                    latencyCountBuckets[bucketIndex].set(0);
+                }
+            }
+        }
+    }
+
+    /**
      * Clear all metrics (useful for testing)
      */
     public void clearMetrics() {
@@ -105,5 +227,47 @@ public class MetricsService {
         }
         totalErrorCount.set(0);
         lastBucketTime = -1;
+
+        // Clear latency buckets as well
+        for (int i = 0; i < LATENCY_BUCKET_COUNT; i++) {
+            latencyTotalBuckets[i].set(0);
+            latencyCountBuckets[i].set(0);
+        }
+        lastLatencyBucketTime = -1;
+    }
+
+    // Package-private methods for testing bucket clearing edge cases
+    // These should only be used by test classes in the same package
+
+    /**
+     * Get the last bucket time for error buckets (for testing)
+     * @return the last bucket time
+     */
+    long getLastBucketTime() {
+        return lastBucketTime;
+    }
+
+    /**
+     * Get the last bucket time for latency buckets (for testing)
+     * @return the last latency bucket time
+     */
+    long getLastLatencyBucketTime() {
+        return lastLatencyBucketTime;
+    }
+
+    /**
+     * Set the last bucket time for error buckets (for testing stale conditions)
+     * @param time the time to set
+     */
+    void setLastBucketTimeForTesting(long time) {
+        this.lastBucketTime = time;
+    }
+
+    /**
+     * Set the last bucket time for latency buckets (for testing stale conditions)
+     * @param time the time to set
+     */
+    void setLastLatencyBucketTimeForTesting(long time) {
+        this.lastLatencyBucketTime = time;
     }
 }
