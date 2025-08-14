@@ -28,6 +28,17 @@ replay_pid*
 target/
 dependency-reduced-pom.xml
 
+# IDE files
+.idea/
+*.iml
+.vscode/
+.eclipse/
+
+# OWASP Dependency Check
+dependency-check-report.html
+dependency-check-report.xml
+dependency-check-report.json
+
 # IDE
 .idea/
 *.iml

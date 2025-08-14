@@ -1,0 +1,25 @@
+# Source files
+src/
+*.md
+renovate.json
+
+# Build artifacts (except the final JAR)
+target/classes/
+target/test-classes/
+target/maven-*
+target/surefire-*
+target/site/
+target/*.original
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# Other
+.DS_Store
+*.log

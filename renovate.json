@@ -1,6 +1,38 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
-  ]
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard"
+  ],
+  "schedule": [
+    "before 6am on monday"
+  ],
+  "packageRules": [
+    {
+      "matchDepTypes": [
+        "test"
+      ],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "matchPackagePatterns": [
+        "^org.junit",
+        "^org.mockito",
+        "^org.assertj"
+      ],
+      "groupName": "test dependencies"
+    },
+    {
+      "matchPackageNames": [
+        "io.dropwizard:dropwizard-core",
+        "io.dropwizard:dropwizard-testing"
+      ],
+      "groupName": "dropwizard"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true
+  }
 }

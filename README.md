@@ -191,6 +191,51 @@ Coverage reports are generated in HTML format and include:
 - Per-class detailed coverage with highlighted source code
 - Identification of untested code paths
 
+## Code Quality & Security
+
+The project includes comprehensive code quality and security tooling:
+
+### Static Analysis & Quality
+
+- **SonarCloud**: Continuous code quality analysis with coverage integration
+- **Spotless**: Google Java Format enforcement for consistent code style
+- **JaCoCo**: Test coverage analysis with 70% minimum threshold
+
+### Security Scanning
+
+- **OWASP Dependency Check**: Scans for known vulnerabilities in dependencies
+- **GitHub CodeQL**: Static Application Security Testing (SAST)
+- **Security Workflow**: Weekly automated security scans
+
+### Build Standards
+
+- **Maven Enforcer**: Ensures Java 21 and Maven 3.6.3+ requirements
+- **Dependency Management**: Renovate Bot for automated dependency updates
+
+### Running Security Checks
+
+```bash
+# Run OWASP dependency vulnerability scan
+mvn org.owasp:dependency-check-maven:check
+
+# Check code formatting
+mvn spotless:check
+
+# Apply code formatting
+mvn spotless:apply
+
+# Run all quality checks
+mvn clean verify
+```
+
+### Continuous Integration
+
+The project includes GitHub Actions workflows for:
+
+- **Test Workflow**: Runs tests, coverage, and uploads results to Codecov
+- **Security Workflow**: OWASP scans and CodeQL analysis
+- **Release Workflow**: Automated releases on version tags
+
 ## Code Formatting
 
 The project uses [Spotless](https://github.com/diffplug/spotless) with Google Java Format to maintain consistent code formatting across the codebase.
