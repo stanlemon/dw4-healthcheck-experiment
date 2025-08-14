@@ -228,6 +228,116 @@ The Spotless plugin is configured to:
 
 **Tip**: Run `mvn spotless:apply` before committing code to ensure consistent formatting.
 
+## Code Quality Analysis with SonarCloud
+
+The project is configured to work with SonarCloud (free for open source projects) for comprehensive code quality analysis:
+
+- **Code Smells**: Maintainability issues and anti-patterns
+- **Bugs**: Potential runtime errors and logic issues
+- **Security Vulnerabilities**: Security hotspots and vulnerabilities
+- **Code Coverage**: Integration with JaCoCo coverage reports
+- **Duplicated Code**: Detection of code duplication across the project
+- **Complexity Metrics**: Cyclomatic complexity and cognitive complexity analysis
+
+### Setup and Usage
+
+1. **Sign up for SonarCloud**: Go to [sonarcloud.io](https://sonarcloud.io) and sign in with your GitHub account
+2. **Import your project**: Add this repository to SonarCloud
+3. **Generate a token**: Go to [sonarcloud.io/account/security](https://sonarcloud.io/account/security)
+4. **Check if you need an organization**:
+   - **Personal account**: You might not need an organization key
+   - **Organization account**: Find your key at [sonarcloud.io/organizations](https://sonarcloud.io/organizations)
+
+### Run Analysis
+
+**For personal accounts** (try this first):
+
+```bash
+# Set only your token
+export SONAR_TOKEN=your_token_here
+
+# Run analysis
+./analyze-code.sh
+```
+
+**If you need a custom project key**:
+
+```bash
+# Set token and custom project key
+export SONAR_TOKEN=your_token_here
+export SONAR_PROJECT_KEY=your-custom-project-key
+
+# Run analysis
+./analyze-code.sh
+```
+
+**For organization accounts**:
+
+```bash
+# Set both token and organization
+export SONAR_TOKEN=your_token_here
+export SONAR_ORGANIZATION=your_organization_key
+
+# Run analysis
+./analyze-code.sh
+```
+
+The script will:
+
+- Run all tests and generate JaCoCo coverage reports
+- Upload code analysis to SonarCloud
+- Provide a direct link to view results
+
+### Analysis Reports
+
+SonarCloud provides detailed reports including:
+
+- **Quality Gates**: Pass/fail criteria for code quality
+- **Code Coverage**: Line and branch coverage metrics from JaCoCo
+- **Maintainability Rating**: Technical debt ratio assessment
+- **Reliability Rating**: Bug density analysis
+- **Security Rating**: Security vulnerability assessment
+- **Duplication**: Percentage of duplicated lines
+- **Issues Breakdown**: Detailed list of all detected issues with severity levels
+
+### Project Analysis Focus
+
+For this Dropwizard project, SonarCloud will analyze:
+
+- **Line Coverage**: Currently achieving high coverage through comprehensive test suite (95 tests)
+- **Code Quality**: 20 Java files including metrics service, health checks, and REST endpoints
+- **Security**: Input validation and exception handling patterns
+- **Maintainability**: Code complexity in latency calculations and filter logic
+
+### Quick Start Summary
+
+**For personal accounts:**
+
+```bash
+# 1. Sign up at https://sonarcloud.io with GitHub
+# 2. Import your repository
+# 3. Get your token from account security
+# 4. Run analysis:
+
+export SONAR_TOKEN=your_token_here
+./analyze-code.sh
+```
+
+**For organization accounts:**
+
+```bash
+# 1. Sign up at https://sonarcloud.io with GitHub
+# 2. Import your repository to your organization
+# 3. Get your organization key and token
+# 4. Run analysis:
+
+export SONAR_TOKEN=your_token_here
+export SONAR_ORGANIZATION=your_organization_key
+./analyze-code.sh
+```
+
+That's it! Your code quality analysis will be available at SonarCloud.
+
 ## Example Usage
 
 ### Monitoring Latency in Real-Time
