@@ -126,7 +126,7 @@ public class MetricsService {
   }
 
   /**
-   * Check if the current error count in the last minute exceeds the default threshold (100)
+   * Check if the current error count in the last minute exceeds the default threshold
    *
    * @return true if the error count exceeds the default threshold
    */
@@ -191,12 +191,30 @@ public class MetricsService {
   }
 
   /**
-   * Check if the current average latency exceeds the default threshold (100ms)
+   * Check if the current average latency exceeds the default threshold
    *
    * @return true if the average latency exceeds the default threshold
    */
   public boolean isLatencyThresholdBreached() {
     return isLatencyThresholdBreached(DEFAULT_LATENCY_THRESHOLD_MS);
+  }
+
+  /**
+   * Get the default error threshold
+   *
+   * @return the default error threshold
+   */
+  public static long getDefaultErrorThreshold() {
+    return DEFAULT_ERROR_THRESHOLD;
+  }
+
+  /**
+   * Get the default latency threshold in milliseconds
+   *
+   * @return the default latency threshold in milliseconds
+   */
+  public static double getDefaultLatencyThresholdMs() {
+    return DEFAULT_LATENCY_THRESHOLD_MS;
   }
 
   /** Clear latency buckets that are older than 60 minutes */

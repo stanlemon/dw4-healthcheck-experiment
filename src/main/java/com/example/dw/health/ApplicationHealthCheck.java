@@ -21,24 +21,32 @@ public class ApplicationHealthCheck extends HealthCheck {
     if (errorThresholdBreached && latencyThresholdBreached) {
       return Result.unhealthy(
           "Critical: Both error and latency thresholds breached - "
-              + "%d errors in last minute (threshold: 100), "
-              + "%.1fms average latency in last 60 minutes (threshold: 100ms)",
-          errorCount, avgLatency);
+              + "%d errors in last minute (threshold: %d), "
+              + "%.1fms average latency in last 60 minutes (threshold: %.0fms)",
+          errorCount,
+          MetricsService.getDefaultErrorThreshold(),
+          avgLatency,
+          MetricsService.getDefaultLatencyThresholdMs());
     }
 
     if (errorThresholdBreached) {
       return Result.unhealthy(
-          "Too many errors: %d errors in last minute (threshold: 100)", errorCount);
+          "Too many errors: %d errors in last minute (threshold: %d)",
+          errorCount, MetricsService.getDefaultErrorThreshold());
     }
 
     if (latencyThresholdBreached) {
       return Result.unhealthy(
-          "High latency: %.1fms average latency in last 60 minutes (threshold: 100ms)", avgLatency);
+          "High latency: %.1fms average latency in last 60 minutes (threshold: %.0fms)",
+          avgLatency, MetricsService.getDefaultLatencyThresholdMs());
     }
 
     return Result.healthy(
-        "OK - %d errors in last minute (threshold: 100), "
-            + "%.1fms average latency in last 60 minutes (threshold: 100ms)",
-        errorCount, avgLatency);
+        "OK - %d errors in last minute (threshold: %d), "
+            + "%.1fms average latency in last 60 minutes (threshold: %.0fms)",
+        errorCount,
+        MetricsService.getDefaultErrorThreshold(),
+        avgLatency,
+        MetricsService.getDefaultLatencyThresholdMs());
   }
 }
