@@ -45,6 +45,15 @@ java -jar target/dw-test2-1.0-SNAPSHOT.jar server config.yml
 - Metrics: [http://localhost:8097/metrics](http://localhost:8097/metrics) - Shows comprehensive error counts, latency statistics, and threshold status
 - Health Check: [http://localhost:8098/healthcheck](http://localhost:8098/healthcheck) - Returns health status based on error and latency thresholds
 
+## Utility Scripts
+
+The project includes several utility scripts for testing and development:
+
+- **`generate_errors.sh [count]`** - Generate errors for testing thresholds (default: 15)
+- **`poll_metrics.sh`** - Continuously poll and display metrics
+- **`run_tests.sh`** - Run tests with coverage reporting
+- **`analyze-code.sh`** - Upload code analysis to SonarCloud
+
 ### Test Error Endpoints
 
 These endpoints demonstrate how the global exception mapper catches different types of errors:
@@ -400,7 +409,12 @@ curl http://localhost:8097/metrics
 ### Triggering Error Thresholds
 
 ```bash
-# Generate 101 errors to breach error threshold
+# Generate errors using the provided script
+./generate_errors.sh           # Generates 15 errors (default)
+./generate_errors.sh 25        # Generates 25 errors
+./generate_errors.sh 101       # Generates 101 errors to breach threshold
+
+# Alternative: Generate errors manually
 for i in {1..101}; do curl http://localhost:8097/error; done
 
 # Check health status
