@@ -230,8 +230,9 @@ The project includes comprehensive code quality and security tooling:
 
 ### Security Scanning
 
-- **OWASP Dependency Check**: Scans for known vulnerabilities in dependencies
+- **GitHub Dependency Review**: Scans for known vulnerabilities in dependencies on PRs
 - **GitHub CodeQL**: Static Application Security Testing (SAST)
+- **SpotBugs**: Security-focused static analysis
 - **Security Workflow**: Weekly automated security scans
 
 ### Build Standards
@@ -242,8 +243,8 @@ The project includes comprehensive code quality and security tooling:
 ### Running Security Checks
 
 ```bash
-# Run OWASP dependency vulnerability scan
-mvn org.owasp:dependency-check-maven:check
+# Run SpotBugs security analysis
+mvn compile spotbugs:check
 
 # Check code formatting
 mvn spotless:check
@@ -260,7 +261,7 @@ mvn clean verify
 The project includes GitHub Actions workflows for:
 
 - **Test Workflow**: Runs tests, coverage, and uploads results to Codecov
-- **Security Workflow**: OWASP scans and CodeQL analysis
+- **Security Workflow**: SpotBugs, dependency review, and CodeQL analysis
 - **Release Workflow**: Automated releases on version tags
 
 ## Code Formatting

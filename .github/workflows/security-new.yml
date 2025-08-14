@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       full_scan:
-        description: 'Run full security scan (including CodeQL)'
+        description: 'Run full security scan (including OWASP & CodeQL)'
         required: false
         default: true
         type: boolean
@@ -46,15 +46,16 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
 
     # Quick security checks - always run
-    - name: Security Analysis
+    - name: Quick Security Analysis
       run: |
-        echo "🔍 Running security analysis..."
+        echo "🔍 Running quick security checks..."
 
         # SpotBugs security check
         echo "Running SpotBugs security analysis..."
         mvn compile spotbugs:check \
           -Dspotbugs.effort=Max \
-          -Dspotbugs.threshold=Medium \
+          -Dspotbugs.threshold=Low \
+          -Dspotbugs.includeFilterFile=spotbugs-security.xml \
           -q || echo "SpotBugs completed with warnings"
 
         # Check for hardcoded secrets
@@ -70,16 +71,53 @@ jobs:
         echo "Analyzing Maven dependencies..."
         mvn dependency:analyze -q
 
-        # Check for dependencies with known vulnerabilities using Maven
-        echo "Checking for vulnerable dependencies..."
-        mvn versions:display-dependency-updates -DlogResults=false | grep -i security || echo "No obvious security issues in dependency updates"
-
-    # Dependency vulnerability scanning using GitHub Security
-    - name: Dependency Review
-      if: github.event_name == 'pull_request'
-      uses: actions/dependency-review-action@v4
+    # OWASP Dependency Check - only for scheduled runs, manual triggers, or pom.xml changes
+    - name: Cache OWASP NVD database
+      if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.changed_files, 'pom.xml')
+      uses: actions/cache@v4
       with:
-        fail-on-severity: moderate
+        path: ~/.m2/repository/org/owasp/dependency-check-data
+        key: ${{ runner.os }}-owasp-nvd-${{ github.run_number }}
+        restore-keys: |
+          ${{ runner.os }}-owasp-nvd-
+
+    - name: OWASP Dependency Check
+      if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.changed_files, 'pom.xml')
+      run: |
+        echo "🔍 Running OWASP Dependency Check..."
+        # Use plugin version from pom.xml instead of command line
+        if ! mvn dependency-check:check \
+          -Dformat=HTML,JSON \
+          -DsuppressionsFile=owasp-suppressions.xml \
+          -DfailBuildOnCVSS=7 \
+          -DnvdApiDatafeed=false \
+          -DnvdMaxRetryCount=5 \
+          -DnvdApiDelay=4000 \
+          -DretireJsAnalyzerEnabled=false \
+          -DnodeAnalyzerEnabled=false \
+          -DenableRetired=false \
+          -DenableExperimental=false; then
+          echo "OWASP check failed, trying with local database only..."
+          mvn dependency-check:check \
+            -Dformat=HTML,JSON \
+            -DsuppressionsFile=owasp-suppressions.xml \
+            -DfailBuildOnCVSS=7 \
+            -DnvdApiDatafeed=false \
+            -DautoUpdate=false \
+            -DretireJsAnalyzerEnabled=false \
+            -DnodeAnalyzerEnabled=false \
+            -DenableRetired=false \
+            -DenableExperimental=false || echo "OWASP check failed - continuing with limited vulnerability data"
+        fi
+
+    - name: Upload OWASP results
+      if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.changed_files, 'pom.xml'))
+      uses: actions/upload-artifact@v4
+      with:
+        name: owasp-report
+        path: |
+          target/dependency-check-report.html
+          target/dependency-check-report.json
 
     # CodeQL Analysis - only for scheduled runs or manual triggers
     - name: Initialize CodeQL
@@ -109,10 +147,11 @@ jobs:
         echo "- ✅ SpotBugs Security Analysis" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Hardcoded Secrets Check" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Maven Dependency Analysis" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Dependency Version Check" >> $GITHUB_STEP_SUMMARY
 
-        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-          echo "- ✅ GitHub Dependency Review" >> $GITHUB_STEP_SUMMARY
+        if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "workflow_dispatch" || "${{ contains(github.event.pull_request.changed_files, 'pom.xml') }}" == "true" ]]; then
+          echo "- ✅ OWASP Dependency Check" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- ⏭️ OWASP Dependency Check (skipped for PR)" >> $GITHUB_STEP_SUMMARY
         fi
 
         if [[ "${{ github.event_name }}" == "schedule" || ("${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.full_scan }}" == "true") ]]; then

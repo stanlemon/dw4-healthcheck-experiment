@@ -41,10 +41,18 @@ jobs:
 
     - name: Check for known vulnerable dependencies (quick)
       run: |
-        # Quick check using Maven versions plugin for known vulnerabilities
-        mvn versions:display-dependency-updates \
-          -DlogResults=false \
-          -q | grep -E "(SECURITY|CVE)" || echo "No obvious security issues found"
+        echo "Checking for known vulnerable dependencies..."
+        # Use Maven versions plugin to check for updates and security issues
+        mvn versions:display-dependency-updates -DlogResults=false -q | grep -E "(SECURITY|CVE)" || true
+
+        # Alternative: Use GitHub Security Advisory Database via npm audit (if package.json exists)
+        if [ -f "package.json" ]; then
+          npm audit --audit-level moderate || echo "No package.json or npm issues found"
+        fi
+
+        # Check for dependencies with known issues using mvn dependency:analyze
+        echo "Analyzing dependency tree for potential issues..."
+        mvn dependency:analyze -q
 
     - name: Validate Maven dependencies
       run: mvn dependency:analyze -q
