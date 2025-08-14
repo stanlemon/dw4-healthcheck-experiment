@@ -1,5 +1,5 @@
 # Use Eclipse Temurin JRE 21 as base image
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21.0.8_9-jre-alpine
 
 # Set working directory
 WORKDIR /app
