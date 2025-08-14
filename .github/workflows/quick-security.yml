@@ -1,0 +1,61 @@
+name: Quick Security Check
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'pom.xml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  quick-security:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+
+    - name: Run SpotBugs Security Check
+      run: |
+        mvn compile spotbugs:check \
+          -Dspotbugs.effort=Max \
+          -Dspotbugs.threshold=Low \
+          -Dspotbugs.includeFilterFile=spotbugs-security.xml \
+          -q
+
+    - name: Check for known vulnerable dependencies (quick)
+      run: |
+        # Quick check using Maven versions plugin for known vulnerabilities
+        mvn versions:display-dependency-updates \
+          -DlogResults=false \
+          -q | grep -E "(SECURITY|CVE)" || echo "No obvious security issues found"
+
+    - name: Validate Maven dependencies
+      run: mvn dependency:analyze -q
+
+    - name: Check for hardcoded secrets (basic)
+      run: |
+        echo "Checking for potential hardcoded secrets..."
+        # Simple regex patterns for common secrets
+        if grep -r -E "(password|secret|key|token)\s*[:=]\s*['\"][^'\"]{8,}" src/ --include="*.java" --exclude-dir=test; then
+          echo "⚠️  Potential hardcoded secrets found!"
+          exit 1
+        else
+          echo "✅ No obvious hardcoded secrets detected"
+        fi

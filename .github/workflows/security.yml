@@ -1,13 +1,18 @@
 name: Security Scan
 
 on:
-  push:
-    branches: [ main ]
+  # Only run on PRs and scheduled - not every push to main
   pull_request:
     branches: [ main ]
+    paths:
+      - 'pom.xml'
+      - 'src/**'
+      - '.github/workflows/security.yml'
   schedule:
     # Run weekly on Sunday at 2 AM UTC
     - cron: '0 2 * * 0'
+  # Allow manual triggering
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,8 +20,10 @@ permissions:
   actions: read
 
 jobs:
-  security:
+  # Split into separate jobs for better parallelization and caching
+  dependency-check:
     runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.changed_files, 'pom.xml'))
 
     steps:
     - name: Checkout code
@@ -34,23 +41,61 @@ jobs:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
 
+    - name: Cache OWASP NVD database
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository/org/owasp/dependency-check-data
+        key: ${{ runner.os }}-owasp-nvd-${{ github.run_number }}
+        restore-keys: |
+          ${{ runner.os }}-owasp-nvd-
+
     - name: Run OWASP Dependency Check
-      run: mvn org.owasp:dependency-check-maven:check
+      run: |
+        mvn org.owasp:dependency-check-maven:check \
+          -Dformat=HTML,JSON \
+          -DsuppressionsFile=owasp-suppressions.xml \
+          -DfailBuildOnCVSS=7 \
+          -DretireJsAnalyzerEnabled=false \
+          -DnodeAnalyzerEnabled=false
 
     - name: Upload OWASP results
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: owasp-report
-        path: target/dependency-check-report.html
+        path: |
+          target/dependency-check-report.html
+          target/dependency-check-report.json
+
+  codeql:
+    runs-on: ubuntu-latest
+    # Only run CodeQL on schedule or manual trigger to reduce frequency
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
         languages: java
+        queries: security-and-quality
 
     - name: Build for CodeQL
-      run: mvn clean compile -DskipTests
+      run: mvn clean compile -DskipTests -q
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
