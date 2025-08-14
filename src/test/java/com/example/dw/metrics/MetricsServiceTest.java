@@ -197,52 +197,52 @@ public class MetricsServiceTest {
 
   @Test
   void testDefaultLatencyThresholdBreach() {
-    // Test the default threshold (500ms) with latencies below the threshold
-    metricsService.recordRequestLatency(400);
-    metricsService.recordRequestLatency(300);
+    // Test the default threshold (100ms) with latencies below the threshold
+    metricsService.recordRequestLatency(80);
+    metricsService.recordRequestLatency(60);
 
-    // Average is 350ms, which is below 500ms default threshold
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(350.0);
+    // Average is 70ms, which is below 100ms default threshold
+    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(70.0);
     assertThat(metricsService.isLatencyThresholdBreached()).isFalse();
   }
 
   @Test
   void testDefaultLatencyThresholdBreachExceeded() {
-    // Test the default threshold (500ms) with latencies above the threshold
-    metricsService.recordRequestLatency(600);
-    metricsService.recordRequestLatency(700);
+    // Test the default threshold (100ms) with latencies above the threshold
+    metricsService.recordRequestLatency(150);
+    metricsService.recordRequestLatency(200);
 
-    // Average is 650ms, which is above 500ms default threshold
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(650.0);
+    // Average is 175ms, which is above 100ms default threshold
+    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(175.0);
     assertThat(metricsService.isLatencyThresholdBreached()).isTrue();
   }
 
   @Test
   void testDefaultLatencyThresholdAtExactThreshold() {
-    // Test the default threshold (500ms) with latencies exactly at the threshold
-    metricsService.recordRequestLatency(500);
-    metricsService.recordRequestLatency(500);
+    // Test the default threshold (100ms) with latencies exactly at the threshold
+    metricsService.recordRequestLatency(100);
+    metricsService.recordRequestLatency(100);
 
-    // Average is exactly 500ms, which should not breach (500 == 500, not >)
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(500.0);
+    // Average is exactly 100ms, which should not breach (100 == 100, not >)
+    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(100.0);
     assertThat(metricsService.isLatencyThresholdBreached()).isFalse();
   }
 
   @Test
   void testBothThresholdMethodsConsistency() {
-    // Test that both threshold methods return the same result when using 500ms
-    metricsService.recordRequestLatency(400);
-    metricsService.recordRequestLatency(800);
+    // Test that both threshold methods return the same result when using 100ms
+    metricsService.recordRequestLatency(80);
+    metricsService.recordRequestLatency(160);
 
-    // Average is 600ms
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(600.0);
+    // Average is 120ms
+    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(120.0);
 
-    // Both methods should return the same result for 500ms threshold
+    // Both methods should return the same result for 100ms threshold
     boolean defaultMethod = metricsService.isLatencyThresholdBreached();
-    boolean parameterMethod = metricsService.isLatencyThresholdBreached(500.0);
+    boolean parameterMethod = metricsService.isLatencyThresholdBreached(100.0);
 
-    assertThat(defaultMethod).isTrue(); // 600 > 500
-    assertThat(parameterMethod).isTrue(); // 600 > 500
+    assertThat(defaultMethod).isTrue(); // 120 > 100
+    assertThat(parameterMethod).isTrue(); // 120 > 100
     assertThat(defaultMethod).isEqualTo(parameterMethod);
   }
 
@@ -358,13 +358,13 @@ public class MetricsServiceTest {
       metricsService.recordServerError();
     }
 
-    // Record latencies above latency threshold (>500ms)
-    metricsService.recordRequestLatency(600);
-    metricsService.recordRequestLatency(700);
+    // Record latencies above latency threshold (>100ms)
+    metricsService.recordRequestLatency(150);
+    metricsService.recordRequestLatency(180);
 
     // Verify both thresholds are breached
     assertThat(metricsService.isErrorThresholdBreached()).isTrue(); // 120 > 100
-    assertThat(metricsService.isLatencyThresholdBreached()).isTrue(); // 650 > 500
+    assertThat(metricsService.isLatencyThresholdBreached()).isTrue(); // 165 > 100
 
     // Clear and verify both are reset
     metricsService.clearMetrics();
@@ -759,7 +759,7 @@ public class MetricsServiceTest {
     // Verify latencies were recorded (exact average depends on thread execution order)
     double avgLatency = metricsService.getAverageLatencyLast60Minutes();
     assertThat(avgLatency).isGreaterThan(0.0);
-    assertThat(avgLatency).isLessThan(500.0); // Should be reasonable average
+    assertThat(avgLatency).isLessThan(200.0); // Should be reasonable average
   }
 
   @Test

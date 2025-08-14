@@ -50,7 +50,7 @@ java -jar target/dw-test2-1.0-SNAPSHOT.jar server config.yml
 
 The project includes several utility scripts for testing and development:
 
-- **`generate_errors.sh [count]`** - Generate errors for testing thresholds (default: 15)
+- **`generate_errors.sh [count] [latency_percentage]`** - Generate errors and latency for testing thresholds (default: 15 errors, 30% latency)
 - **`poll_metrics.sh`** - Continuously poll and display metrics
 - **`run_tests.sh`** - Run tests with coverage reporting
 - **`analyze-code.sh`** - Upload code analysis to SonarCloud
@@ -71,7 +71,7 @@ These endpoints introduce artificial delays to test latency monitoring:
 - Default 1-second delay: [http://localhost:8097/slow](http://localhost:8097/slow)
 - Custom delay (in milliseconds): [http://localhost:8097/slow/2000](http://localhost:8097/slow/2000)
 - Examples for testing:
-  - 600ms delay: [http://localhost:8097/slow/600](http://localhost:8097/slow/600) - Exceeds 500ms threshold
+  - 600ms delay: [http://localhost:8097/slow/600](http://localhost:8097/slow/600) - Exceeds 100ms threshold
   - 2-second delay: [http://localhost:8097/slow/2000](http://localhost:8097/slow/2000) - Significantly exceeds threshold
   - 5-second delay: [http://localhost:8097/slow/5000](http://localhost:8097/slow/5000) - Maximum practical delay
 
@@ -90,7 +90,7 @@ The application provides comprehensive monitoring with dual-threshold alerting:
 ### Latency Monitoring
 
 - Tracks request latency for all HTTP requests in a 60-minute sliding window
-- Default threshold: 500ms average latency
+- Default threshold: 100ms average latency
 - Automatic recording via request/response filter middleware
 
 ### Metrics Endpoint Response
@@ -113,7 +113,7 @@ The `/metrics` endpoint returns comprehensive monitoring data:
 The health check monitors both error rates and response latency:
 
 - **Error Threshold**: More than 100 errors in the last minute
-- **Latency Threshold**: Average latency exceeding 500ms over the last 60 minutes
+- **Latency Threshold**: Average latency exceeding 100ms over the last 60 minutes
 - **Health Status**:
   - `Healthy`: Both thresholds within limits
   - `Unhealthy`: One or both thresholds exceeded
@@ -129,7 +129,7 @@ metricsService.isErrorThresholdBreached();        // Uses default 100
 metricsService.isErrorThresholdBreached(50);      // Custom threshold
 
 // Latency thresholds
-metricsService.isLatencyThresholdBreached();      // Uses default 500ms
+metricsService.isLatencyThresholdBreached();      // Uses default 100ms
 metricsService.isLatencyThresholdBreached(300.0); // Custom threshold
 ```
 
@@ -428,9 +428,16 @@ curl http://localhost:8097/metrics
 
 ```bash
 # Generate errors using the provided script
-./generate_errors.sh           # Generates 15 errors (default)
-./generate_errors.sh 25        # Generates 25 errors
-./generate_errors.sh 101       # Generates 101 errors to breach threshold
+./generate_errors.sh                    # Generates 15 errors with 30% latency (default)
+./generate_errors.sh 25                 # Generates 25 errors with 30% latency
+./generate_errors.sh 25 50              # Generates 25 errors with 50% latency
+./generate_errors.sh 101 0              # Generates 101 errors with no latency (errors only)
+./generate_errors.sh 50 100             # Generates 50 errors with 100% latency (all requests slow)
+
+# Aggressive latency testing (percentages > 100%)
+./generate_errors.sh 10 200             # 10 errors + 20 latency requests (2x multiplier)
+./generate_errors.sh 5 500              # 5 errors + 25 latency requests (5x multiplier)
+./generate_errors.sh 20 300             # 20 errors + 60 latency requests (3x multiplier)
 
 # Alternative: Generate errors manually
 for i in {1..101}; do curl http://localhost:8097/error; done
@@ -443,12 +450,12 @@ curl http://localhost:8098/healthcheck
 
 ```bash
 # Single slow requests to test latency tracking
-curl http://localhost:8097/slow/600    # 600ms delay (exceeds 500ms threshold)
+curl http://localhost:8097/slow/600    # 600ms delay (exceeds 100ms threshold)
 curl http://localhost:8097/slow/1000   # 1 second delay
 curl http://localhost:8097/slow/2000   # 2 second delay
 
 # Multiple slow requests to breach average latency threshold
-# Generate several slow requests to raise average latency above 500ms
+# Generate several slow requests to raise average latency above 100ms
 for i in {1..10}; do curl http://localhost:8097/slow/800; done
 
 # Check metrics and health status
@@ -456,12 +463,43 @@ curl http://localhost:8097/metrics
 curl http://localhost:8098/healthcheck
 ```
 
+### Combined Error and Latency Testing
+
+The `generate_errors.sh` script now supports testing both error and latency thresholds simultaneously:
+
+```bash
+# Test scenarios for comprehensive monitoring validation
+
+# Scenario 1: High error rate with moderate latency
+./generate_errors.sh 150 25           # 150 errors, 25% slow - triggers error threshold
+
+# Scenario 2: Moderate errors with high latency
+./generate_errors.sh 50 80            # 50 errors, 80% slow - may trigger latency threshold
+
+# Scenario 3: Critical scenario - both thresholds breached
+./generate_errors.sh 120 70           # 120 errors, 70% slow - likely triggers both thresholds
+
+# Scenario 4: Latency testing without error threshold breach
+./generate_errors.sh 30 100           # 30 errors, 100% slow - focuses on latency impact
+
+# Scenario 5: Egregious latency testing (percentages > 100%)
+./generate_errors.sh 10 500           # 10 errors + 50 latency requests - guaranteed latency threshold breach
+./generate_errors.sh 20 300           # 20 errors + 60 latency requests - aggressive latency testing
+./generate_errors.sh 5 1000           # 5 errors + 50 latency requests - extreme latency scenario
+
+# Monitor the results
+curl http://localhost:8097/metrics     # Check current metrics
+curl http://localhost:8098/healthcheck # Check health status
+```
+
+**Latency Delays Used**: The script randomly selects from delays ranging from 600ms to 10 seconds (600ms, 800ms, 1000ms, 1200ms, 1500ms, 2000ms, 3000ms, 4000ms, 5000ms, 7000ms, 10000ms) - all exceeding the default 100ms threshold, with the higher delays guaranteeing latency threshold breaches.
+
 ### Health Check Responses
 
 **Healthy State:**
 
 ```text
-OK - 5 errors in last minute (threshold: 100), 250.0ms average latency in last 60 minutes (threshold: 500ms)
+OK - 5 errors in last minute (threshold: 100), 250.0ms average latency in last 60 minutes (threshold: 100ms)
 ```
 
 **Error Threshold Breached:**
@@ -473,11 +511,11 @@ Too many errors: 150 errors in last minute (threshold: 100)
 **Latency Threshold Breached:**
 
 ```text
-High latency: 750.0ms average latency in last 60 minutes (threshold: 500ms)
+High latency: 750.0ms average latency in last 60 minutes (threshold: 100ms)
 ```
 
 **Critical State (Both Breached):**
 
 ```text
-Critical: Both error and latency thresholds breached - 150 errors in last minute (threshold: 100), 750.0ms average latency in last 60 minutes (threshold: 500ms)
+Critical: Both error and latency thresholds breached - 150 errors in last minute (threshold: 100), 750.0ms average latency in last 60 minutes (threshold: 100ms)
 ```

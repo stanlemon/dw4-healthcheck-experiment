@@ -18,7 +18,7 @@ public class MetricsService {
   // Default error threshold for last minute
   private static final long DEFAULT_ERROR_THRESHOLD = 100;
   // Default latency threshold in milliseconds
-  private static final double DEFAULT_LATENCY_THRESHOLD_MS = 500.0;
+  private static final double DEFAULT_LATENCY_THRESHOLD_MS = 100.0;
 
   // Circular buffer of error counts per second
   private final AtomicLong[] errorBuckets = new AtomicLong[ERROR_BUCKET_COUNT];
@@ -191,7 +191,7 @@ public class MetricsService {
   }
 
   /**
-   * Check if the current average latency exceeds the default threshold (500ms)
+   * Check if the current average latency exceeds the default threshold (100ms)
    *
    * @return true if the average latency exceeds the default threshold
    */

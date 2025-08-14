@@ -76,9 +76,9 @@ public class MetricsResourceTest {
   @Test
   void testGetMetricsWithLatency() {
     // Setup - record some latencies below threshold
-    metricsService.recordRequestLatency(200);
-    metricsService.recordRequestLatency(300);
-    metricsService.recordRequestLatency(400);
+    metricsService.recordRequestLatency(50);
+    metricsService.recordRequestLatency(60);
+    metricsService.recordRequestLatency(80);
 
     // Execute
     MetricsResource.MetricsResponse response = resource.getMetrics();
@@ -87,17 +87,18 @@ public class MetricsResourceTest {
     assertThat(response).isNotNull();
     assertThat(response.getErrorsLastMinute()).isEqualTo(0);
     assertThat(response.getTotalErrors()).isEqualTo(0);
-    assertThat(response.getAvgLatencyLast60Minutes()).isEqualTo(300.0); // (200+300+400)/3
+    assertThat(response.getAvgLatencyLast60Minutes())
+        .isCloseTo(63.33, withinPercentage(0.1)); // (50+60+80)/3 ≈ 63.33
     assertThat(response.isErrorThresholdBreached()).isFalse();
-    assertThat(response.isLatencyThresholdBreached()).isFalse(); // 300 < 500
+    assertThat(response.isLatencyThresholdBreached()).isFalse(); // 63.3 < 100
     assertThat(response.isHealthy()).isTrue();
   }
 
   @Test
   void testGetMetricsLatencyThresholdBreached() {
     // Setup - record high latencies above threshold
-    metricsService.recordRequestLatency(700);
-    metricsService.recordRequestLatency(800);
+    metricsService.recordRequestLatency(150);
+    metricsService.recordRequestLatency(200);
 
     // Execute
     MetricsResource.MetricsResponse response = resource.getMetrics();
@@ -106,9 +107,9 @@ public class MetricsResourceTest {
     assertThat(response).isNotNull();
     assertThat(response.getErrorsLastMinute()).isEqualTo(0);
     assertThat(response.getTotalErrors()).isEqualTo(0);
-    assertThat(response.getAvgLatencyLast60Minutes()).isEqualTo(750.0); // (700+800)/2
+    assertThat(response.getAvgLatencyLast60Minutes()).isEqualTo(175.0); // (150+200)/2
     assertThat(response.isErrorThresholdBreached()).isFalse();
-    assertThat(response.isLatencyThresholdBreached()).isTrue(); // 750 > 500
+    assertThat(response.isLatencyThresholdBreached()).isTrue(); // 175 > 100
     assertThat(response.isHealthy()).isFalse(); // Unhealthy due to latency
   }
 
@@ -118,9 +119,9 @@ public class MetricsResourceTest {
     for (int i = 0; i < 150; i++) {
       metricsService.recordServerError();
     }
-    metricsService.recordRequestLatency(600);
-    metricsService.recordRequestLatency(800);
-    metricsService.recordRequestLatency(900);
+    metricsService.recordRequestLatency(150);
+    metricsService.recordRequestLatency(200);
+    metricsService.recordRequestLatency(250);
 
     // Execute
     MetricsResource.MetricsResponse response = resource.getMetrics();
@@ -130,9 +131,9 @@ public class MetricsResourceTest {
     assertThat(response.getErrorsLastMinute()).isEqualTo(150);
     assertThat(response.getTotalErrors()).isEqualTo(150);
     assertThat(response.getAvgLatencyLast60Minutes())
-        .isCloseTo(766.67, withinPercentage(0.1)); // (600+800+900)/3 ≈ 766.67
+        .isCloseTo(200.0, withinPercentage(0.1)); // (150+200+250)/3 = 200
     assertThat(response.isErrorThresholdBreached()).isTrue(); // 150 > 100
-    assertThat(response.isLatencyThresholdBreached()).isTrue(); // ~767 > 500
+    assertThat(response.isLatencyThresholdBreached()).isTrue(); // 200 > 100
     assertThat(response.isHealthy()).isFalse(); // Unhealthy due to both
   }
 }

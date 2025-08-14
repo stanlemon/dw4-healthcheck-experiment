@@ -22,7 +22,7 @@ public class ApplicationHealthCheck extends HealthCheck {
       return Result.unhealthy(
           "Critical: Both error and latency thresholds breached - "
               + "%d errors in last minute (threshold: 100), "
-              + "%.1fms average latency in last 60 minutes (threshold: 500ms)",
+              + "%.1fms average latency in last 60 minutes (threshold: 100ms)",
           errorCount, avgLatency);
     }
 
@@ -33,12 +33,12 @@ public class ApplicationHealthCheck extends HealthCheck {
 
     if (latencyThresholdBreached) {
       return Result.unhealthy(
-          "High latency: %.1fms average latency in last 60 minutes (threshold: 500ms)", avgLatency);
+          "High latency: %.1fms average latency in last 60 minutes (threshold: 100ms)", avgLatency);
     }
 
     return Result.healthy(
         "OK - %d errors in last minute (threshold: 100), "
-            + "%.1fms average latency in last 60 minutes (threshold: 500ms)",
+            + "%.1fms average latency in last 60 minutes (threshold: 100ms)",
         errorCount, avgLatency);
   }
 }

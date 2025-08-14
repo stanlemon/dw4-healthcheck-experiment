@@ -27,7 +27,8 @@ public class ApplicationHealthCheckTest {
       metricsService.recordServerError();
     }
     for (int i = 0; i < 10; i++) {
-      metricsService.recordRequestLatency(300); // 300ms per request = 300ms average
+      metricsService.recordRequestLatency(
+          80); // 80ms per request = 80ms average (below 100ms threshold)
     }
 
     // Execute
@@ -37,7 +38,7 @@ public class ApplicationHealthCheckTest {
     assertThat(result.isHealthy()).isTrue();
     assertThat(result.getMessage()).contains("OK");
     assertThat(result.getMessage()).contains("50 errors");
-    assertThat(result.getMessage()).contains("300.0ms");
+    assertThat(result.getMessage()).contains("80.0ms");
   }
 
   @Test
@@ -47,7 +48,8 @@ public class ApplicationHealthCheckTest {
       metricsService.recordServerError();
     }
     for (int i = 0; i < 10; i++) {
-      metricsService.recordRequestLatency(300); // 300ms per request = 300ms average
+      metricsService.recordRequestLatency(
+          80); // 80ms per request = 80ms average (below 100ms threshold)
     }
 
     // Execute
@@ -62,12 +64,13 @@ public class ApplicationHealthCheckTest {
 
   @Test
   void testCheckLatencyThresholdBreached() {
-    // Setup - latency threshold breached (500ms+), errors OK
+    // Setup - latency threshold breached (100ms+), errors OK
     for (int i = 0; i < 50; i++) {
       metricsService.recordServerError();
     }
     for (int i = 0; i < 10; i++) {
-      metricsService.recordRequestLatency(700); // 700ms per request = 700ms average
+      metricsService.recordRequestLatency(
+          200); // 200ms per request = 200ms average (above 100ms threshold)
     }
 
     // Execute
@@ -76,8 +79,8 @@ public class ApplicationHealthCheckTest {
     // Verify
     assertThat(result.isHealthy()).isFalse();
     assertThat(result.getMessage()).contains("High latency");
-    assertThat(result.getMessage()).contains("700.0ms");
-    assertThat(result.getMessage()).contains("threshold: 500ms");
+    assertThat(result.getMessage()).contains("200.0ms");
+    assertThat(result.getMessage()).contains("threshold: 100ms");
   }
 
   @Test
@@ -87,7 +90,8 @@ public class ApplicationHealthCheckTest {
       metricsService.recordServerError();
     }
     for (int i = 0; i < 10; i++) {
-      metricsService.recordRequestLatency(700); // 700ms per request = 700ms average
+      metricsService.recordRequestLatency(
+          200); // 200ms per request = 200ms average (above 100ms threshold)
     }
 
     // Execute
@@ -98,7 +102,7 @@ public class ApplicationHealthCheckTest {
     assertThat(result.getMessage())
         .contains("Critical: Both error and latency thresholds breached");
     assertThat(result.getMessage()).contains("150 errors");
-    assertThat(result.getMessage()).contains("700.0ms");
+    assertThat(result.getMessage()).contains("200.0ms");
   }
 
   @Test
@@ -108,7 +112,8 @@ public class ApplicationHealthCheckTest {
       metricsService.recordServerError();
     }
     for (int i = 0; i < 10; i++) {
-      metricsService.recordRequestLatency(500); // 500ms per request = 500ms average
+      metricsService.recordRequestLatency(
+          100); // 100ms per request = 100ms average (exactly at threshold)
     }
 
     // Execute
@@ -118,7 +123,7 @@ public class ApplicationHealthCheckTest {
     assertThat(result.isHealthy()).isTrue();
     assertThat(result.getMessage()).contains("OK");
     assertThat(result.getMessage()).contains("100 errors");
-    assertThat(result.getMessage()).contains("500.0ms");
+    assertThat(result.getMessage()).contains("100.0ms");
   }
 
   @Test
