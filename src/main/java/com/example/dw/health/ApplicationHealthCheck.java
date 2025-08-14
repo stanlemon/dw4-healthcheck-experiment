@@ -13,7 +13,7 @@ public class ApplicationHealthCheck extends HealthCheck {
   @Override
   protected Result check() {
     long errorCount = metricsService.getErrorCountLastMinute();
-    double avgLatency = metricsService.getAverageLatencyLast60Minutes();
+    double avgLatency = metricsService.getAverageLatencyLast60Seconds();
 
     boolean errorThresholdBreached = metricsService.isErrorThresholdBreached();
     boolean latencyThresholdBreached = metricsService.isLatencyThresholdBreached();
@@ -22,7 +22,7 @@ public class ApplicationHealthCheck extends HealthCheck {
       return Result.unhealthy(
           "Critical: Both error and latency thresholds breached - "
               + "%d errors in last minute (threshold: %d), "
-              + "%.1fms average latency in last 60 minutes (threshold: %.0fms)",
+              + "%.1fms average latency in last 60 seconds (threshold: %.0fms)",
           errorCount,
           MetricsService.getDefaultErrorThreshold(),
           avgLatency,
@@ -37,13 +37,13 @@ public class ApplicationHealthCheck extends HealthCheck {
 
     if (latencyThresholdBreached) {
       return Result.unhealthy(
-          "High latency: %.1fms average latency in last 60 minutes (threshold: %.0fms)",
+          "High latency: %.1fms average latency in last 60 seconds (threshold: %.0fms)",
           avgLatency, MetricsService.getDefaultLatencyThresholdMs());
     }
 
     return Result.healthy(
         "OK - %d errors in last minute (threshold: %d), "
-            + "%.1fms average latency in last 60 minutes (threshold: %.0fms)",
+            + "%.1fms average latency in last 60 seconds (threshold: %.0fms)",
         errorCount,
         MetricsService.getDefaultErrorThreshold(),
         avgLatency,

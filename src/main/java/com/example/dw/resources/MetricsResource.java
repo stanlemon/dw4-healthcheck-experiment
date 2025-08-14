@@ -18,7 +18,7 @@ public class MetricsResource {
   public MetricsResponse getMetrics() {
     long errorsLastMinute = metricsService.getErrorCountLastMinute();
     long totalErrors = metricsService.getTotalErrorCount();
-    double avgLatencyLast60Minutes = metricsService.getAverageLatencyLast60Minutes();
+    double avgLatencyLast60Minutes = metricsService.getAverageLatencyLast60Seconds();
     boolean errorThresholdBreached = metricsService.isErrorThresholdBreached();
     boolean latencyThresholdBreached = metricsService.isLatencyThresholdBreached();
 

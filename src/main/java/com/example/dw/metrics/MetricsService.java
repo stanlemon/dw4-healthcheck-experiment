@@ -13,7 +13,7 @@ public class MetricsService {
 
   // Use 60 buckets for a 60-second sliding window (one bucket per second) for errors
   private static final int ERROR_BUCKET_COUNT = 60;
-  // Use 60 buckets for a 60-minute sliding window (one bucket per minute) for latency
+  // Use 60 buckets for a 60-second sliding window (one bucket per second) for latency
   private static final int LATENCY_BUCKET_COUNT = 60;
   // Default error threshold for last minute
   private static final long DEFAULT_ERROR_THRESHOLD = 100;
@@ -27,12 +27,12 @@ public class MetricsService {
   // Total count of errors (for logging/metrics purposes)
   private final AtomicLong totalErrorCount = new AtomicLong(0);
 
-  // Latency tracking with 60-minute sliding window
-  // Array to track total latency per minute bucket
+  // Latency tracking with 60-second sliding window
+  // Array to track total latency per second bucket
   private final AtomicLong[] latencyTotalBuckets = new AtomicLong[LATENCY_BUCKET_COUNT];
-  // Array to track count of requests per minute bucket
+  // Array to track count of requests per second bucket
   private final AtomicLong[] latencyCountBuckets = new AtomicLong[LATENCY_BUCKET_COUNT];
-  // Track the last minute bucket we wrote to for latency
+  // Track the last second bucket we wrote to for latency
   private volatile long lastLatencyBucketTime = -1;
 
   private MetricsService() {
@@ -140,29 +140,29 @@ public class MetricsService {
    * @param latencyMs the latency in milliseconds
    */
   public void recordRequestLatency(long latencyMs) {
-    long nowMinutes = Instant.now().getEpochSecond() / 60; // Convert to minutes
-    int bucketIndex = (int) (nowMinutes % LATENCY_BUCKET_COUNT);
+    long nowSeconds = Instant.now().getEpochSecond(); // Use seconds instead of minutes
+    int bucketIndex = (int) (nowSeconds % LATENCY_BUCKET_COUNT);
 
     // Clear old latency buckets if we've moved to a new time period
-    clearOldLatencyBuckets(nowMinutes);
+    clearOldLatencyBuckets(nowSeconds);
 
     // Add to the current bucket
     latencyTotalBuckets[bucketIndex].addAndGet(latencyMs);
     latencyCountBuckets[bucketIndex].incrementAndGet();
 
-    lastLatencyBucketTime = nowMinutes;
+    lastLatencyBucketTime = nowSeconds;
   }
 
   /**
-   * Get the average request latency over the last 60 minutes
+   * Get the average request latency over the last 60 seconds
    *
    * @return average latency in milliseconds, or 0 if no requests recorded
    */
-  public double getAverageLatencyLast60Minutes() {
-    long nowMinutes = Instant.now().getEpochSecond() / 60;
+  public double getAverageLatencyLast60Seconds() {
+    long nowSeconds = Instant.now().getEpochSecond();
 
     // Clear any old buckets first
-    clearOldLatencyBuckets(nowMinutes);
+    clearOldLatencyBuckets(nowSeconds);
 
     // Sum all buckets
     long totalLatency = 0;
@@ -187,7 +187,7 @@ public class MetricsService {
    * @return true if the average latency exceeds the threshold
    */
   public boolean isLatencyThresholdBreached(double thresholdMs) {
-    return getAverageLatencyLast60Minutes() > thresholdMs;
+    return getAverageLatencyLast60Seconds() > thresholdMs;
   }
 
   /**
@@ -217,11 +217,11 @@ public class MetricsService {
     return DEFAULT_LATENCY_THRESHOLD_MS;
   }
 
-  /** Clear latency buckets that are older than 60 minutes */
-  private void clearOldLatencyBuckets(long currentMinutes) {
+  /** Clear latency buckets that are older than 60 seconds */
+  private void clearOldLatencyBuckets(long currentSeconds) {
     // If this is the first write or we've moved significantly forward in time
     if (lastLatencyBucketTime == -1
-        || currentMinutes - lastLatencyBucketTime >= LATENCY_BUCKET_COUNT) {
+        || currentSeconds - lastLatencyBucketTime >= LATENCY_BUCKET_COUNT) {
       // Clear all buckets if we've jumped forward more than our window
       for (int i = 0; i < LATENCY_BUCKET_COUNT; i++) {
         latencyTotalBuckets[i].set(0);
@@ -229,8 +229,8 @@ public class MetricsService {
       }
     } else {
       // Clear only the buckets that are now stale
-      for (long time = lastLatencyBucketTime + 1; time <= currentMinutes; time++) {
-        if (currentMinutes - time < LATENCY_BUCKET_COUNT) { // Only clear if within our window
+      for (long time = lastLatencyBucketTime + 1; time <= currentSeconds; time++) {
+        if (currentSeconds - time < LATENCY_BUCKET_COUNT) { // Only clear if within our window
           int bucketIndex = (int) (time % LATENCY_BUCKET_COUNT);
           latencyTotalBuckets[bucketIndex].set(0);
           latencyCountBuckets[bucketIndex].set(0);

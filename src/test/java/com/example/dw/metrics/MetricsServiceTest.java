@@ -104,19 +104,19 @@ public class MetricsServiceTest {
   @Test
   void testRecordRequestLatency() {
     // Initial state - no latency recorded
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
 
     // Record a single latency
     metricsService.recordRequestLatency(100);
 
     // Verify average is the single recorded value
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(100.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(100.0);
 
     // Record another latency
     metricsService.recordRequestLatency(200);
 
     // Verify average is calculated correctly (100 + 200) / 2 = 150
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(150.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(150.0);
   }
 
   @Test
@@ -128,7 +128,7 @@ public class MetricsServiceTest {
     metricsService.recordRequestLatency(200); // 200ms
 
     // Expected average: (50 + 100 + 150 + 200) / 4 = 125
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(125.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(125.0);
   }
 
   @Test
@@ -166,9 +166,9 @@ public class MetricsServiceTest {
     metricsService.recordRequestLatency(125);
 
     // Multiple calls should return the same average
-    double avg1 = metricsService.getAverageLatencyLast60Minutes();
-    double avg2 = metricsService.getAverageLatencyLast60Minutes();
-    double avg3 = metricsService.getAverageLatencyLast60Minutes();
+    double avg1 = metricsService.getAverageLatencyLast60Seconds();
+    double avg2 = metricsService.getAverageLatencyLast60Seconds();
+    double avg3 = metricsService.getAverageLatencyLast60Seconds();
 
     assertThat(avg1).isEqualTo(100.0); // (75 + 125) / 2 = 100
     assertThat(avg2).isEqualTo(100.0);
@@ -199,14 +199,14 @@ public class MetricsServiceTest {
     // Verify both metrics are working
     assertThat(metricsService.getTotalErrorCount()).isEqualTo(2);
     assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(2);
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(200.0); // (100 + 300) / 2
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(200.0); // (100 + 300) / 2
 
     // Clear and verify both are reset
     metricsService.clearMetrics();
 
     assertThat(metricsService.getTotalErrorCount()).isEqualTo(0);
     assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
   }
 
   @Test
@@ -220,7 +220,7 @@ public class MetricsServiceTest {
 
     // Average should be below threshold
     double expectedAvg = (latencyBelow + latencyBelow2) / 2.0;
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(expectedAvg);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(expectedAvg);
     assertThat(metricsService.isLatencyThresholdBreached()).isFalse();
   }
 
@@ -235,7 +235,7 @@ public class MetricsServiceTest {
 
     // Average should be above threshold
     double expectedAvg = (latencyAbove + latencyAbove2) / 2.0;
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(expectedAvg);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(expectedAvg);
     assertThat(metricsService.isLatencyThresholdBreached()).isTrue();
   }
 
@@ -248,7 +248,7 @@ public class MetricsServiceTest {
     metricsService.recordRequestLatency(exactLatency);
 
     // Average is exactly at threshold, which should not breach (threshold == threshold, not >)
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(latencyThreshold);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(latencyThreshold);
     assertThat(metricsService.isLatencyThresholdBreached()).isFalse();
   }
 
@@ -263,7 +263,7 @@ public class MetricsServiceTest {
 
     // Average should be above threshold: (0.8 + 1.6) / 2 = 1.2 * threshold
     double expectedAvg = (latencyBelow + latencyAbove) / 2.0;
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(expectedAvg);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(expectedAvg);
 
     // Both methods should return the same result for current threshold
     boolean defaultMethod = metricsService.isLatencyThresholdBreached();
@@ -288,7 +288,7 @@ public class MetricsServiceTest {
 
     // Verify threshold is no longer breached
     assertThat(metricsService.isLatencyThresholdBreached()).isFalse();
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
   }
 
   @Test
@@ -436,13 +436,13 @@ public class MetricsServiceTest {
     metricsService.recordRequestLatency(100);
 
     // Verify latency is recorded
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(100.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(100.0);
 
     // Record another latency immediately
     metricsService.recordRequestLatency(200);
 
     // Should have average of both values
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(150.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(150.0);
   }
 
   @Test
@@ -471,7 +471,7 @@ public class MetricsServiceTest {
 
     // Record initial latency
     metricsService.recordRequestLatency(100);
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(100.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(100.0);
 
     // Record more latencies rapidly
     for (int i = 0; i < 5; i++) {
@@ -480,7 +480,7 @@ public class MetricsServiceTest {
 
     // Should average all latencies: (100 + 5*200) / 6 = 1100/6 ≈ 183.33
     double expectedAvg = (100.0 + (5 * 200.0)) / 6.0;
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(expectedAvg);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(expectedAvg);
   }
 
   @Test
@@ -518,12 +518,12 @@ public class MetricsServiceTest {
     metricsService.recordRequestLatency(100);
     metricsService.recordRequestLatency(200);
 
-    double initialAvg = metricsService.getAverageLatencyLast60Minutes();
+    double initialAvg = metricsService.getAverageLatencyLast60Seconds();
     assertThat(initialAvg).isEqualTo(150.0);
 
-    // Call getAverageLatencyLast60Minutes multiple times to trigger bucket management
+    // Call getAverageLatencyLast60Seconds multiple times to trigger bucket management
     for (int i = 0; i < 5; i++) {
-      assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(150.0);
+      assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(150.0);
     }
 
     // Record more latencies
@@ -531,7 +531,7 @@ public class MetricsServiceTest {
     metricsService.recordRequestLatency(400);
 
     // Should now have all 4 latencies in the average
-    double newAvg = metricsService.getAverageLatencyLast60Minutes();
+    double newAvg = metricsService.getAverageLatencyLast60Seconds();
     assertThat(newAvg).isEqualTo(250.0); // (100+200+300+400)/4 = 250
   }
 
@@ -557,19 +557,19 @@ public class MetricsServiceTest {
     // and currentSeconds - lastBucketTime < ERROR_BUCKET_COUNT (normal case)
     assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(1);
 
-    // Test latency bucket condition by calling getAverageLatencyLast60Minutes when no latencies are
+    // Test latency bucket condition by calling getAverageLatencyLast60Seconds when no latencies are
     // recorded
     metricsService.clearMetrics();
-    double initialLatency = metricsService.getAverageLatencyLast60Minutes();
+    double initialLatency = metricsService.getAverageLatencyLast60Seconds();
     assertThat(initialLatency).isEqualTo(0.0);
 
     // Record a latency to set lastLatencyBucketTime
     metricsService.recordRequestLatency(100);
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(100.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(100.0);
 
-    // Call getAverageLatencyLast60Minutes again to trigger clearOldLatencyBuckets with
+    // Call getAverageLatencyLast60Seconds again to trigger clearOldLatencyBuckets with
     // lastLatencyBucketTime != -1 and normal time progression
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(100.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(100.0);
   }
 
   @Test
@@ -577,13 +577,13 @@ public class MetricsServiceTest {
     // Test edge case of recording zero latency
     metricsService.recordRequestLatency(0);
 
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
 
     // Add another latency to test averaging with zero
     metricsService.recordRequestLatency(100);
 
     // Should average to 50.0: (0 + 100) / 2 = 50
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(50.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(50.0);
   }
 
   @Test
@@ -592,13 +592,13 @@ public class MetricsServiceTest {
     metricsService.recordRequestLatency(-50);
 
     // Should still record the value
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(-50.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(-50.0);
 
     // Add positive latency
     metricsService.recordRequestLatency(50);
 
     // Should average to 0.0: (-50 + 50) / 2 = 0
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
   }
 
   @Test
@@ -614,7 +614,7 @@ public class MetricsServiceTest {
     assertThat(instance2.getErrorCountLastMinute()).isEqualTo(1);
 
     instance2.recordRequestLatency(100);
-    assertThat(instance1.getAverageLatencyLast60Minutes()).isEqualTo(100.0);
+    assertThat(instance1.getAverageLatencyLast60Seconds()).isEqualTo(100.0);
   }
 
   @Test
@@ -648,7 +648,7 @@ public class MetricsServiceTest {
 
     // Record a latency to set lastLatencyBucketTime
     metricsService.recordRequestLatency(150);
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(150.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(150.0);
 
     // Record more latencies in the same minute - this should not trigger the time jump condition
     for (int i = 0; i < 3; i++) {
@@ -657,10 +657,10 @@ public class MetricsServiceTest {
 
     // All latencies should be averaged together
     // (150 + 200 + 250 + 300) / 4 = 225
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(225.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(225.0);
 
     // Verify the time jump condition is not triggered by checking consistency
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(225.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(225.0);
   }
 
   @Test
@@ -684,7 +684,7 @@ public class MetricsServiceTest {
     }
 
     // Should handle the bucket wrapping correctly
-    double avgLatency = metricsService.getAverageLatencyLast60Minutes();
+    double avgLatency = metricsService.getAverageLatencyLast60Seconds();
     assertThat(avgLatency).isGreaterThan(0.0);
   }
 
@@ -696,17 +696,17 @@ public class MetricsServiceTest {
 
     // Call methods that trigger clearing on empty buckets
     assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
 
     // Clear again and verify still empty
     metricsService.clearMetrics();
     assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
 
     // Call clearing methods multiple times on empty state
     for (int i = 0; i < 3; i++) {
       assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
-      assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+      assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
     }
   }
 
@@ -785,7 +785,7 @@ public class MetricsServiceTest {
     }
 
     // Verify latencies were recorded (exact average depends on thread execution order)
-    double avgLatency = metricsService.getAverageLatencyLast60Minutes();
+    double avgLatency = metricsService.getAverageLatencyLast60Seconds();
     assertThat(avgLatency).isGreaterThan(0.0);
     assertThat(avgLatency).isLessThan(200.0); // Should be reasonable average
   }
@@ -809,11 +809,11 @@ public class MetricsServiceTest {
 
   @Test
   void testLatencyBucketStaleWindowCondition() {
-    // Test the branch where currentMinutes - time >= LATENCY_BUCKET_COUNT
+    // Test the branch where currentSeconds - time >= LATENCY_BUCKET_COUNT
     // This simulates the case where we're clearing latency buckets but some are outside the window
 
-    long currentTime = System.currentTimeMillis() / (60 * 1000);
-    // Set lastLatencyBucketTime to be just a few minutes back (within 60 but will trigger stale
+    long currentTime = System.currentTimeMillis() / 1000;
+    // Set lastLatencyBucketTime to be just a few seconds back (within 60 but will trigger stale
     // clearing)
     metricsService.setLastLatencyBucketTimeForTesting(currentTime - 5);
 
@@ -821,7 +821,7 @@ public class MetricsServiceTest {
     metricsService.recordRequestLatency(100);
 
     // The bucket clearing should have handled the stale window condition
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(100.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(100.0);
   }
 
   @Test
@@ -871,21 +871,21 @@ public class MetricsServiceTest {
 
     // Record initial latency to set up the system
     metricsService.recordRequestLatency(100);
-    double initialAverage = metricsService.getAverageLatencyLast60Minutes();
+    double initialAverage = metricsService.getAverageLatencyLast60Seconds();
     assertThat(initialAverage).isEqualTo(100.0);
 
-    // Set lastLatencyBucketTime to be very old (more than 60 minutes ago)
-    long currentMinutes = System.currentTimeMillis() / (60 * 1000);
-    long oldTime = currentMinutes - 65; // 65 minutes ago
+    // Set lastLatencyBucketTime to be very old (more than 60 seconds ago)
+    long currentSeconds = System.currentTimeMillis() / 1000;
+    long oldTime = currentSeconds - 65; // 65 seconds ago
     metricsService.setLastLatencyBucketTimeForTesting(oldTime);
 
     // Now record a new latency which should trigger clearOldLatencyBuckets
-    // The condition should be false for times in the range [oldTime+1, currentMinutes-60]
+    // The condition should be false for times in the range [oldTime+1, currentSeconds-60]
     metricsService.recordRequestLatency(200);
 
     // The new latency should still be recorded correctly
     // The old latency data should be cleared due to being outside the window
-    double newAverage = metricsService.getAverageLatencyLast60Minutes();
+    double newAverage = metricsService.getAverageLatencyLast60Seconds();
     assertThat(newAverage).isEqualTo(200.0); // Only the new value should remain
   }
 
@@ -915,10 +915,10 @@ public class MetricsServiceTest {
     // Initially, lastLatencyBucketTime should be -1
     assertThat(metricsService.getLastLatencyBucketTime()).isEqualTo(-1);
 
-    // After recording latency, lastLatencyBucketTime should be set to current time
-    long beforeTime = System.currentTimeMillis() / (60 * 1000);
+    // After recording latency, lastLatencyBucketTime should be set to current time in seconds
+    long beforeTime = System.currentTimeMillis() / 1000;
     metricsService.recordRequestLatency(100);
-    long afterTime = System.currentTimeMillis() / (60 * 1000);
+    long afterTime = System.currentTimeMillis() / 1000;
 
     long actualLastLatencyBucketTime = metricsService.getLastLatencyBucketTime();
     assertThat(actualLastLatencyBucketTime).isGreaterThanOrEqualTo(beforeTime);

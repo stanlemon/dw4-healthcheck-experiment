@@ -46,13 +46,13 @@ public class LatencyTrackingFilterTest {
     when(mockRequestContext.getProperty("requestStartTime")).thenReturn(startTime);
 
     // Verify initial state - no latency recorded
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
 
     // Execute
     filter.filter(mockRequestContext, mockResponseContext);
 
     // Verify latency was recorded and is reasonable (should be around 100ms)
-    double avgLatency = metricsService.getAverageLatencyLast60Minutes();
+    double avgLatency = metricsService.getAverageLatencyLast60Seconds();
     assertThat(avgLatency).isGreaterThanOrEqualTo(90.0).isLessThanOrEqualTo(1000.0);
   }
 
@@ -62,13 +62,13 @@ public class LatencyTrackingFilterTest {
     when(mockRequestContext.getProperty("requestStartTime")).thenReturn(null);
 
     // Verify initial state - no latency recorded
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
 
     // Execute
     filter.filter(mockRequestContext, mockResponseContext);
 
     // Verify latency was NOT recorded (should still be 0)
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
   }
 
   @Test
@@ -77,13 +77,13 @@ public class LatencyTrackingFilterTest {
     when(mockRequestContext.getProperty("requestStartTime")).thenReturn("not a long");
 
     // Verify initial state - no latency recorded
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
 
     // Execute
     filter.filter(mockRequestContext, mockResponseContext);
 
     // Verify latency was NOT recorded (should still be 0)
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
   }
 
   @Test
@@ -93,13 +93,13 @@ public class LatencyTrackingFilterTest {
     when(mockRequestContext.getProperty("requestStartTime")).thenReturn(startTime);
 
     // Verify initial state - no latency recorded
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
 
     // Execute
     filter.filter(mockRequestContext, mockResponseContext);
 
     // Verify latency was recorded (should be close to 0 but not negative)
-    double avgLatency = metricsService.getAverageLatencyLast60Minutes();
+    double avgLatency = metricsService.getAverageLatencyLast60Seconds();
     assertThat(avgLatency).isGreaterThanOrEqualTo(0.0).isLessThanOrEqualTo(50.0);
   }
 
@@ -127,13 +127,13 @@ public class LatencyTrackingFilterTest {
             });
 
     // Verify initial state - no latency recorded
-    assertThat(metricsService.getAverageLatencyLast60Minutes()).isEqualTo(0.0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
 
     // Step 4: Response filter
     filter.filter(mockRequestContext, mockResponseContext);
 
     // Verify latency was recorded with a reasonable value
-    double avgLatency = metricsService.getAverageLatencyLast60Minutes();
+    double avgLatency = metricsService.getAverageLatencyLast60Seconds();
     assertThat(avgLatency).isGreaterThanOrEqualTo(5.0).isLessThanOrEqualTo(100.0);
   }
 
@@ -151,7 +151,7 @@ public class LatencyTrackingFilterTest {
     filter.filter(mockRequestContext, mockResponseContext);
 
     // Verify average latency is reasonable (should be around 200ms average)
-    double avgLatency = metricsService.getAverageLatencyLast60Minutes();
+    double avgLatency = metricsService.getAverageLatencyLast60Seconds();
     assertThat(avgLatency).isGreaterThanOrEqualTo(150.0).isLessThanOrEqualTo(350.0);
   }
 }
