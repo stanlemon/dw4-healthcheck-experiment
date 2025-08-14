@@ -17,12 +17,12 @@
       "automergeType": "pr"
     },
     {
-      "matchPackagePatterns": [
-        "^org.junit",
-        "^org.mockito",
-        "^org.assertj"
-      ],
-      "groupName": "test dependencies"
+      "groupName": "test dependencies",
+      "matchPackageNames": [
+        "/^org.junit/",
+        "/^org.mockito/",
+        "/^org.assertj/"
+      ]
     },
     {
       "matchPackageNames": [
