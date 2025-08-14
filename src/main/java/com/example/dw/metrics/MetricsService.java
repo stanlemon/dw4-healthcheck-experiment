@@ -19,6 +19,10 @@ public class MetricsService {
   private static final long DEFAULT_ERROR_THRESHOLD = 100;
   // Default latency threshold in milliseconds
   private static final double DEFAULT_LATENCY_THRESHOLD_MS = 100.0;
+  // Minimum number of requests required before applying latency thresholds
+  private static final long MINIMUM_LATENCY_SAMPLE_SIZE = 5;
+  // Minimum number of requests required before applying error rate thresholds (as percentage)
+  private static final long MINIMUM_ERROR_SAMPLE_SIZE = 10;
 
   // Circular buffer of error counts per second
   private final AtomicLong[] errorBuckets = new AtomicLong[ERROR_BUCKET_COUNT];
@@ -32,8 +36,10 @@ public class MetricsService {
   private final AtomicLong[] latencyTotalBuckets = new AtomicLong[LATENCY_BUCKET_COUNT];
   // Array to track count of requests per second bucket
   private final AtomicLong[] latencyCountBuckets = new AtomicLong[LATENCY_BUCKET_COUNT];
-  // Track the last second bucket we wrote to for latency
+  // Track the last minute bucket we wrote to for latency
   private volatile long lastLatencyBucketTime = -1;
+  // Total count of requests (for traffic volume calculations)
+  private final AtomicLong totalRequestCount = new AtomicLong(0);
 
   private MetricsService() {
     // Initialize all error buckets
@@ -116,13 +122,30 @@ public class MetricsService {
   }
 
   /**
-   * Check if the current error count in the last minute exceeds the specified threshold
+   * Check if the current error count in the last minute exceeds the specified threshold Uses
+   * intelligent thresholding based on traffic volume: - Low traffic: Uses absolute error count
+   * threshold - High traffic: Uses error rate percentage
    *
    * @param threshold the threshold for error count
    * @return true if the error count exceeds the threshold
    */
   public boolean isErrorThresholdBreached(long threshold) {
-    return getErrorCountLastMinute() > threshold;
+    long errorCount = getErrorCountLastMinute();
+    long requestCount = getTotalRequestCountLast60Seconds();
+
+    // If we have very little traffic, don't apply error thresholds
+    if (requestCount < MINIMUM_ERROR_SAMPLE_SIZE) {
+      return false;
+    }
+
+    // For high traffic, use error rate (errors should be < 10% of requests)
+    if (requestCount >= 100) {
+      double errorRate = (double) errorCount / requestCount;
+      return errorRate > 0.10; // 10% error rate threshold
+    }
+
+    // For moderate traffic, use absolute error count but cap it
+    return errorCount > Math.min(threshold, requestCount / 2);
   }
 
   /**
@@ -149,6 +172,9 @@ public class MetricsService {
     // Add to the current bucket
     latencyTotalBuckets[bucketIndex].addAndGet(latencyMs);
     latencyCountBuckets[bucketIndex].incrementAndGet();
+
+    // Track total request count for traffic volume calculations
+    totalRequestCount.incrementAndGet();
 
     lastLatencyBucketTime = nowSeconds;
   }
@@ -181,19 +207,49 @@ public class MetricsService {
   }
 
   /**
-   * Check if the current average latency exceeds the specified threshold
+   * Get the total number of requests in the last 60 seconds
+   *
+   * @return total request count
+   */
+  public long getTotalRequestCountLast60Seconds() {
+    long nowSeconds = Instant.now().getEpochSecond();
+
+    // Clear any old buckets first
+    clearOldLatencyBuckets(nowSeconds);
+
+    // Sum all request counts
+    long totalCount = 0;
+    for (int i = 0; i < LATENCY_BUCKET_COUNT; i++) {
+      totalCount += latencyCountBuckets[i].get();
+    }
+
+    return totalCount;
+  }
+
+  /**
+   * Check if the current average latency exceeds the specified threshold Only applies the threshold
+   * if there's sufficient traffic volume
    *
    * @param thresholdMs the threshold in milliseconds
-   * @return true if the average latency exceeds the threshold
+   * @return true if the average latency exceeds the threshold AND there's sufficient traffic
    */
   public boolean isLatencyThresholdBreached(double thresholdMs) {
+    long requestCount = getTotalRequestCountLast60Seconds();
+
+    // If there's insufficient traffic, don't apply latency thresholds
+    if (requestCount < MINIMUM_LATENCY_SAMPLE_SIZE) {
+      return false;
+    }
+
     return getAverageLatencyLast60Seconds() > thresholdMs;
   }
 
   /**
-   * Check if the current average latency exceeds the default threshold
+   * Check if the current average latency exceeds the default threshold Only applies the threshold
+   * if there's sufficient traffic volume
    *
-   * @return true if the average latency exceeds the default threshold
+   * @return true if the average latency exceeds the default threshold AND there's sufficient
+   *     traffic
    */
   public boolean isLatencyThresholdBreached() {
     return isLatencyThresholdBreached(DEFAULT_LATENCY_THRESHOLD_MS);
@@ -253,6 +309,9 @@ public class MetricsService {
       latencyCountBuckets[i].set(0);
     }
     lastLatencyBucketTime = -1;
+
+    // Clear total request count
+    totalRequestCount.set(0);
   }
 
   // Package-private methods for testing bucket clearing edge cases

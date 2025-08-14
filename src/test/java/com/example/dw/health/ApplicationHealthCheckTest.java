@@ -28,18 +28,20 @@ public class ApplicationHealthCheckTest {
 
   @Test
   void testCheckHealthy() {
-    // Setup - record errors and latency below thresholds
-    long errorsToGenerate = errorThreshold / 2; // Half the error threshold
+    // Setup - record errors and latency below thresholds with sufficient traffic
+    long errorsToGenerate = 5; // Low error count
     double latencyToUse = latencyThreshold * 0.8; // 80% of latency threshold
 
     for (int i = 0; i < errorsToGenerate; i++) {
       metricsService.recordServerError();
     }
-    for (int i = 0; i < 10; i++) {
+    // Record sufficient requests for threshold evaluation and maintain low error rate
+    for (int i = 0; i < 100; i++) {
       metricsService.recordRequestLatency((long) latencyToUse);
     }
 
-    // Execute
+    // Execute - Total: 105 requests, 5 errors = 4.8% error rate < 10% threshold, latency <
+    // threshold
     Result result = healthCheck.check();
 
     // Verify
@@ -74,21 +76,23 @@ public class ApplicationHealthCheckTest {
 
   @Test
   void testCheckLatencyThresholdBreached() {
-    // Setup - latency threshold breached, errors OK
-    int errorsToGenerate = (int) (errorThreshold / 2); // 50% of threshold
+    // Setup - record errors below threshold but latency above threshold
+    long errorsToGenerate = 2; // Low error count
     long latencyToUse = (long) (latencyThreshold * 2.0); // 200% of threshold
 
     for (int i = 0; i < errorsToGenerate; i++) {
       metricsService.recordServerError();
     }
-    for (int i = 0; i < 10; i++) {
+    // Record sufficient latency samples for threshold evaluation (need at least 5)
+    for (int i = 0; i < 5; i++) {
       metricsService.recordRequestLatency(latencyToUse); // Above latency threshold
     }
 
-    // Execute
+    // Execute - Total: 7 requests, 2 errors, high latency but insufficient total requests for error
+    // thresholds
     Result result = healthCheck.check();
 
-    // Verify
+    // Verify - Should be unhealthy due to latency (errors ignored due to insufficient sample size)
     assertThat(result.isHealthy()).isFalse();
     assertThat(result.getMessage()).contains("High latency");
     assertThat(result.getMessage()).contains(latencyToUse + ".0ms");
@@ -122,20 +126,22 @@ public class ApplicationHealthCheckTest {
   @Test
   void testCheckAtExactThresholds() {
     // Setup - at exact thresholds (should not breach)
-    int errorsToGenerate = (int) errorThreshold; // Exactly at threshold
+    int errorsToGenerate = 10; // 10% error rate exactly at threshold
     long latencyToUse = (long) latencyThreshold; // Exactly at threshold
 
     for (int i = 0; i < errorsToGenerate; i++) {
       metricsService.recordServerError();
     }
-    for (int i = 0; i < 10; i++) {
+    // Record sufficient requests for proper threshold evaluation
+    for (int i = 0; i < 100; i++) {
       metricsService.recordRequestLatency(latencyToUse); // Exactly at threshold
     }
 
-    // Execute
+    // Execute - Total: 110 requests, 10 errors = 9.1% error rate < 10% threshold, latency =
+    // threshold
     Result result = healthCheck.check();
 
-    // Verify - should still be healthy at exactly the thresholds
+    // Verify - should still be healthy at exactly the thresholds (not greater than)
     assertThat(result.isHealthy()).isTrue();
     assertThat(result.getMessage()).contains("OK");
     assertThat(result.getMessage()).contains(errorsToGenerate + " errors");

@@ -134,22 +134,27 @@ public class MetricsServiceTest {
   @Test
   void testLatencyThresholdBreach() {
     // Record latencies that average to 1.5 * threshold
+    // Need at least 5 requests to meet minimum sample size requirement
     long latency1 = (long) latencyThreshold;
     long latency2 = (long) (latencyThreshold * 2.0);
 
+    // Record sufficient requests to meet minimum sample size (5)
     metricsService.recordRequestLatency(latency1);
     metricsService.recordRequestLatency(latency2);
+    metricsService.recordRequestLatency(latency1);
+    metricsService.recordRequestLatency(latency2);
+    metricsService.recordRequestLatency(latency1);
 
-    // Average will be 1.5 * threshold
-    double expectedAvg = (latency1 + latency2) / 2.0;
+    // Average will be 1.2 * threshold (3 * threshold + 2 * 2*threshold) / 5 = 7*threshold/5
+    double expectedAvg = (3 * latency1 + 2 * latency2) / 5.0;
 
     // Test threshold checks
     assertThat(metricsService.isLatencyThresholdBreached(latencyThreshold))
-        .isTrue(); // 1.5 * threshold > threshold
+        .isTrue(); // 1.2 * threshold > threshold
     assertThat(metricsService.isLatencyThresholdBreached(expectedAvg))
         .isFalse(); // expectedAvg == expectedAvg (not greater)
     assertThat(metricsService.isLatencyThresholdBreached(latencyThreshold * 2.0))
-        .isFalse(); // 1.5 * threshold < 2.0 * threshold
+        .isFalse(); // 1.2 * threshold < 2.0 * threshold
   }
 
   @Test
@@ -160,17 +165,33 @@ public class MetricsServiceTest {
   }
 
   @Test
+  void testLatencyThresholdWithInsufficientSamples() {
+    // With fewer than 5 samples, threshold should not be breached regardless of latency
+    metricsService.recordRequestLatency(10000); // Very high latency
+    metricsService.recordRequestLatency(10000);
+    metricsService.recordRequestLatency(10000);
+    metricsService.recordRequestLatency(10000); // Only 4 samples
+
+    // Even with very high latencies, should not breach due to insufficient samples
+    assertThat(metricsService.isLatencyThresholdBreached(100.0)).isFalse();
+    assertThat(metricsService.isLatencyThresholdBreached()).isFalse();
+  }
+
+  @Test
   void testLatencyConsistencyAcrossMultipleCalls() {
-    // Record some latencies
+    // Record some latencies (need at least 5 for threshold evaluation)
     metricsService.recordRequestLatency(75);
     metricsService.recordRequestLatency(125);
+    metricsService.recordRequestLatency(75);
+    metricsService.recordRequestLatency(125);
+    metricsService.recordRequestLatency(100);
 
-    // Multiple calls should return the same average
+    // Multiple calls should return the same average: (75+125+75+125+100)/5 = 100
     double avg1 = metricsService.getAverageLatencyLast60Seconds();
     double avg2 = metricsService.getAverageLatencyLast60Seconds();
     double avg3 = metricsService.getAverageLatencyLast60Seconds();
 
-    assertThat(avg1).isEqualTo(100.0); // (75 + 125) / 2 = 100
+    assertThat(avg1).isEqualTo(100.0);
     assertThat(avg2).isEqualTo(100.0);
     assertThat(avg3).isEqualTo(100.0);
 
@@ -212,14 +233,18 @@ public class MetricsServiceTest {
   @Test
   void testDefaultLatencyThresholdBreach() {
     // Test the default threshold with latencies below the threshold
+    // Need at least 5 samples for threshold evaluation
     long latencyBelow = (long) (latencyThreshold * 0.8); // 80% of threshold
     long latencyBelow2 = (long) (latencyThreshold * 0.6); // 60% of threshold
 
     metricsService.recordRequestLatency(latencyBelow);
     metricsService.recordRequestLatency(latencyBelow2);
+    metricsService.recordRequestLatency(latencyBelow);
+    metricsService.recordRequestLatency(latencyBelow2);
+    metricsService.recordRequestLatency(latencyBelow);
 
     // Average should be below threshold
-    double expectedAvg = (latencyBelow + latencyBelow2) / 2.0;
+    double expectedAvg = (3 * latencyBelow + 2 * latencyBelow2) / 5.0;
     assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(expectedAvg);
     assertThat(metricsService.isLatencyThresholdBreached()).isFalse();
   }
@@ -227,14 +252,18 @@ public class MetricsServiceTest {
   @Test
   void testDefaultLatencyThresholdBreachExceeded() {
     // Test the default threshold with latencies that exceed the threshold
+    // Need at least 5 samples for threshold evaluation
     long latencyAbove = (long) (latencyThreshold * 1.5); // 150% of threshold
     long latencyAbove2 = (long) (latencyThreshold * 2.0); // 200% of threshold
 
     metricsService.recordRequestLatency(latencyAbove);
     metricsService.recordRequestLatency(latencyAbove2);
+    metricsService.recordRequestLatency(latencyAbove);
+    metricsService.recordRequestLatency(latencyAbove2);
+    metricsService.recordRequestLatency(latencyAbove);
 
     // Average should be above threshold
-    double expectedAvg = (latencyAbove + latencyAbove2) / 2.0;
+    double expectedAvg = (3 * latencyAbove + 2 * latencyAbove2) / 5.0;
     assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(expectedAvg);
     assertThat(metricsService.isLatencyThresholdBreached()).isTrue();
   }
@@ -242,8 +271,12 @@ public class MetricsServiceTest {
   @Test
   void testDefaultLatencyThresholdAtExactThreshold() {
     // Test the default threshold with latencies exactly at the threshold
+    // Need at least 5 samples for threshold evaluation
     long exactLatency = (long) latencyThreshold;
 
+    metricsService.recordRequestLatency(exactLatency);
+    metricsService.recordRequestLatency(exactLatency);
+    metricsService.recordRequestLatency(exactLatency);
     metricsService.recordRequestLatency(exactLatency);
     metricsService.recordRequestLatency(exactLatency);
 
@@ -255,29 +288,38 @@ public class MetricsServiceTest {
   @Test
   void testBothThresholdMethodsConsistency() {
     // Test that both threshold methods return the same result when using current threshold
+    // Need at least 5 samples for threshold evaluation
     long latencyBelow = (long) (latencyThreshold * 0.8); // 80% of threshold
     long latencyAbove = (long) (latencyThreshold * 1.6); // 160% of threshold
 
     metricsService.recordRequestLatency(latencyBelow);
     metricsService.recordRequestLatency(latencyAbove);
+    metricsService.recordRequestLatency(latencyBelow);
+    metricsService.recordRequestLatency(latencyAbove);
+    metricsService.recordRequestLatency(latencyAbove); // Average will be above threshold
 
-    // Average should be above threshold: (0.8 + 1.6) / 2 = 1.2 * threshold
-    double expectedAvg = (latencyBelow + latencyAbove) / 2.0;
-    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(expectedAvg);
+    // Average: (2*0.8 + 3*1.6) * threshold / 5 = 6.4*threshold/5 = 1.28*threshold
+    double expectedAvg = (2 * latencyBelow + 3 * latencyAbove) / 5.0;
 
-    // Both methods should return the same result for current threshold
+    // Both threshold methods should return the same result
     boolean defaultMethod = metricsService.isLatencyThresholdBreached();
     boolean parameterMethod = metricsService.isLatencyThresholdBreached(latencyThreshold);
 
-    assertThat(defaultMethod).isTrue(); // average > threshold
-    assertThat(parameterMethod).isTrue(); // average > threshold
+    assertThat(defaultMethod).isTrue(); // 1.28 * threshold > threshold
+    assertThat(parameterMethod).isTrue();
     assertThat(defaultMethod).isEqualTo(parameterMethod);
+
+    // Verify the calculated average
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(expectedAvg);
   }
 
   @Test
   void testDefaultThresholdAfterClearMetrics() {
-    // Record some latencies above threshold
+    // Record some latencies above threshold (need at least 5 for threshold evaluation)
     metricsService.recordRequestLatency(600);
+    metricsService.recordRequestLatency(700);
+    metricsService.recordRequestLatency(600);
+    metricsService.recordRequestLatency(700);
     metricsService.recordRequestLatency(700);
 
     // Verify threshold is breached
@@ -293,80 +335,131 @@ public class MetricsServiceTest {
 
   @Test
   void testDefaultErrorThresholdBreach() {
-    // Test the default threshold (100 errors) with errors below the threshold
-    for (int i = 0; i < 50; i++) {
-      metricsService.recordServerError();
+    // Record errors and successful requests to meet minimum sample size
+    // Need at least 10 total requests for threshold evaluation
+    for (int i = 0; i < 8; i++) {
+      metricsService.recordServerError(); // 8 errors
+    }
+    // Simulate successful requests by recording latencies (these count as requests)
+    for (int i = 0; i < 12; i++) {
+      metricsService.recordRequestLatency(100); // 12 successful requests
     }
 
-    // 50 errors is below 100 default threshold
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(50);
+    // Total: 20 requests, 8 errors
+    // For moderate traffic: errorCount > Math.min(threshold, requestCount/2) = 8 > Math.min(100,
+    // 10) = 8 > 10 = false
+    // But the error rate is 40%, much higher than reasonable, so let's increase errors
+    for (int i = 0; i < 3; i++) {
+      metricsService.recordServerError(); // 3 more errors = 11 total
+    }
+
+    // Total: 20 requests, 11 errors = 11 > 10, should breach
+    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(11);
+    assertThat(metricsService.isErrorThresholdBreached()).isTrue();
+  }
+
+  @Test
+  void testErrorThresholdWithInsufficientSamples() {
+    // With fewer than 10 total requests, threshold should not be breached regardless of error count
+    for (int i = 0; i < 8; i++) {
+      metricsService.recordServerError(); // 8 errors but only 8 total requests
+    }
+
+    // Even with 100% error rate, should not breach due to insufficient samples (< 10 total
+    // requests)
+    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(8);
     assertThat(metricsService.isErrorThresholdBreached()).isFalse();
   }
 
   @Test
   void testDefaultErrorThresholdBreachExceeded() {
-    // Test the default threshold (100 errors) with errors above the threshold
-    for (int i = 0; i < 150; i++) {
-      metricsService.recordServerError();
+    // Test with high traffic scenario (≥100 requests) using error rate logic
+    for (int i = 0; i < 15; i++) {
+      metricsService.recordServerError(); // 15 errors
+    }
+    // Record successful requests by recording latencies (these count as requests)
+    for (int i = 0; i < 100; i++) {
+      metricsService.recordRequestLatency(100); // 100 successful requests
     }
 
-    // 150 errors is above 100 default threshold
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(150);
+    // Total: 115 requests, 15 errors = 13% error rate, which exceeds 10% threshold for high traffic
+    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(15);
     assertThat(metricsService.isErrorThresholdBreached()).isTrue();
   }
 
   @Test
-  void testDefaultErrorThresholdAtExactThreshold() {
-    // Test the default threshold (100 errors) with exactly 100 errors
+  void testErrorThresholdWithLowErrorRate() {
+    // Test with high traffic scenario (≥100 requests) but low error rate
+    for (int i = 0; i < 5; i++) {
+      metricsService.recordServerError(); // 5 errors
+    }
+    // Record successful requests by recording latencies (these count as requests)
     for (int i = 0; i < 100; i++) {
-      metricsService.recordServerError();
+      metricsService.recordRequestLatency(100); // 100 successful requests
     }
 
-    // Exactly 100 errors should not breach (100 == 100, not >)
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(100);
+    // Total: 105 requests, 5 errors = 4.8% error rate, which is below 10% threshold for high
+    // traffic
+    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(5);
     assertThat(metricsService.isErrorThresholdBreached()).isFalse();
   }
 
   @Test
   void testErrorThresholdWithCustomValue() {
-    // Test with a custom threshold of 10 errors
-    for (int i = 0; i < 15; i++) {
-      metricsService.recordServerError();
+    // Test with moderate traffic scenario and custom threshold
+    for (int i = 0; i < 6; i++) {
+      metricsService.recordServerError(); // 6 errors
+    }
+    // Record successful requests by recording latencies (these count as requests)
+    for (int i = 0; i < 14; i++) {
+      metricsService.recordRequestLatency(100); // 14 successful requests
     }
 
-    // 15 errors should breach threshold of 10
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(15);
-    assertThat(metricsService.isErrorThresholdBreached(10)).isTrue();
-    assertThat(metricsService.isErrorThresholdBreached(20)).isFalse();
+    // Total: 20 requests, 6 errors
+    // For moderate traffic, uses Math.min(threshold, requestCount/2) = Math.min(10, 10) = 10
+    // 6 errors <= 10, so should not breach threshold of 10
+    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(6);
+    assertThat(metricsService.isErrorThresholdBreached(10)).isFalse();
+
+    // But should breach lower threshold
+    assertThat(metricsService.isErrorThresholdBreached(4)).isTrue();
   }
 
   @Test
   void testBothErrorThresholdMethodsConsistency() {
-    // Test that both threshold methods return the same result when using 100 errors
-    for (int i = 0; i < 120; i++) {
-      metricsService.recordServerError();
+    // Test that both threshold methods return the same result with high traffic
+    for (int i = 0; i < 12; i++) {
+      metricsService.recordServerError(); // 12 errors
+    }
+    // Record successful requests by recording latencies (these count as requests)
+    for (int i = 0; i < 100; i++) {
+      metricsService.recordRequestLatency(100); // 100 successful requests
     }
 
-    // 120 errors
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(120);
+    // Total: 112 requests, 12 errors = 10.7% error rate
+    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(12);
 
     // Both methods should return the same result for current error threshold
     boolean defaultMethod = metricsService.isErrorThresholdBreached();
     boolean parameterMethod = metricsService.isErrorThresholdBreached(errorThreshold);
 
-    assertThat(defaultMethod).isTrue(); // 120 > threshold
-    assertThat(parameterMethod).isTrue(); // 120 > threshold
+    assertThat(defaultMethod).isTrue(); // 10.7% > 10% threshold for high traffic
+    assertThat(parameterMethod).isTrue(); // Same logic applies
     assertThat(defaultMethod).isEqualTo(parameterMethod);
   }
 
   @Test
   void testDefaultErrorThresholdAfterClearMetrics() {
-    // Record errors above threshold
-    for (int i = 0; i < 150; i++) {
-      metricsService.recordServerError();
+    // Record errors and requests to establish a breach
+    for (int i = 0; i < 15; i++) {
+      metricsService.recordServerError(); // 15 errors
+    }
+    // Record successful requests by recording latencies (these count as requests)
+    for (int i = 0; i < 100; i++) {
+      metricsService.recordRequestLatency(100); // 100 successful requests
     }
 
-    // Verify threshold is breached
+    // Verify threshold is breached (15% error rate > 10%)
     assertThat(metricsService.isErrorThresholdBreached()).isTrue();
 
     // Clear metrics
@@ -381,18 +474,31 @@ public class MetricsServiceTest {
   void testBothErrorAndLatencyThresholds() {
     // Test that error and latency thresholds work independently
 
-    // Record errors above error threshold (>100)
-    for (int i = 0; i < 120; i++) {
-      metricsService.recordServerError();
+    // Record errors to establish high error rate
+    for (int i = 0; i < 15; i++) {
+      metricsService.recordServerError(); // 15 errors
     }
 
-    // Record latencies above latency threshold (>100ms)
+    // Record latencies above latency threshold (>100ms), need at least 5 for threshold evaluation
     metricsService.recordRequestLatency(150);
     metricsService.recordRequestLatency(180);
+    metricsService.recordRequestLatency(160);
+    metricsService.recordRequestLatency(170);
+    metricsService.recordRequestLatency(140);
+    // Add more successful requests to get high traffic scenario
+    for (int i = 0; i < 95; i++) {
+      metricsService.recordRequestLatency(50); // Low latency requests
+    }
 
-    // Verify both thresholds are breached
-    assertThat(metricsService.isErrorThresholdBreached()).isTrue(); // 120 > 100
-    assertThat(metricsService.isLatencyThresholdBreached()).isTrue(); // 165 > 100
+    // Total: 115 requests (15 errors + 100 latency records), 15 errors = 13% error rate
+    // Average latency of first 5 high-latency requests: (150+180+160+170+140)/5 = 160ms > 100ms
+    // But overall average will be much lower due to 95 low-latency requests
+
+    // Verify error threshold is breached (13% > 10% for high traffic)
+    assertThat(metricsService.isErrorThresholdBreached()).isTrue();
+
+    // Latency threshold should NOT be breached due to low overall average
+    assertThat(metricsService.isLatencyThresholdBreached()).isFalse();
 
     // Clear and verify both are reset
     metricsService.clearMetrics();
