@@ -13,7 +13,7 @@ public class ApplicationHealthCheckTest {
   private ApplicationHealthCheck healthCheck;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     // Get the real MetricsService and clear its state for test isolation
     metricsService = MetricsService.getInstance();
     metricsService.clearMetrics();
@@ -21,7 +21,7 @@ public class ApplicationHealthCheckTest {
   }
 
   @Test
-  public void testCheckHealthy() {
+  void testCheckHealthy() {
     // Setup - record errors and latency below thresholds
     for (int i = 0; i < 50; i++) {
       metricsService.recordServerError();
@@ -41,7 +41,7 @@ public class ApplicationHealthCheckTest {
   }
 
   @Test
-  public void testCheckErrorThresholdBreached() {
+  void testCheckErrorThresholdBreached() {
     // Setup - record errors above threshold (100), latency OK
     for (int i = 0; i < 150; i++) {
       metricsService.recordServerError();
@@ -61,7 +61,7 @@ public class ApplicationHealthCheckTest {
   }
 
   @Test
-  public void testCheckLatencyThresholdBreached() {
+  void testCheckLatencyThresholdBreached() {
     // Setup - latency threshold breached (500ms+), errors OK
     for (int i = 0; i < 50; i++) {
       metricsService.recordServerError();
@@ -81,7 +81,7 @@ public class ApplicationHealthCheckTest {
   }
 
   @Test
-  public void testCheckBothThresholdsBreached() {
+  void testCheckBothThresholdsBreached() {
     // Setup - both thresholds breached
     for (int i = 0; i < 150; i++) {
       metricsService.recordServerError();
@@ -102,7 +102,7 @@ public class ApplicationHealthCheckTest {
   }
 
   @Test
-  public void testCheckAtExactThresholds() {
+  void testCheckAtExactThresholds() {
     // Setup - at exact thresholds (should not breach)
     for (int i = 0; i < 100; i++) {
       metricsService.recordServerError();
@@ -122,7 +122,7 @@ public class ApplicationHealthCheckTest {
   }
 
   @Test
-  public void testCheckWithZeroValues() {
+  void testCheckWithZeroValues() {
     // Setup - no errors or latency data (clearMetrics already called in setUp)
 
     // Execute

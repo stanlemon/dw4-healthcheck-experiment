@@ -9,7 +9,7 @@ public class HelloWorldResourceTest {
   private final HelloWorldResource resource = new HelloWorldResource();
 
   @Test
-  public void testSayHello() {
+  void testSayHello() {
     HelloWorldResource.HelloResponse response = resource.sayHello();
 
     // Verify the response contains the expected message

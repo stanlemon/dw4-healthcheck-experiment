@@ -13,14 +13,14 @@ public class MetricsResourceTest {
   private MetricsResource resource;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     metricsService = MetricsService.getInstance();
     metricsService.clearMetrics(); // Start with clean state
     resource = new MetricsResource();
   }
 
   @Test
-  public void testGetMetricsInitialState() {
+  void testGetMetricsInitialState() {
     // Execute - with clean metrics
     MetricsResource.MetricsResponse response = resource.getMetrics();
 
@@ -35,7 +35,7 @@ public class MetricsResourceTest {
   }
 
   @Test
-  public void testGetMetricsWithErrors() {
+  void testGetMetricsWithErrors() {
     // Setup - record some errors below threshold
     for (int i = 0; i < 50; i++) {
       metricsService.recordServerError();
@@ -55,7 +55,7 @@ public class MetricsResourceTest {
   }
 
   @Test
-  public void testGetMetricsErrorThresholdBreached() {
+  void testGetMetricsErrorThresholdBreached() {
     // Setup - record errors above threshold
     for (int i = 0; i < 120; i++) {
       metricsService.recordServerError();
@@ -74,7 +74,7 @@ public class MetricsResourceTest {
   }
 
   @Test
-  public void testGetMetricsWithLatency() {
+  void testGetMetricsWithLatency() {
     // Setup - record some latencies below threshold
     metricsService.recordRequestLatency(200);
     metricsService.recordRequestLatency(300);
@@ -94,7 +94,7 @@ public class MetricsResourceTest {
   }
 
   @Test
-  public void testGetMetricsLatencyThresholdBreached() {
+  void testGetMetricsLatencyThresholdBreached() {
     // Setup - record high latencies above threshold
     metricsService.recordRequestLatency(700);
     metricsService.recordRequestLatency(800);
@@ -113,7 +113,7 @@ public class MetricsResourceTest {
   }
 
   @Test
-  public void testGetMetricsBothThresholdsBreached() {
+  void testGetMetricsBothThresholdsBreached() {
     // Setup - record both high errors and high latency
     for (int i = 0; i < 150; i++) {
       metricsService.recordServerError();

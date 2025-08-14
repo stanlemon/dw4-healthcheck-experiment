@@ -23,13 +23,13 @@ public class ResourceIntegrationTest {
       new DropwizardAppExtension<>(DwApplication.class, CONFIG_PATH);
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     // Clear metrics before each test since MetricsService is a singleton
     MetricsService.getInstance().clearMetrics();
   }
 
   @Test
-  public void testHelloEndpoint() {
+  void testHelloEndpoint() {
     Client client = APP.client();
 
     Response response =
@@ -46,7 +46,7 @@ public class ResourceIntegrationTest {
   }
 
   @Test
-  public void testMetricsEndpoint() {
+  void testMetricsEndpoint() {
     Client client = APP.client();
 
     Response response =
@@ -71,7 +71,7 @@ public class ResourceIntegrationTest {
   }
 
   @Test
-  public void testLatencyTracking() {
+  void testLatencyTracking() {
     Client client = APP.client();
 
     // Make a few requests to generate latency data
@@ -112,7 +112,7 @@ public class ResourceIntegrationTest {
   }
 
   @Test
-  public void testHealthCheckEndpoint() {
+  void testHealthCheckEndpoint() {
     Client client = APP.client();
 
     Response response =

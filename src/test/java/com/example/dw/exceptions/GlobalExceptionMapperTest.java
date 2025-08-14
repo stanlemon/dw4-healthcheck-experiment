@@ -16,7 +16,7 @@ public class GlobalExceptionMapperTest {
   private GlobalExceptionMapper exceptionMapper;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     // Get the real MetricsService and clear its state for test isolation
     metricsService = MetricsService.getInstance();
     metricsService.clearMetrics();
@@ -24,7 +24,7 @@ public class GlobalExceptionMapperTest {
   }
 
   @Test
-  public void testToResponseRuntimeException() {
+  void testToResponseRuntimeException() {
     // Setup
     RuntimeException exception = new RuntimeException("Test runtime exception");
     long initialErrorCount = metricsService.getErrorCountLastMinute();
@@ -47,7 +47,7 @@ public class GlobalExceptionMapperTest {
   }
 
   @Test
-  public void testToResponseWebApplicationException400() {
+  void testToResponseWebApplicationException400() {
     // Setup - 400 Bad Request
     WebApplicationException exception =
         new WebApplicationException("Bad request", Response.Status.BAD_REQUEST);
@@ -64,7 +64,7 @@ public class GlobalExceptionMapperTest {
   }
 
   @Test
-  public void testToResponseWebApplicationException503() {
+  void testToResponseWebApplicationException503() {
     // Setup - 503 Service Unavailable
     WebApplicationException exception =
         new WebApplicationException("Service unavailable", Response.Status.SERVICE_UNAVAILABLE);
@@ -81,7 +81,7 @@ public class GlobalExceptionMapperTest {
   }
 
   @Test
-  public void testToResponseNullMessage() {
+  void testToResponseNullMessage() {
     // Setup - exception with null message
     NullPointerException exception = new NullPointerException();
     long initialErrorCount = metricsService.getErrorCountLastMinute();
@@ -102,7 +102,7 @@ public class GlobalExceptionMapperTest {
   }
 
   @Test
-  public void testToResponseWebApplicationExceptionWithNullResponse() {
+  void testToResponseWebApplicationExceptionWithNullResponse() {
     // Setup - WebApplicationException with null response (covers missing branch)
     WebApplicationException exception =
         new WebApplicationException("Test exception") {
@@ -128,7 +128,7 @@ public class GlobalExceptionMapperTest {
   }
 
   @Test
-  public void testToResponseStatus599() {
+  void testToResponseStatus599() {
     // Setup - Test the upper bound of 5xx range (covers status < 600 branch)
     WebApplicationException exception =
         new WebApplicationException("Status 599", Response.status(599).build());
@@ -145,7 +145,7 @@ public class GlobalExceptionMapperTest {
   }
 
   @Test
-  public void testToResponseStatus600() {
+  void testToResponseStatus600() {
     // Setup - Test outside 5xx range (status >= 600, should NOT record error)
     WebApplicationException exception =
         new WebApplicationException("Status 600", Response.status(600).build());

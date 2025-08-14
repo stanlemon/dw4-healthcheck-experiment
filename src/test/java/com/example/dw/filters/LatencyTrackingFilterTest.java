@@ -24,14 +24,14 @@ public class LatencyTrackingFilterTest {
   private LatencyTrackingFilter filter;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     metricsService = MetricsService.getInstance();
     metricsService.clearMetrics(); // Start with clean state
     filter = new LatencyTrackingFilter();
   }
 
   @Test
-  public void testRequestFilter() throws IOException {
+  void testRequestFilter() throws IOException {
     // Execute
     filter.filter(mockRequestContext);
 
@@ -40,7 +40,7 @@ public class LatencyTrackingFilterTest {
   }
 
   @Test
-  public void testResponseFilterWithValidStartTime() throws IOException {
+  void testResponseFilterWithValidStartTime() throws IOException {
     // Setup - simulate a start time from 100ms ago
     long startTime = System.currentTimeMillis() - 100;
     when(mockRequestContext.getProperty("requestStartTime")).thenReturn(startTime);
@@ -57,7 +57,7 @@ public class LatencyTrackingFilterTest {
   }
 
   @Test
-  public void testResponseFilterWithNullStartTime() throws IOException {
+  void testResponseFilterWithNullStartTime() throws IOException {
     // Setup - no start time property
     when(mockRequestContext.getProperty("requestStartTime")).thenReturn(null);
 
@@ -72,7 +72,7 @@ public class LatencyTrackingFilterTest {
   }
 
   @Test
-  public void testResponseFilterWithInvalidStartTimeType() throws IOException {
+  void testResponseFilterWithInvalidStartTimeType() throws IOException {
     // Setup - start time property is not a Long
     when(mockRequestContext.getProperty("requestStartTime")).thenReturn("not a long");
 
@@ -87,7 +87,7 @@ public class LatencyTrackingFilterTest {
   }
 
   @Test
-  public void testResponseFilterWithZeroLatency() throws IOException {
+  void testResponseFilterWithZeroLatency() throws IOException {
     // Setup - start time is current time (should result in very small latency)
     long startTime = System.currentTimeMillis();
     when(mockRequestContext.getProperty("requestStartTime")).thenReturn(startTime);
@@ -104,7 +104,7 @@ public class LatencyTrackingFilterTest {
   }
 
   @Test
-  public void testCompleteRequestResponseCycle() throws IOException {
+  void testCompleteRequestResponseCycle() throws IOException {
     // Step 1: Request filter
     filter.filter(mockRequestContext);
 
@@ -138,7 +138,7 @@ public class LatencyTrackingFilterTest {
   }
 
   @Test
-  public void testMultipleRequests() throws IOException {
+  void testMultipleRequests() throws IOException {
     // Record multiple latencies to test averaging
     when(mockRequestContext.getProperty("requestStartTime"))
         .thenReturn(System.currentTimeMillis() - 100) // First: 100ms
