@@ -44,6 +44,7 @@ java -jar target/dw-test2-1.0-SNAPSHOT.jar server config.yml
 - Error Test: [http://localhost:8097/error](http://localhost:8097/error) - Deliberately throws a 500 error
 - Metrics: [http://localhost:8097/metrics](http://localhost:8097/metrics) - Shows comprehensive error counts, latency statistics, and threshold status
 - Health Check: [http://localhost:8098/healthcheck](http://localhost:8098/healthcheck) - Returns health status based on error and latency thresholds
+- Slow Requests: [http://localhost:8097/slow](http://localhost:8097/slow) - Introduces artificial delays to test latency thresholds
 
 ## Utility Scripts
 
@@ -62,6 +63,19 @@ These endpoints demonstrate how the global exception mapper catches different ty
 - Web Application Exception: [http://localhost:8097/test-errors/web-app/500](http://localhost:8097/test-errors/web-app/500)
 - Arithmetic Exception: [http://localhost:8097/test-errors/arithmetic](http://localhost:8097/test-errors/arithmetic)
 - Null Pointer Exception: [http://localhost:8097/test-errors/null-pointer](http://localhost:8097/test-errors/null-pointer)
+
+### Slow Request Endpoints
+
+These endpoints introduce artificial delays to test latency monitoring:
+
+- Default 1-second delay: [http://localhost:8097/slow](http://localhost:8097/slow)
+- Custom delay (in milliseconds): [http://localhost:8097/slow/2000](http://localhost:8097/slow/2000)
+- Examples for testing:
+  - 600ms delay: [http://localhost:8097/slow/600](http://localhost:8097/slow/600) - Exceeds 500ms threshold
+  - 2-second delay: [http://localhost:8097/slow/2000](http://localhost:8097/slow/2000) - Significantly exceeds threshold
+  - 5-second delay: [http://localhost:8097/slow/5000](http://localhost:8097/slow/5000) - Maximum practical delay
+
+**Note:** Maximum allowed delay is 10 seconds to prevent abuse.
 
 ## Metrics and Monitoring
 
@@ -185,6 +199,10 @@ mvn clean test jacoco:report
 # View the coverage report in your browser
 open target/site/jacoco/index.html
 ```
+
+**Note**: The SlowResource tests are optimized to use minimal delays (5ms) to avoid slowing down the test suite. The default slow endpoint (`/slow`) with its 1-second delay is NOT tested in automated tests to keep test execution fast. For latency testing, use the parameterized endpoint (`/slow/{delayMs}`) with custom delays via manual testing or the utility scripts.
+
+**Troubleshooting**: If you see "Skipping JaCoCo execution due to missing execution data file", ensure the Maven Surefire plugin uses `@{argLine}` to preserve JaCoCo's agent configuration alongside any other Java agents.
 
 The coverage report provides:
 
@@ -418,6 +436,23 @@ curl http://localhost:8097/metrics
 for i in {1..101}; do curl http://localhost:8097/error; done
 
 # Check health status
+curl http://localhost:8098/healthcheck
+```
+
+### Triggering Latency Thresholds
+
+```bash
+# Single slow requests to test latency tracking
+curl http://localhost:8097/slow/600    # 600ms delay (exceeds 500ms threshold)
+curl http://localhost:8097/slow/1000   # 1 second delay
+curl http://localhost:8097/slow/2000   # 2 second delay
+
+# Multiple slow requests to breach average latency threshold
+# Generate several slow requests to raise average latency above 500ms
+for i in {1..10}; do curl http://localhost:8097/slow/800; done
+
+# Check metrics and health status
+curl http://localhost:8097/metrics
 curl http://localhost:8098/healthcheck
 ```
 

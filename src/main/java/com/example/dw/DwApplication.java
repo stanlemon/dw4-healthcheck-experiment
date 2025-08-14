@@ -6,6 +6,7 @@ import com.example.dw.health.ApplicationHealthCheck;
 import com.example.dw.resources.ErrorResource;
 import com.example.dw.resources.HelloWorldResource;
 import com.example.dw.resources.MetricsResource;
+import com.example.dw.resources.SlowResource;
 import com.example.dw.resources.TestErrorsResource;
 import io.dropwizard.core.Application;
 import io.dropwizard.core.setup.Bootstrap;
@@ -44,6 +45,9 @@ public class DwApplication extends Application<DwConfiguration> {
 
     final TestErrorsResource testErrorsResource = new TestErrorsResource();
     environment.jersey().register(testErrorsResource);
+
+    final SlowResource slowResource = new SlowResource();
+    environment.jersey().register(slowResource);
 
     // Register exception mapper for global error handling
     environment.jersey().register(new GlobalExceptionMapper());
