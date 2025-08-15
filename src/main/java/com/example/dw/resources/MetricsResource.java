@@ -13,7 +13,16 @@ import lombok.Value;
 @Produces(MediaType.APPLICATION_JSON)
 public class MetricsResource {
 
-  private final MetricsService metricsService = MetricsService.getInstance();
+  private final MetricsService metricsService;
+
+  /**
+   * Constructs a new MetricsResource with the provided metrics service.
+   *
+   * @param metricsService the metrics service to use
+   */
+  public MetricsResource(MetricsService metricsService) {
+    this.metricsService = metricsService;
+  }
 
   @GET
   public MetricsResponse getMetrics() {

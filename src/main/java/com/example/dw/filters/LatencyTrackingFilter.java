@@ -68,11 +68,13 @@ public class LatencyTrackingFilter implements ContainerRequestFilter, ContainerR
   /**
    * Constructs a new LatencyTrackingFilter.
    *
-   * <p>Initializes the filter with the singleton {@link MetricsService} instance to ensure all
+   * <p>Initializes the filter with the provided {@link MetricsService} instance to ensure all
    * latency measurements are recorded in the central metrics system.
+   *
+   * @param metricsService the metrics service to use
    */
-  public LatencyTrackingFilter() {
-    this.metricsService = MetricsService.getInstance();
+  public LatencyTrackingFilter(MetricsService metricsService) {
+    this.metricsService = metricsService;
   }
 
   /**

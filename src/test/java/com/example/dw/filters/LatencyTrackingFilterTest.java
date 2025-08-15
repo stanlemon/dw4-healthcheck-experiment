@@ -3,6 +3,7 @@ package com.example.dw.filters;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+import com.example.dw.metrics.DefaultMetricsService;
 import com.example.dw.metrics.MetricsService;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
@@ -25,9 +26,9 @@ class LatencyTrackingFilterTest {
 
   @BeforeEach
   void setUp() {
-    metricsService = MetricsService.getInstance();
+    metricsService = new DefaultMetricsService();
     metricsService.clearMetrics(); // Start with clean state
-    filter = new LatencyTrackingFilter();
+    filter = new LatencyTrackingFilter(metricsService);
   }
 
   @Test

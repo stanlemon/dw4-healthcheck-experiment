@@ -3,6 +3,8 @@ package com.example.dw;
 import com.example.dw.exceptions.GlobalExceptionMapper;
 import com.example.dw.filters.LatencyTrackingFilter;
 import com.example.dw.health.ApplicationHealthCheck;
+import com.example.dw.metrics.DefaultMetricsService;
+import com.example.dw.metrics.MetricsService;
 import com.example.dw.resources.ErrorResource;
 import com.example.dw.resources.HelloWorldResource;
 import com.example.dw.resources.MetricsResource;
@@ -30,8 +32,11 @@ public class DwApplication extends Application<DwConfiguration> {
 
   @Override
   public void run(DwConfiguration configuration, Environment environment) {
+    // Create and register MetricsService as a singleton managed component
+    final MetricsService metricsService = new DefaultMetricsService();
+
     // Register latency tracking filter to measure all request latencies
-    environment.jersey().register(new LatencyTrackingFilter());
+    environment.jersey().register(new LatencyTrackingFilter(metricsService));
 
     // Register resources
     final HelloWorldResource helloWorldResource = new HelloWorldResource();
@@ -40,7 +45,7 @@ public class DwApplication extends Application<DwConfiguration> {
     final ErrorResource errorResource = new ErrorResource();
     environment.jersey().register(errorResource);
 
-    final MetricsResource metricsResource = new MetricsResource();
+    final MetricsResource metricsResource = new MetricsResource(metricsService);
     environment.jersey().register(metricsResource);
 
     final TestErrorsResource testErrorsResource = new TestErrorsResource();
@@ -50,9 +55,9 @@ public class DwApplication extends Application<DwConfiguration> {
     environment.jersey().register(slowResource);
 
     // Register exception mapper for global error handling
-    environment.jersey().register(new GlobalExceptionMapper());
+    environment.jersey().register(new GlobalExceptionMapper(metricsService));
 
     // Register health checks
-    environment.healthChecks().register("application", new ApplicationHealthCheck());
+    environment.healthChecks().register("application", new ApplicationHealthCheck(metricsService));
   }
 }

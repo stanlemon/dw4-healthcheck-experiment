@@ -7,19 +7,19 @@ import org.junit.jupiter.api.Test;
 
 class MetricsServiceTest {
 
-  private MetricsService metricsService;
+  private DefaultMetricsService metricsService;
   private long errorThreshold;
   private double latencyThreshold;
 
   @BeforeEach
   void setUp() {
-    // Get the singleton instance and clear it
-    metricsService = MetricsService.getInstance();
+    // Create a new instance for each test
+    metricsService = new DefaultMetricsService();
     metricsService.clearMetrics();
 
     // Get dynamic thresholds for test parameterization
-    errorThreshold = MetricsService.getDefaultErrorThreshold();
-    latencyThreshold = MetricsService.getDefaultLatencyThresholdMs();
+    errorThreshold = metricsService.getDefaultErrorThreshold();
+    latencyThreshold = metricsService.getDefaultLatencyThresholdMs();
   }
 
   @Test
@@ -710,19 +710,22 @@ class MetricsServiceTest {
   }
 
   @Test
-  void getInstance_WhenCalledMultipleTimes_ShouldReturnSameSingletonInstance() {
-    // Test that MetricsService is truly a singleton
-    MetricsService instance1 = MetricsService.getInstance();
-    MetricsService instance2 = MetricsService.getInstance();
+  void defaultMetricsService_WhenInstantiatedSeparately_ShouldMaintainIsolatedState() {
+    // Test that separate instances maintain separate state
+    DefaultMetricsService instance1 = new DefaultMetricsService();
+    DefaultMetricsService instance2 = new DefaultMetricsService();
 
-    assertThat(instance1).isSameAs(instance2);
+    // Instances should be different
+    assertThat(instance1).isNotSameAs(instance2);
 
-    // Test that changes through one reference affect the other
+    // Changes to one instance should not affect the other
     instance1.recordServerError();
-    assertThat(instance2.getErrorCountLastMinute()).isEqualTo(1);
+    assertThat(instance1.getErrorCountLastMinute()).isEqualTo(1);
+    assertThat(instance2.getErrorCountLastMinute()).isEqualTo(0);
 
     instance2.recordRequestLatency(100);
-    assertThat(instance1.getAverageLatencyLast60Seconds()).isEqualTo(100.0);
+    assertThat(instance1.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
+    assertThat(instance2.getAverageLatencyLast60Seconds()).isEqualTo(100.0);
   }
 
   @Test

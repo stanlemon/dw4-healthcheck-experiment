@@ -3,27 +3,27 @@ package com.example.dw.health;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.codahale.metrics.health.HealthCheck.Result;
-import com.example.dw.metrics.MetricsService;
+import com.example.dw.metrics.DefaultMetricsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class ApplicationHealthCheckTest {
 
-  private MetricsService metricsService;
+  private DefaultMetricsService metricsService;
   private ApplicationHealthCheck healthCheck;
   private long errorThreshold;
   private double latencyThreshold;
 
   @BeforeEach
   void setUp() {
-    // Get the real MetricsService and clear its state for test isolation
-    metricsService = MetricsService.getInstance();
+    // Create a new MetricsService instance for test isolation
+    metricsService = new DefaultMetricsService();
     metricsService.clearMetrics();
-    healthCheck = new ApplicationHealthCheck();
+    healthCheck = new ApplicationHealthCheck(metricsService);
 
     // Get the current thresholds dynamically
-    errorThreshold = MetricsService.getDefaultErrorThreshold();
-    latencyThreshold = MetricsService.getDefaultLatencyThresholdMs();
+    errorThreshold = metricsService.getDefaultErrorThreshold();
+    latencyThreshold = metricsService.getDefaultLatencyThresholdMs();
   }
 
   @Test

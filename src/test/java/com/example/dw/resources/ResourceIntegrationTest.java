@@ -5,14 +5,12 @@ import static org.awaitility.Awaitility.await;
 
 import com.example.dw.DwApplication;
 import com.example.dw.DwConfiguration;
-import com.example.dw.metrics.MetricsService;
 import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.core.Response;
 import java.time.Duration;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -23,12 +21,6 @@ class ResourceIntegrationTest {
 
   public static final DropwizardAppExtension<DwConfiguration> APP =
       new DropwizardAppExtension<>(DwApplication.class, CONFIG_PATH);
-
-  @BeforeEach
-  void setUp() {
-    // Clear metrics before each test since MetricsService is a singleton
-    MetricsService.getInstance().clearMetrics();
-  }
 
   @Test
   void helloEndpoint_WhenCalled_ShouldReturnHelloWorldMessage() {

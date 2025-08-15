@@ -3,6 +3,7 @@ package com.example.dw.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.withinPercentage;
 
+import com.example.dw.metrics.DefaultMetricsService;
 import com.example.dw.metrics.MetricsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,9 +18,9 @@ class MetricsResourceTest {
 
   @BeforeEach
   void setUp() {
-    metricsService = MetricsService.getInstance();
+    metricsService = new DefaultMetricsService();
     metricsService.clearMetrics(); // Start with clean state
-    resource = new MetricsResource();
+    resource = new MetricsResource(metricsService);
   }
 
   @Nested

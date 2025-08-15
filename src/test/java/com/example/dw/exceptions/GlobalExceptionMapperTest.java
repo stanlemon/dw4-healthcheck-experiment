@@ -2,6 +2,7 @@ package com.example.dw.exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.dw.metrics.DefaultMetricsService;
 import com.example.dw.metrics.MetricsService;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
@@ -17,10 +18,10 @@ class GlobalExceptionMapperTest {
 
   @BeforeEach
   void setUp() {
-    // Get the real MetricsService and clear its state for test isolation
-    metricsService = MetricsService.getInstance();
+    // Create a new MetricsService instance for test isolation
+    metricsService = new DefaultMetricsService();
     metricsService.clearMetrics();
-    exceptionMapper = new GlobalExceptionMapper();
+    exceptionMapper = new GlobalExceptionMapper(metricsService);
   }
 
   @Test

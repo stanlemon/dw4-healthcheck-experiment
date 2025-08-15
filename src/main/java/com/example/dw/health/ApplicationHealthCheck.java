@@ -6,8 +6,13 @@ import com.example.dw.metrics.MetricsService;
 public class ApplicationHealthCheck extends HealthCheck {
   private final MetricsService metricsService;
 
-  public ApplicationHealthCheck() {
-    this.metricsService = MetricsService.getInstance();
+  /**
+   * Constructs a new ApplicationHealthCheck with the provided metrics service.
+   *
+   * @param metricsService the metrics service to use for health checks
+   */
+  public ApplicationHealthCheck(MetricsService metricsService) {
+    this.metricsService = metricsService;
   }
 
   @Override
@@ -24,29 +29,29 @@ public class ApplicationHealthCheck extends HealthCheck {
               + "%d errors in last minute (threshold: %d), "
               + "%.1fms average latency in last 60 seconds (threshold: %.0fms)",
           errorCount,
-          MetricsService.getDefaultErrorThreshold(),
+          metricsService.getDefaultErrorThreshold(),
           avgLatency,
-          MetricsService.getDefaultLatencyThresholdMs());
+          metricsService.getDefaultLatencyThresholdMs());
     }
 
     if (errorThresholdBreached) {
       return Result.unhealthy(
           "Too many errors: %d errors in last minute (threshold: %d)",
-          errorCount, MetricsService.getDefaultErrorThreshold());
+          errorCount, metricsService.getDefaultErrorThreshold());
     }
 
     if (latencyThresholdBreached) {
       return Result.unhealthy(
           "High latency: %.1fms average latency in last 60 seconds (threshold: %.0fms)",
-          avgLatency, MetricsService.getDefaultLatencyThresholdMs());
+          avgLatency, metricsService.getDefaultLatencyThresholdMs());
     }
 
     return Result.healthy(
         "OK - %d errors in last minute (threshold: %d), "
             + "%.1fms average latency in last 60 seconds (threshold: %.0fms)",
         errorCount,
-        MetricsService.getDefaultErrorThreshold(),
+        metricsService.getDefaultErrorThreshold(),
         avgLatency,
-        MetricsService.getDefaultLatencyThresholdMs());
+        metricsService.getDefaultLatencyThresholdMs());
   }
 }

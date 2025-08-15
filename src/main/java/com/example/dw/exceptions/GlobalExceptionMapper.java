@@ -16,8 +16,13 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
 
   private final MetricsService metricsService;
 
-  public GlobalExceptionMapper() {
-    this.metricsService = MetricsService.getInstance();
+  /**
+   * Constructs a new GlobalExceptionMapper with the provided metrics service.
+   *
+   * @param metricsService the metrics service to use for error tracking
+   */
+  public GlobalExceptionMapper(MetricsService metricsService) {
+    this.metricsService = metricsService;
   }
 
   @Override
