@@ -1,5 +1,6 @@
 package com.example.dw.metrics;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -54,6 +55,9 @@ public class MetricsService {
     }
   }
 
+  @SuppressFBWarnings(
+      value = "MS_EXPOSE_REP",
+      justification = "Singleton that tracks state across the service")
   public static MetricsService getInstance() {
     return INSTANCE;
   }

@@ -7,7 +7,7 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.Test;
 
-public class TestErrorsResourceTest {
+class TestErrorsResourceTest {
 
   private final TestErrorsResource resource = new TestErrorsResource();
 
@@ -71,38 +71,10 @@ public class TestErrorsResourceTest {
   }
 
   @Test
-  void testArithmeticExceptionDetails() {
-    // Test that the arithmetic exception behaves as expected
-    assertThatThrownBy(() -> resource.testArithmeticException())
-        .isInstanceOf(ArithmeticException.class)
-        .satisfies(
-            exception -> {
-              // Verify it's specifically a division by zero error
-              assertThat(exception.getMessage()).contains("/ by zero");
-            });
-  }
-
-  @Test
-  void testNullPointerExceptionDetails() {
-    // Test that the null pointer exception occurs as expected
-    assertThatThrownBy(() -> resource.testNullPointerException())
-        .isInstanceOf(NullPointerException.class)
-        .satisfies(
-            exception -> {
-              // Just verify it's a NullPointerException - message may vary by JVM
-              assertThat(exception).isInstanceOf(NullPointerException.class);
-            });
-  }
-
-  @Test
   void testAllMethodsThrowExceptions() {
     // Comprehensive test to ensure all methods throw exceptions as designed
     assertThatThrownBy(() -> resource.testRuntimeException("test")).isInstanceOf(Exception.class);
 
     assertThatThrownBy(() -> resource.testWebAppException(500)).isInstanceOf(Exception.class);
-
-    assertThatThrownBy(() -> resource.testArithmeticException()).isInstanceOf(Exception.class);
-
-    assertThatThrownBy(() -> resource.testNullPointerException()).isInstanceOf(Exception.class);
   }
 }

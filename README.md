@@ -61,8 +61,6 @@ These endpoints demonstrate how the global exception mapper catches different ty
 
 - Runtime Exception: [http://localhost:8097/test-errors/runtime/your-message](http://localhost:8097/test-errors/runtime/your-message)
 - Web Application Exception: [http://localhost:8097/test-errors/web-app/500](http://localhost:8097/test-errors/web-app/500)
-- Arithmetic Exception: [http://localhost:8097/test-errors/arithmetic](http://localhost:8097/test-errors/arithmetic)
-- Null Pointer Exception: [http://localhost:8097/test-errors/null-pointer](http://localhost:8097/test-errors/null-pointer)
 
 ### Slow Request Endpoints
 

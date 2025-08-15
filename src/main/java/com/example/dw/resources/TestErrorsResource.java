@@ -24,18 +24,4 @@ public class TestErrorsResource {
     throw new WebApplicationException(
         "Web application exception with code " + code, Response.Status.fromStatusCode(code));
   }
-
-  @GET
-  @Path("/arithmetic")
-  public int testArithmeticException() {
-    // Division by zero
-    return 42 / 0;
-  }
-
-  @GET
-  @Path("/null-pointer")
-  public String testNullPointerException() {
-    String nullString = null;
-    return nullString.toLowerCase();
-  }
 }
