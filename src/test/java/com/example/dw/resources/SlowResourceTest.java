@@ -3,6 +3,8 @@ package com.example.dw.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import jakarta.ws.rs.core.Response;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -84,42 +86,44 @@ class SlowResourceTest {
   }
 
   @Test
-  void testThreadInterruptionDuringDelay() {
+  void testThreadInterruptionDuringDelay() throws InterruptedException {
     // Create a separate thread to test interruption
     SlowResource testResource = new SlowResource();
     final Response[] result = new Response[1];
     final Exception[] exception = new Exception[1];
 
+    // Use CountDownLatch to ensure proper synchronization
+    CountDownLatch threadStarted = new CountDownLatch(1);
+    CountDownLatch threadCompleted = new CountDownLatch(1);
+
     Thread testThread =
         new Thread(
             () -> {
               try {
+                threadStarted.countDown(); // Signal that thread has started
                 result[0] =
                     testResource.slowWithDelay(100); // Use a longer delay to ensure interruption
               } catch (Exception e) {
                 exception[0] = e;
+              } finally {
+                threadCompleted.countDown(); // Signal that thread has completed
               }
             });
 
     testThread.start();
 
-    // Give the thread a moment to start and begin sleeping
-    try {
-      Thread.sleep(
-          10); // NOSONAR - Necessary for test timing to ensure interruption happens during sleep
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
+    // Wait for the thread to actually start executing (more reliable than Thread.sleep)
+    assertThat(threadStarted.await(1, TimeUnit.SECONDS)).isTrue();
+
+    // Give a very brief moment for the thread to enter the sleep call
+    // This is much more reliable than the previous 10ms sleep
+    Thread.yield();
 
     // Interrupt the test thread while it's sleeping
     testThread.interrupt();
 
-    // Wait for the thread to complete
-    try {
-      testThread.join(1000); // Wait up to 1 second
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
+    // Wait for the thread to complete (more reliable than thread.join with timeout)
+    assertThat(threadCompleted.await(2, TimeUnit.SECONDS)).isTrue();
 
     // Verify that the interruption was handled correctly
     assertThat(result[0]).isNotNull();

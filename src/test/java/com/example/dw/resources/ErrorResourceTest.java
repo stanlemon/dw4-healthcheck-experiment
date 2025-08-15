@@ -11,7 +11,7 @@ class ErrorResourceTest {
   @Test
   void testTriggerError() {
     // Test that calling triggerError() throws a RuntimeException with the expected message
-    assertThatThrownBy(() -> resource.triggerError())
+    assertThatThrownBy(resource::triggerError)
         .isInstanceOf(RuntimeException.class)
         .hasMessageContaining(
             "This is a deliberate error that will be caught by our global handler");

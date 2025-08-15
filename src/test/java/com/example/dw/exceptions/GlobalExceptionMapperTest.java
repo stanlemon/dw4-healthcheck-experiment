@@ -42,8 +42,9 @@ class GlobalExceptionMapperTest {
     // Get and verify response entity
     @SuppressWarnings("unchecked")
     Map<String, Object> entity = (Map<String, Object>) response.getEntity();
-    assertThat(entity.get("code")).isEqualTo(500);
-    assertThat(entity.get("message")).isEqualTo("Test runtime exception");
+    assertThat(entity)
+        .containsEntry("code", 500)
+        .containsEntry("message", "Test runtime exception");
   }
 
   @Test
@@ -98,7 +99,7 @@ class GlobalExceptionMapperTest {
     // Get and verify response entity uses default message
     @SuppressWarnings("unchecked")
     Map<String, Object> entity = (Map<String, Object>) response.getEntity();
-    assertThat(entity.get("message")).isEqualTo("Server Error");
+    assertThat(entity).containsEntry("message", "Server Error");
   }
 
   @Test
@@ -120,8 +121,7 @@ class GlobalExceptionMapperTest {
     assertThat(response.getStatus()).isEqualTo(500);
     @SuppressWarnings("unchecked")
     Map<String, Object> entity = (Map<String, Object>) response.getEntity();
-    assertThat(entity.get("code")).isEqualTo(500);
-    assertThat(entity.get("message")).isEqualTo("Test exception");
+    assertThat(entity).containsEntry("code", 500).containsEntry("message", "Test exception");
 
     // Verify metrics were recorded (5xx error)
     assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(initialErrorCount + 1);

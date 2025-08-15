@@ -105,36 +105,26 @@ class LatencyTrackingFilterTest {
 
   @Test
   void testCompleteRequestResponseCycle() throws IOException {
-    // Step 1: Request filter
+    // Step 1: Request filter - this should set the start time
     filter.filter(mockRequestContext);
 
     // Verify start time was set
     verify(mockRequestContext).setProperty(eq("requestStartTime"), any(Long.class));
 
-    // Step 2: Simulate some processing time
-    try {
-      Thread.sleep(10); // Sleep for 10ms
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
+    // Step 2: Setup for response filter - simulate a realistic request processing time
+    // Instead of using a sleep, we'll mock the start time to be from a specific time ago
+    long simulatedStartTime = System.currentTimeMillis() - 50; // Simulate 50ms processing time
+    when(mockRequestContext.getProperty("requestStartTime")).thenReturn(simulatedStartTime);
 
-    // Step 3: Setup for response filter - capture the start time that was set
-    when(mockRequestContext.getProperty("requestStartTime"))
-        .thenAnswer(
-            invocation -> {
-              // Return a time from ~10ms ago
-              return System.currentTimeMillis() - 10;
-            });
-
-    // Verify initial state - no latency recorded
+    // Verify initial state - no latency recorded yet
     assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
 
-    // Step 4: Response filter
+    // Step 3: Response filter - this should calculate and record the latency
     filter.filter(mockRequestContext, mockResponseContext);
 
-    // Verify latency was recorded with a reasonable value
+    // Verify latency was recorded with a reasonable value (should be around 50ms)
     double avgLatency = metricsService.getAverageLatencyLast60Seconds();
-    assertThat(avgLatency).isGreaterThanOrEqualTo(5.0).isLessThanOrEqualTo(100.0);
+    assertThat(avgLatency).isGreaterThanOrEqualTo(40.0).isLessThanOrEqualTo(100.0);
   }
 
   @Test
