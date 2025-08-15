@@ -20,7 +20,7 @@ class MetricsResourceTest {
   }
 
   @Test
-  void testGetMetricsInitialState() {
+  void getMetrics_WhenNoMetricsRecorded_ShouldReturnHealthyInitialState() {
     // Execute - with clean metrics
     MetricsResource.MetricsResponse response = resource.getMetrics();
 
@@ -35,7 +35,7 @@ class MetricsResourceTest {
   }
 
   @Test
-  void testGetMetricsWithErrors() {
+  void getMetrics_WhenErrorsBelowThreshold_ShouldReturnHealthyState() {
     // Setup - record some errors below threshold
     for (int i = 0; i < 50; i++) {
       metricsService.recordServerError();
@@ -55,7 +55,7 @@ class MetricsResourceTest {
   }
 
   @Test
-  void testGetMetricsErrorThresholdBreached() {
+  void getMetrics_WhenErrorThresholdBreached_ShouldReturnUnhealthyState() {
     // Setup - record errors and requests to meet minimum sample size and trigger threshold
     for (int i = 0; i < 15; i++) {
       metricsService.recordServerError(); // 15 errors
@@ -78,7 +78,7 @@ class MetricsResourceTest {
   }
 
   @Test
-  void testGetMetricsWithLatency() {
+  void getMetrics_WhenLatencyBelowThreshold_ShouldReturnHealthyState() {
     // Setup - record some latencies below threshold
     metricsService.recordRequestLatency(50);
     metricsService.recordRequestLatency(60);
@@ -99,7 +99,7 @@ class MetricsResourceTest {
   }
 
   @Test
-  void testGetMetricsLatencyThresholdBreached() {
+  void getMetrics_WhenLatencyThresholdBreached_ShouldReturnUnhealthyState() {
     // Setup - record high latencies above threshold (need at least 5 for threshold evaluation)
     metricsService.recordRequestLatency(150);
     metricsService.recordRequestLatency(200);
@@ -121,7 +121,7 @@ class MetricsResourceTest {
   }
 
   @Test
-  void testGetMetricsBothThresholdsBreached() {
+  void getMetrics_WhenErrorThresholdBreachedWithValidLatency_ShouldReturnUnhealthyState() {
     // Setup - record both high errors and high latency with sufficient samples
     for (int i = 0; i < 15; i++) {
       metricsService.recordServerError(); // 15 errors

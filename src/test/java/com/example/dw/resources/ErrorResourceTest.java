@@ -9,7 +9,7 @@ class ErrorResourceTest {
   private final ErrorResource resource = new ErrorResource();
 
   @Test
-  void testTriggerError() {
+  void triggerError_WhenCalled_ShouldThrowRuntimeExceptionWithExpectedMessage() {
     // Test that calling triggerError() throws a RuntimeException with the expected message
     assertThatThrownBy(resource::triggerError)
         .isInstanceOf(RuntimeException.class)

@@ -26,7 +26,7 @@ class SlowResourceTest {
   }
 
   @Test
-  void testSlowWithValidDelay() {
+  void slowWithDelay_WhenValidDelay_ShouldWaitSpecifiedTime() {
     long startTime = System.currentTimeMillis();
     Response response = resource.slowWithDelay(5);
     long elapsedTime = System.currentTimeMillis() - startTime;
@@ -41,7 +41,7 @@ class SlowResourceTest {
   }
 
   @Test
-  void testSlowWithZeroDelay() {
+  void slowWithDelay_WhenZeroDelay_ShouldReturnSuccessImmediately() {
     Response response = resource.slowWithDelay(0);
 
     assertThat(response.getStatus()).isEqualTo(200);
@@ -53,7 +53,7 @@ class SlowResourceTest {
   }
 
   @Test
-  void testSlowWithNegativeDelay() {
+  void slowWithDelay_WhenNegativeDelay_ShouldReturn400Error() {
     Response response = resource.slowWithDelay(-100);
 
     assertThat(response.getStatus()).isEqualTo(400);
@@ -65,7 +65,7 @@ class SlowResourceTest {
   }
 
   @Test
-  void testSlowWithExcessiveDelay() {
+  void slowWithDelay_WhenExcessiveDelay_ShouldReturn400Error() {
     Response response = resource.slowWithDelay(15000);
 
     assertThat(response.getStatus()).isEqualTo(400);
@@ -77,7 +77,7 @@ class SlowResourceTest {
   }
 
   @Test
-  void testSlowResponseConstructorAndGetters() {
+  void slowResponse_WhenConstructed_ShouldSetFieldsCorrectly() {
     SlowResource.SlowResponse response = new SlowResource.SlowResponse("Test message", 10, 15);
 
     assertThat(response.getMessage()).isEqualTo("Test message");
@@ -86,7 +86,8 @@ class SlowResourceTest {
   }
 
   @Test
-  void testThreadInterruptionDuringDelay() throws InterruptedException {
+  void slowWithDelay_WhenThreadInterrupted_ShouldHandleInterruptionGracefully()
+      throws InterruptedException {
     // Create a separate thread to test interruption
     SlowResource testResource = new SlowResource();
     final Response[] result = new Response[1];

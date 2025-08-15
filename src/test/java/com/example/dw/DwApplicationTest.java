@@ -17,14 +17,14 @@ class DwApplicationTest {
   }
 
   @Test
-  void testApplicationName() {
+  void getName_WhenCalled_ShouldReturnCorrectApplicationName() {
     // Test the getName() method
     String name = application.getName();
     assertThat(name).isEqualTo("dw-application");
   }
 
   @Test
-  void testInitialize() {
+  void initialize_WhenCalled_ShouldNotThrowException() {
     // Test the initialize method - should not throw any exceptions
     Bootstrap<DwConfiguration> bootstrap = new Bootstrap<>(application);
     assertDoesNotThrow(() -> application.initialize(bootstrap));
@@ -34,7 +34,7 @@ class DwApplicationTest {
   }
 
   @Test
-  void testMainMethod() {
+  void main_WhenCalledWithHelpArg_ShouldNotThrowException() {
     // Test that main method doesn't crash with help argument
     // This tests the application can at least parse basic args
     assertDoesNotThrow(
@@ -44,7 +44,7 @@ class DwApplicationTest {
   }
 
   @Test
-  void testMainMethodWithServerHelp() {
+  void main_WhenCalledWithServerHelpArgs_ShouldNotThrowException() {
     // Test main with server help - should not throw exception
     assertDoesNotThrow(
         () -> {
@@ -53,7 +53,7 @@ class DwApplicationTest {
   }
 
   @Test
-  void testMainMethodWithCheckCommand() {
+  void main_WhenCalledWithCheckHelpArgs_ShouldNotThrowException() {
     // Test main with check command and help
     assertDoesNotThrow(
         () -> {
@@ -62,7 +62,7 @@ class DwApplicationTest {
   }
 
   @Test
-  void testApplicationInstantiation() {
+  void constructor_WhenCalled_ShouldCreateValidApplicationInstance() {
     // Test that we can create a new instance of the application
     DwApplication newApp = new DwApplication();
     assertThat(newApp).isNotNull();
@@ -70,7 +70,7 @@ class DwApplicationTest {
   }
 
   @Test
-  void testConfigurationInstantiation() {
+  void dwConfiguration_WhenInstantiated_ShouldCreateValidInstance() {
     // Test that we can create a configuration instance
     DwConfiguration config = new DwConfiguration();
     assertThat(config).isNotNull();

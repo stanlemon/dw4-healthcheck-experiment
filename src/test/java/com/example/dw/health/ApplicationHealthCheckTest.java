@@ -27,7 +27,7 @@ class ApplicationHealthCheckTest {
   }
 
   @Test
-  void testCheckHealthy() {
+  void check_WhenMetricsBelowThresholds_ShouldReportHealthy() {
     // Setup - record errors and latency below thresholds with sufficient traffic
     long errorsToGenerate = 5; // Low error count
     double latencyToUse = latencyThreshold * 0.8; // 80% of latency threshold
@@ -52,7 +52,7 @@ class ApplicationHealthCheckTest {
   }
 
   @Test
-  void testCheckErrorThresholdBreached() {
+  void check_WhenErrorThresholdBreached_ShouldReportUnhealthy() {
     // Setup - record errors above threshold, latency OK
     int errorsToGenerate = (int) (errorThreshold * 1.5); // 150% of threshold
     long latencyToUse = (long) (latencyThreshold * 0.8); // 80% of threshold
@@ -75,7 +75,7 @@ class ApplicationHealthCheckTest {
   }
 
   @Test
-  void testCheckLatencyThresholdBreached() {
+  void check_WhenLatencyThresholdBreached_ShouldReportUnhealthy() {
     // Setup - record errors below threshold but latency above threshold
     long errorsToGenerate = 2; // Low error count
     long latencyToUse = (long) (latencyThreshold * 2.0); // 200% of threshold
@@ -100,7 +100,7 @@ class ApplicationHealthCheckTest {
   }
 
   @Test
-  void testCheckBothThresholdsBreached() {
+  void check_WhenBothThresholdsBreached_ShouldReportCritical() {
     // Setup - both thresholds breached
     int errorsToGenerate = (int) (errorThreshold * 1.5); // 150% of threshold
     long latencyToUse = (long) (latencyThreshold * 2.0); // 200% of threshold
@@ -124,7 +124,7 @@ class ApplicationHealthCheckTest {
   }
 
   @Test
-  void testCheckAtExactThresholds() {
+  void check_WhenMetricsExactlyAtThresholds_ShouldStillReportHealthy() {
     // Setup - at exact thresholds (should not breach)
     int errorsToGenerate = 10; // 10% error rate exactly at threshold
     long latencyToUse = (long) latencyThreshold; // Exactly at threshold
@@ -149,7 +149,7 @@ class ApplicationHealthCheckTest {
   }
 
   @Test
-  void testCheckWithZeroValues() {
+  void check_WhenNoErrorsOrLatency_ShouldReportHealthy() {
     // Setup - no errors or latency data (clearMetrics already called in setUp)
 
     // Execute

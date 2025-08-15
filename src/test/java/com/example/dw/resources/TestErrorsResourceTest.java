@@ -12,7 +12,7 @@ class TestErrorsResourceTest {
   private final TestErrorsResource resource = new TestErrorsResource();
 
   @Test
-  void testRuntimeException() {
+  void runtimeException_WhenCalled_ShouldThrowRuntimeExceptionWithProvidedMessage() {
     String errorMessage = "Test error message";
     assertThatThrownBy(() -> resource.testRuntimeException(errorMessage))
         .isInstanceOf(RuntimeException.class)
@@ -20,7 +20,7 @@ class TestErrorsResourceTest {
   }
 
   @Test
-  void testRuntimeExceptionWithDifferentMessages() {
+  void runtimeException_WhenCalledWithVariousMessages_ShouldPreserveMessageContent() {
     // Test with different message values to ensure parameter handling works correctly
     String[] testMessages = {"error1", "test message with spaces", "special@#$chars", ""};
 
@@ -32,7 +32,7 @@ class TestErrorsResourceTest {
   }
 
   @Test
-  void testWebAppException() {
+  void webAppException_WhenCalled_ShouldThrowWebApplicationExceptionWithProvidedCode() {
     int errorCode = 400;
     assertThatThrownBy(() -> resource.testWebAppException(errorCode))
         .isInstanceOf(WebApplicationException.class)
@@ -40,7 +40,7 @@ class TestErrorsResourceTest {
   }
 
   @Test
-  void testWebAppExceptionWithDifferentStatusCodes() {
+  void webAppException_WhenCalledWithVariousStatusCodes_ShouldUseCorrectStatusCode() {
     // Test various HTTP status codes to ensure proper handling
     int[] statusCodes = {400, 401, 403, 404, 500, 502, 503};
 
@@ -57,7 +57,7 @@ class TestErrorsResourceTest {
   }
 
   @Test
-  void testWebAppExceptionResponseStatus() {
+  void webAppException_WhenCalledWithSpecificCode_ShouldSetCorrectResponseStatus() {
     // Test that the response status is correctly set
     int testCode = 404; // Not Found - a standard status code
 
@@ -71,7 +71,7 @@ class TestErrorsResourceTest {
   }
 
   @Test
-  void testAllMethodsThrowExceptions() {
+  void resourceMethods_WhenCalled_ShouldThrowExpectedExceptions() {
     // Comprehensive test to ensure all methods throw exceptions as designed
     assertThatThrownBy(() -> resource.testRuntimeException("test")).isInstanceOf(Exception.class);
 

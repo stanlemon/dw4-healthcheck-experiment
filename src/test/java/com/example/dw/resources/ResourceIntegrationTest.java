@@ -31,7 +31,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
-  void testHelloEndpoint() {
+  void helloEndpoint_WhenCalled_ShouldReturnHelloWorldMessage() {
     Client client = APP.client();
 
     Response response =
@@ -48,7 +48,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
-  void testMetricsEndpoint() {
+  void metricsEndpoint_WhenCalledWithCleanMetrics_ShouldReturnHealthyState() {
     Client client = APP.client();
 
     Response response =
@@ -73,7 +73,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
-  void testLatencyTracking() {
+  void latencyTracking_WhenMultipleRequests_ShouldRecordReasonableLatency() {
     Client client = APP.client();
 
     // Make a few requests to generate latency data
@@ -113,7 +113,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
-  void testHealthCheckEndpoint() {
+  void healthcheckEndpoint_WhenCalled_ShouldReturnOkStatus() {
     Client client = APP.client();
 
     Response response =

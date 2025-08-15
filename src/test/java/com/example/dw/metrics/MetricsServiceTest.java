@@ -23,7 +23,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testRecordServerError() {
+  void recordServerError_WhenCalled_ShouldIncrementErrorCounts() {
     // Initial state
     assertThat(metricsService.getTotalErrorCount()).isZero();
     assertThat(metricsService.getErrorCountLastMinute()).isZero();
@@ -44,7 +44,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testGetErrorCountLastMinute() {
+  void getErrorCountLastMinute_WhenErrorsRecorded_ShouldReturnCorrectCount() {
     // Initial state
     assertThat(metricsService.getErrorCountLastMinute()).isZero();
 
@@ -66,7 +66,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testClearMetrics() {
+  void clearMetrics_WhenCalled_ShouldResetAllCounts() {
     // Record some errors
     metricsService.recordServerError();
     metricsService.recordServerError();
@@ -84,7 +84,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testMultipleCallsConsistency() {
+  void getErrorCountLastMinute_WhenCalledMultipleTimes_ShouldReturnConsistentResults() {
     // Test that multiple rapid calls to getErrorCountLastMinute are consistent
     metricsService.recordServerError();
 
@@ -102,7 +102,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testRecordRequestLatency() {
+  void recordRequestLatency_WhenCalled_ShouldUpdateAverageLatency() {
     // Initial state - no latency recorded
     assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
 
@@ -120,7 +120,8 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testAverageLatencyCalculation() {
+  void
+      getAverageLatencyLast60Seconds_WhenMultipleLatenciesRecorded_ShouldCalculateCorrectAverage() {
     // Record multiple latencies with different values
     metricsService.recordRequestLatency(50); // 50ms
     metricsService.recordRequestLatency(100); // 100ms
@@ -132,7 +133,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testLatencyThresholdBreach() {
+  void isLatencyThresholdBreached_WhenAverageAboveThreshold_ShouldReturnTrue() {
     // Record latencies that average to 1.5 * threshold
     // Need at least 5 requests to meet minimum sample size requirement
     long latency1 = (long) latencyThreshold;
@@ -158,14 +159,14 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testLatencyThresholdWithNoData() {
+  void isLatencyThresholdBreached_WhenNoDataRecorded_ShouldReturnFalse() {
     // Without any recorded latency, threshold should not be breached
     assertThat(metricsService.isLatencyThresholdBreached(1.0)).isFalse();
     assertThat(metricsService.isLatencyThresholdBreached(100.0)).isFalse();
   }
 
   @Test
-  void testLatencyThresholdWithInsufficientSamples() {
+  void isLatencyThresholdBreached_WhenInsufficientSamples_ShouldReturnFalse() {
     // With fewer than 5 samples, threshold should not be breached regardless of latency
     metricsService.recordRequestLatency(10000); // Very high latency
     metricsService.recordRequestLatency(10000);
@@ -178,7 +179,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testLatencyConsistencyAcrossMultipleCalls() {
+  void getAverageLatencyLast60Seconds_WhenCalledMultipleTimes_ShouldReturnConsistentResults() {
     // Record some latencies (need at least 5 for threshold evaluation)
     metricsService.recordRequestLatency(75);
     metricsService.recordRequestLatency(125);
@@ -206,7 +207,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testBothErrorAndLatencyMetrics() {
+  void recordMetrics_WhenBothErrorAndLatency_ShouldTrackIndependently() {
     // Test that error and latency metrics work independently
 
     // Record some errors
@@ -231,7 +232,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testDefaultLatencyThresholdBreach() {
+  void isLatencyThresholdBreached_WhenAverageBelowDefaultThreshold_ShouldReturnFalse() {
     // Test the default threshold with latencies below the threshold
     // Need at least 5 samples for threshold evaluation
     long latencyBelow = (long) (latencyThreshold * 0.8); // 80% of threshold
@@ -250,7 +251,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testDefaultLatencyThresholdBreachExceeded() {
+  void isLatencyThresholdBreached_WhenAverageAboveDefaultThreshold_ShouldReturnTrue() {
     // Test the default threshold with latencies that exceed the threshold
     // Need at least 5 samples for threshold evaluation
     long latencyAbove = (long) (latencyThreshold * 1.5); // 150% of threshold
@@ -269,7 +270,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testDefaultLatencyThresholdAtExactThreshold() {
+  void isLatencyThresholdBreached_WhenAverageExactlyAtThreshold_ShouldReturnFalse() {
     // Test the default threshold with latencies exactly at the threshold
     // Need at least 5 samples for threshold evaluation
     long exactLatency = (long) latencyThreshold;
@@ -286,7 +287,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testBothThresholdMethodsConsistency() {
+  void isLatencyThresholdBreached_WhenCalledWithAndWithoutParameter_ShouldBeConsistent() {
     // Test that both threshold methods return the same result when using current threshold
     // Need at least 5 samples for threshold evaluation
     long latencyBelow = (long) (latencyThreshold * 0.8); // 80% of threshold
@@ -314,7 +315,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testDefaultThresholdAfterClearMetrics() {
+  void isLatencyThresholdBreached_WhenMetricsCleared_ShouldReturnFalse() {
     // Record some latencies above threshold (need at least 5 for threshold evaluation)
     metricsService.recordRequestLatency(600);
     metricsService.recordRequestLatency(700);
@@ -334,7 +335,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testDefaultErrorThresholdBreach() {
+  void isErrorThresholdBreached_WhenErrorRateAboveThreshold_ShouldReturnTrue() {
     // Record errors and successful requests to meet minimum sample size
     // Need at least 10 total requests for threshold evaluation
     for (int i = 0; i < 8; i++) {
@@ -359,7 +360,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testErrorThresholdWithInsufficientSamples() {
+  void isErrorThresholdBreached_WhenInsufficientSamples_ShouldReturnFalse() {
     // With fewer than 10 total requests, threshold should not be breached regardless of error count
     for (int i = 0; i < 8; i++) {
       metricsService.recordServerError(); // 8 errors but only 8 total requests
@@ -372,7 +373,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testDefaultErrorThresholdBreachExceeded() {
+  void isErrorThresholdBreached_WhenHighTrafficAndHighErrorRate_ShouldReturnTrue() {
     // Test with high traffic scenario (≥100 requests) using error rate logic
     for (int i = 0; i < 15; i++) {
       metricsService.recordServerError(); // 15 errors
@@ -388,7 +389,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testErrorThresholdWithLowErrorRate() {
+  void isErrorThresholdBreached_WhenHighTrafficAndLowErrorRate_ShouldReturnFalse() {
     // Test with high traffic scenario (≥100 requests) but low error rate
     for (int i = 0; i < 5; i++) {
       metricsService.recordServerError(); // 5 errors
@@ -405,7 +406,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testErrorThresholdWithCustomValue() {
+  void isErrorThresholdBreached_WhenCustomThresholdSpecified_ShouldRespectThresholdValue() {
     // Test with moderate traffic scenario and custom threshold
     for (int i = 0; i < 6; i++) {
       metricsService.recordServerError(); // 6 errors
@@ -426,7 +427,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testBothErrorThresholdMethodsConsistency() {
+  void isErrorThresholdBreached_WhenCalledWithAndWithoutParameter_ShouldReturnConsistentResults() {
     // Test that both threshold methods return the same result with high traffic
     for (int i = 0; i < 12; i++) {
       metricsService.recordServerError(); // 12 errors
@@ -449,7 +450,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testDefaultErrorThresholdAfterClearMetrics() {
+  void isErrorThresholdBreached_WhenMetricsCleared_ShouldReturnFalse() {
     // Record errors and requests to establish a breach
     for (int i = 0; i < 15; i++) {
       metricsService.recordServerError(); // 15 errors
@@ -471,7 +472,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testBothErrorAndLatencyThresholds() {
+  void isThresholdBreached_WhenBothErrorAndLatencyMetrics_ShouldEvaluateIndependently() {
     // Test that error and latency thresholds work independently
 
     // Record errors to establish high error rate
@@ -508,7 +509,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testErrorBucketClearingOnFirstWrite() {
+  void recordServerError_WhenFirstAfterClearingMetrics_ShouldHandleInitialState() {
     // Test the branch where lastBucketTime == -1 (first write)
     // This happens on the very first error recorded after clearing metrics
 
@@ -531,7 +532,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testLatencyBucketClearingOnFirstWrite() {
+  void recordRequestLatency_WhenFirstAfterClearingMetrics_ShouldHandleInitialState() {
     // Test the branch where lastLatencyBucketTime == -1 (first write)
 
     // Clear metrics to ensure we're in initial state
@@ -552,7 +553,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testErrorBucketClearingOnLargeTimeJump() {
+  void getErrorCountLastMinute_WhenMultipleErrorsRecorded_ShouldHandleBucketTimeWindows() {
     // Test the branch where currentSeconds - lastBucketTime >= ERROR_BUCKET_COUNT
     // We can't easily simulate a 60+ second time jump in tests, but we can test
     // that the bucket clearing logic works correctly with rapid sequential calls
@@ -572,7 +573,8 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testLatencyBucketClearingOnLargeTimeJump() {
+  void
+      getAverageLatencyLast60Seconds_WhenMultipleLatenciesRecorded_ShouldHandleBucketTimeWindows() {
     // Test similar scenario for latency buckets
 
     // Record initial latency
@@ -590,7 +592,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testErrorBucketPartialClearing() {
+  void getErrorCountLastMinute_WhenCalledMultipleTimes_ShouldNotAffectCountData() {
     // Test the bucket clearing logic by ensuring multiple calls don't affect current data
 
     // Record errors in rapid succession
@@ -617,7 +619,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testLatencyBucketPartialClearing() {
+  void getAverageLatencyLast60Seconds_WhenCalledMultipleTimes_ShouldPreserveLatencyData() {
     // Test partial clearing for latency buckets
 
     // Record initial latencies
@@ -642,7 +644,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testBucketConditionBranches() {
+  void bucketClearing_WhenDifferentInitialConditions_ShouldHandleAllPathways() {
     // This test specifically targets the condition branches in clearOldBuckets and
     // clearOldLatencyBuckets
     // to ensure we cover the logical paths that might not be hit by normal usage
@@ -679,7 +681,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testZeroLatencyRecording() {
+  void recordRequestLatency_WhenZeroLatency_ShouldCalculateCorrectAverage() {
     // Test edge case of recording zero latency
     metricsService.recordRequestLatency(0);
 
@@ -693,7 +695,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testNegativeLatencyHandling() {
+  void recordRequestLatency_WhenNegativeLatency_ShouldHandleCorrectly() {
     // Test edge case of negative latency (shouldn't happen in practice but good to test)
     metricsService.recordRequestLatency(-50);
 
@@ -708,7 +710,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testSingletonBehavior() {
+  void getInstance_WhenCalledMultipleTimes_ShouldReturnSameSingletonInstance() {
     // Test that MetricsService is truly a singleton
     MetricsService instance1 = MetricsService.getInstance();
     MetricsService instance2 = MetricsService.getInstance();
@@ -724,7 +726,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testErrorBucketTimeJumpCondition() {
+  void getErrorCountLastMinute_WhenMultipleErrorsSameSecond_ShouldMaintainConsistency() {
     // Test the condition: currentSeconds - lastBucketTime >= ERROR_BUCKET_COUNT
     // We can't easily simulate 60+ seconds, but we can test the logic path
 
@@ -747,7 +749,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testLatencyBucketTimeJumpCondition() {
+  void getAverageLatencyLast60Seconds_WhenMultipleLatenciesSameMinute_ShouldMaintainConsistency() {
     // Test the condition: currentMinutes - lastLatencyBucketTime >= LATENCY_BUCKET_COUNT
 
     metricsService.clearMetrics();
@@ -770,7 +772,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testBucketIndexCalculation() {
+  void recordMetrics_WhenMoreDataThanBucketCount_ShouldHandleBucketWrapping() {
     // Test that bucket index calculation works correctly for both error and latency buckets
 
     metricsService.clearMetrics();
@@ -795,7 +797,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testEmptyBucketClearing() {
+  void getMetrics_WhenEmptyBuckets_ShouldHandleEmptyStateCorrectly() {
     // Test clearing when buckets are already empty
 
     metricsService.clearMetrics();
@@ -817,7 +819,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testConcurrentErrorRecording() {
+  void recordServerError_WhenCalledConcurrently_ShouldMaintainThreadSafety() {
     // Test that concurrent error recording works correctly
     // This helps ensure thread safety of bucket operations
 
@@ -856,7 +858,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testConcurrentLatencyRecording() {
+  void recordRequestLatency_WhenCalledConcurrently_ShouldMaintainThreadSafety() {
     // Test concurrent latency recording for thread safety
 
     final int numThreads = 3;
@@ -896,7 +898,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testErrorBucketStaleWindowCondition() {
+  void recordServerError_WhenStaleWindowTimeCondition_ShouldHandleCorrectly() {
     // Test the branch where currentSeconds - time >= ERROR_BUCKET_COUNT
     // This simulates the case where we're clearing buckets but some are outside the window
 
@@ -913,7 +915,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testLatencyBucketStaleWindowCondition() {
+  void recordRequestLatency_WhenStaleWindowTimeCondition_ShouldHandleCorrectly() {
     // Test the branch where currentSeconds - time >= LATENCY_BUCKET_COUNT
     // This simulates the case where we're clearing latency buckets but some are outside the window
 
@@ -930,7 +932,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testErrorBucketOutsideWindowNotCleared() {
+  void getErrorCountLastMinute_WhenErrorsInTimeWindow_ShouldIncludeAllErrors() {
     // This test verifies that error bucket clearing logic works correctly
     // by testing the bucket management without relying on a sleep.
     // It exercises the bucket clearing logic using deterministic time manipulation.
@@ -961,7 +963,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testLatencyBucketOutsideWindowNotCleared() {
+  void recordRequestLatency_WhenOldDataOutsideWindow_ShouldClearOldData() {
     // This test verifies that latency bucket clearing logic properly handles old data.
     // It tests the scenario where very old latency data (outside the 60-second window)
     // is correctly cleared when new latency data is recorded.
@@ -988,7 +990,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testGetLastBucketTime() {
+  void getLastBucketTime_WhenInitializedAndUpdated_ShouldReturnCorrectValues() {
     // Test that getLastBucketTime returns the expected initial value
     metricsService.clearMetrics();
 
@@ -1007,7 +1009,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testGetLastLatencyBucketTime() {
+  void getLastLatencyBucketTime_WhenInitializedAndUpdated_ShouldReturnCorrectValues() {
     // Test that getLastLatencyBucketTime returns the expected initial value
     metricsService.clearMetrics();
 
@@ -1026,7 +1028,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testSetLastBucketTimeForTesting() {
+  void setLastBucketTimeForTesting_WhenCalled_ShouldUpdateBucketTime() {
     // Test that the setter method works correctly for error buckets
     metricsService.clearMetrics();
 
@@ -1043,7 +1045,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testSetLastLatencyBucketTimeForTesting() {
+  void setLastLatencyBucketTimeForTesting_WhenCalled_ShouldUpdateLatencyBucketTime() {
     // Test that the setter method works correctly for latency buckets
     metricsService.clearMetrics();
 
@@ -1060,7 +1062,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testBucketTimeGettersAndSettersIntegration() {
+  void bucketTimeAccessors_WhenUsedTogether_ShouldWorkIndependently() {
     // Test that getters and setters work together correctly
     metricsService.clearMetrics();
 
@@ -1089,7 +1091,7 @@ class MetricsServiceTest {
   }
 
   @Test
-  void testBucketTimeAfterClearMetrics() {
+  void clearMetrics_WhenCalled_ShouldResetBucketTimes() {
     // Test that clearMetrics resets the bucket times to -1
     metricsService.clearMetrics();
 
