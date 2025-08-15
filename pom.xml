@@ -275,6 +275,14 @@
                                         <exclude>commons-collections:commons-collections:(,3.2.2)</exclude>
                                     </excludes>
                                 </bannedDependencies>
+                                <!-- Require plugin versions for reproducible builds -->
+                                <requirePluginVersions>
+                                    <banLatest>true</banLatest>
+                                    <banRelease>true</banRelease>
+                                    <banSnapshots>true</banSnapshots>
+                                    <phases>clean,deploy</phases>
+                                    <unCheckedPluginList>org.apache.maven.plugins:maven-clean-plugin,org.apache.maven.plugins:maven-resources-plugin,org.apache.maven.plugins:maven-jar-plugin,org.apache.maven.plugins:maven-site-plugin,org.apache.maven.plugins:maven-install-plugin,org.apache.maven.plugins:maven-deploy-plugin</unCheckedPluginList>
+                                </requirePluginVersions>
                                 <!-- Removed dependencyConvergence and requireUpperBoundDeps
                                      as they're too strict for Dropwizard projects -->
                             </rules>
