@@ -10,7 +10,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class GlobalExceptionMapperTest {
+class GlobalExceptionMapperTest {
 
   private MetricsService metricsService;
   private GlobalExceptionMapper exceptionMapper;

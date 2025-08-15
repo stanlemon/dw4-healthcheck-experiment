@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(DropwizardExtensionsSupport.class)
-public class ResourceIntegrationTest {
+class ResourceIntegrationTest {
 
   private static final String CONFIG_PATH = ResourceHelpers.resourceFilePath("test-config.yml");
 
@@ -60,8 +60,8 @@ public class ResourceIntegrationTest {
     MetricsResource.MetricsResponse entity =
         response.readEntity(MetricsResource.MetricsResponse.class);
     // Since we're starting fresh in the test, no errors should be recorded
-    assertThat(entity.getTotalErrors()).isEqualTo(0);
-    assertThat(entity.getErrorsLastMinute()).isEqualTo(0);
+    assertThat(entity.getTotalErrors()).isZero();
+    assertThat(entity.getErrorsLastMinute()).isZero();
     assertThat(entity.isErrorThresholdBreached()).isFalse();
     assertThat(entity.isLatencyThresholdBreached()).isFalse();
     assertThat(entity.isHealthy()).isTrue();

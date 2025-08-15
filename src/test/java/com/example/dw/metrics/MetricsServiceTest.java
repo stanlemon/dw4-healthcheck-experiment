@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class MetricsServiceTest {
+class MetricsServiceTest {
 
   private MetricsService metricsService;
   private long errorThreshold;
@@ -25,8 +25,8 @@ public class MetricsServiceTest {
   @Test
   void testRecordServerError() {
     // Initial state
-    assertThat(metricsService.getTotalErrorCount()).isEqualTo(0);
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
+    assertThat(metricsService.getTotalErrorCount()).isZero();
+    assertThat(metricsService.getErrorCountLastMinute()).isZero();
 
     // Record an error
     metricsService.recordServerError();
@@ -46,7 +46,7 @@ public class MetricsServiceTest {
   @Test
   void testGetErrorCountLastMinute() {
     // Initial state
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
+    assertThat(metricsService.getErrorCountLastMinute()).isZero();
 
     // Record some errors
     metricsService.recordServerError();
@@ -79,8 +79,8 @@ public class MetricsServiceTest {
     metricsService.clearMetrics();
 
     // Verify all counts are reset
-    assertThat(metricsService.getTotalErrorCount()).isEqualTo(0);
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
+    assertThat(metricsService.getTotalErrorCount()).isZero();
+    assertThat(metricsService.getErrorCountLastMinute()).isZero();
   }
 
   @Test
@@ -225,8 +225,8 @@ public class MetricsServiceTest {
     // Clear and verify both are reset
     metricsService.clearMetrics();
 
-    assertThat(metricsService.getTotalErrorCount()).isEqualTo(0);
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
+    assertThat(metricsService.getTotalErrorCount()).isZero();
+    assertThat(metricsService.getErrorCountLastMinute()).isZero();
     assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
   }
 
@@ -467,7 +467,7 @@ public class MetricsServiceTest {
 
     // Verify threshold is no longer breached
     assertThat(metricsService.isErrorThresholdBreached()).isFalse();
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
+    assertThat(metricsService.getErrorCountLastMinute()).isZero();
   }
 
   @Test
@@ -653,7 +653,7 @@ public class MetricsServiceTest {
     // Test error bucket condition by calling getErrorCountLastMinute when no errors are recorded
     // This will trigger clearOldBuckets with lastBucketTime == -1
     long initialErrorCount = metricsService.getErrorCountLastMinute();
-    assertThat(initialErrorCount).isEqualTo(0);
+    assertThat(initialErrorCount).isZero();
 
     // Record an error to set lastBucketTime
     metricsService.recordServerError();
@@ -801,17 +801,17 @@ public class MetricsServiceTest {
     metricsService.clearMetrics();
 
     // Call methods that trigger clearing on empty buckets
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
+    assertThat(metricsService.getErrorCountLastMinute()).isZero();
     assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
 
     // Clear again and verify still empty
     metricsService.clearMetrics();
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
+    assertThat(metricsService.getErrorCountLastMinute()).isZero();
     assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
 
     // Call clearing methods multiple times on empty state
     for (int i = 0; i < 3; i++) {
-      assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(0);
+      assertThat(metricsService.getErrorCountLastMinute()).isZero();
       assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
     }
   }

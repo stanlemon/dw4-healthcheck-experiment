@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-public class HelloWorldResourceTest {
+class HelloWorldResourceTest {
 
   private final HelloWorldResource resource = new HelloWorldResource();
 

@@ -7,7 +7,7 @@ import io.dropwizard.core.setup.Bootstrap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class DwApplicationTest {
+class DwApplicationTest {
 
   private DwApplication application;
 

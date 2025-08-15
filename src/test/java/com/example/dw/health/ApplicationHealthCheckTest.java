@@ -7,7 +7,7 @@ import com.example.dw.metrics.MetricsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class ApplicationHealthCheckTest {
+class ApplicationHealthCheckTest {
 
   private MetricsService metricsService;
   private ApplicationHealthCheck healthCheck;

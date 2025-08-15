@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
-public class ErrorResourceTest {
+class ErrorResourceTest {
 
   private final ErrorResource resource = new ErrorResource();
 

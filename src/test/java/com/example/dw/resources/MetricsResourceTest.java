@@ -7,7 +7,7 @@ import com.example.dw.metrics.MetricsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class MetricsResourceTest {
+class MetricsResourceTest {
 
   private MetricsService metricsService;
   private MetricsResource resource;
@@ -26,8 +26,8 @@ public class MetricsResourceTest {
 
     // Verify - initial state should be healthy with no errors or latency
     assertThat(response).isNotNull();
-    assertThat(response.getErrorsLastMinute()).isEqualTo(0);
-    assertThat(response.getTotalErrors()).isEqualTo(0);
+    assertThat(response.getErrorsLastMinute()).isZero();
+    assertThat(response.getTotalErrors()).isZero();
     assertThat(response.getAvgLatencyLast60Minutes()).isEqualTo(0.0);
     assertThat(response.isErrorThresholdBreached()).isFalse();
     assertThat(response.isLatencyThresholdBreached()).isFalse();
@@ -89,8 +89,8 @@ public class MetricsResourceTest {
 
     // Verify
     assertThat(response).isNotNull();
-    assertThat(response.getErrorsLastMinute()).isEqualTo(0);
-    assertThat(response.getTotalErrors()).isEqualTo(0);
+    assertThat(response.getErrorsLastMinute()).isZero();
+    assertThat(response.getTotalErrors()).isZero();
     assertThat(response.getAvgLatencyLast60Minutes())
         .isCloseTo(63.33, withinPercentage(0.1)); // (50+60+80)/3 ≈ 63.33
     assertThat(response.isErrorThresholdBreached()).isFalse();
@@ -112,8 +112,8 @@ public class MetricsResourceTest {
 
     // Verify
     assertThat(response).isNotNull();
-    assertThat(response.getErrorsLastMinute()).isEqualTo(0);
-    assertThat(response.getTotalErrors()).isEqualTo(0);
+    assertThat(response.getErrorsLastMinute()).isZero();
+    assertThat(response.getTotalErrors()).isZero();
     assertThat(response.getAvgLatencyLast60Minutes()).isEqualTo(172.0); // (150+200+180+160+170)/5
     assertThat(response.isErrorThresholdBreached()).isFalse();
     assertThat(response.isLatencyThresholdBreached()).isTrue(); // 172 > 100
