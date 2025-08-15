@@ -6,6 +6,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import lombok.Value;
 
 /** Resource for testing latency thresholds by introducing artificial delays. */
 @Path("/slow")
@@ -13,28 +14,11 @@ import jakarta.ws.rs.core.Response;
 public class SlowResource {
 
   /** Response class for slow endpoint results. */
+  @Value
   public static class SlowResponse {
-    private final String message;
-    private final long delayMs;
-    private final long actualMs;
-
-    public SlowResponse(String message, long delayMs, long actualMs) {
-      this.message = message;
-      this.delayMs = delayMs;
-      this.actualMs = actualMs;
-    }
-
-    public String getMessage() {
-      return message;
-    }
-
-    public long getDelayMs() {
-      return delayMs;
-    }
-
-    public long getActualMs() {
-      return actualMs;
-    }
+    String message;
+    long delayMs;
+    long actualMs;
   }
 
   /**

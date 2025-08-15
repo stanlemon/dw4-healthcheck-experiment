@@ -7,6 +7,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import lombok.Value;
 
 @Path("/metrics")
 @Produces(MediaType.APPLICATION_JSON)
@@ -30,12 +31,22 @@ public class MetricsResource {
         latencyThresholdBreached);
   }
 
+  @Value
   public static class MetricsResponse {
-    private final long errorsLastMinute;
-    private final long totalErrors;
-    private final double avgLatencyLast60Minutes;
-    private final boolean errorThresholdBreached;
-    private final boolean latencyThresholdBreached;
+    @JsonProperty("errorsLastMinute")
+    long errorsLastMinute;
+
+    @JsonProperty("totalErrors")
+    long totalErrors;
+
+    @JsonProperty("avgLatencyLast60Minutes")
+    double avgLatencyLast60Minutes;
+
+    @JsonProperty("errorThresholdBreached")
+    boolean errorThresholdBreached;
+
+    @JsonProperty("latencyThresholdBreached")
+    boolean latencyThresholdBreached;
 
     @JsonCreator
     public MetricsResponse(
@@ -49,31 +60,6 @@ public class MetricsResource {
       this.avgLatencyLast60Minutes = avgLatencyLast60Minutes;
       this.errorThresholdBreached = errorThresholdBreached;
       this.latencyThresholdBreached = latencyThresholdBreached;
-    }
-
-    @JsonProperty
-    public long getErrorsLastMinute() {
-      return errorsLastMinute;
-    }
-
-    @JsonProperty
-    public long getTotalErrors() {
-      return totalErrors;
-    }
-
-    @JsonProperty
-    public double getAvgLatencyLast60Minutes() {
-      return avgLatencyLast60Minutes;
-    }
-
-    @JsonProperty
-    public boolean isErrorThresholdBreached() {
-      return errorThresholdBreached;
-    }
-
-    @JsonProperty
-    public boolean isLatencyThresholdBreached() {
-      return latencyThresholdBreached;
     }
 
     @JsonProperty

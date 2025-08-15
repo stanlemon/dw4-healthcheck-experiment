@@ -7,7 +7,6 @@ import static org.awaitility.Awaitility.await;
 import com.example.dw.DwApplication;
 import com.example.dw.DwConfiguration;
 import com.example.dw.metrics.MetricsService;
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
@@ -20,6 +19,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -55,80 +58,28 @@ class MetricsResourceFunctionalTest {
    * isHealthy() method in MetricsResponse doesn't have a corresponding property in the constructor
    * which causes JSON deserialization issues.
    */
+  @Data
+  @NoArgsConstructor
+  @Builder
+  @AllArgsConstructor
   public static class MetricsResponseDTO {
+    @JsonProperty("errorsLastMinute")
     private long errorsLastMinute;
+
+    @JsonProperty("totalErrors")
     private long totalErrors;
+
+    @JsonProperty("avgLatencyLast60Minutes")
     private double avgLatencyLast60Minutes;
+
+    @JsonProperty("errorThresholdBreached")
     private boolean errorThresholdBreached;
+
+    @JsonProperty("latencyThresholdBreached")
     private boolean latencyThresholdBreached;
+
+    @JsonProperty("healthy")
     private boolean healthy;
-
-    // Default constructor required for Jackson
-    public MetricsResponseDTO() {}
-
-    @JsonCreator
-    public MetricsResponseDTO(
-        @JsonProperty("errorsLastMinute") long errorsLastMinute,
-        @JsonProperty("totalErrors") long totalErrors,
-        @JsonProperty("avgLatencyLast60Minutes") double avgLatencyLast60Minutes,
-        @JsonProperty("errorThresholdBreached") boolean errorThresholdBreached,
-        @JsonProperty("latencyThresholdBreached") boolean latencyThresholdBreached,
-        @JsonProperty("healthy") boolean healthy) {
-      this.errorsLastMinute = errorsLastMinute;
-      this.totalErrors = totalErrors;
-      this.avgLatencyLast60Minutes = avgLatencyLast60Minutes;
-      this.errorThresholdBreached = errorThresholdBreached;
-      this.latencyThresholdBreached = latencyThresholdBreached;
-      this.healthy = healthy;
-    }
-
-    public long getErrorsLastMinute() {
-      return errorsLastMinute;
-    }
-
-    public void setErrorsLastMinute(long errorsLastMinute) {
-      this.errorsLastMinute = errorsLastMinute;
-    }
-
-    public long getTotalErrors() {
-      return totalErrors;
-    }
-
-    public void setTotalErrors(long totalErrors) {
-      this.totalErrors = totalErrors;
-    }
-
-    public double getAvgLatencyLast60Minutes() {
-      return avgLatencyLast60Minutes;
-    }
-
-    public void setAvgLatencyLast60Minutes(double avgLatencyLast60Minutes) {
-      this.avgLatencyLast60Minutes = avgLatencyLast60Minutes;
-    }
-
-    public boolean isErrorThresholdBreached() {
-      return errorThresholdBreached;
-    }
-
-    public void setErrorThresholdBreached(boolean errorThresholdBreached) {
-      this.errorThresholdBreached = errorThresholdBreached;
-    }
-
-    public boolean isLatencyThresholdBreached() {
-      return latencyThresholdBreached;
-    }
-
-    public void setLatencyThresholdBreached(boolean latencyThresholdBreached) {
-      this.latencyThresholdBreached = latencyThresholdBreached;
-    }
-
-    public boolean isHealthy() {
-      return healthy;
-    }
-
-    public void setHealthy(boolean healthy) {
-      this.healthy = healthy;
-    }
   }
 
   /**
@@ -136,47 +87,19 @@ class MetricsResourceFunctionalTest {
    * in the application doesn't have a default constructor or JsonCreator, making it unsuitable for
    * deserialization.
    */
+  @Data
+  @NoArgsConstructor
+  @Builder
+  @AllArgsConstructor
   public static class SlowResponseDTO {
+    @JsonProperty("message")
     private String message;
+
+    @JsonProperty("delayMs")
     private long delayMs;
+
+    @JsonProperty("actualMs")
     private long actualMs;
-
-    // Default constructor required for Jackson
-    public SlowResponseDTO() {}
-
-    @JsonCreator
-    public SlowResponseDTO(
-        @JsonProperty("message") String message,
-        @JsonProperty("delayMs") long delayMs,
-        @JsonProperty("actualMs") long actualMs) {
-      this.message = message;
-      this.delayMs = delayMs;
-      this.actualMs = actualMs;
-    }
-
-    public String getMessage() {
-      return message;
-    }
-
-    public void setMessage(String message) {
-      this.message = message;
-    }
-
-    public long getDelayMs() {
-      return delayMs;
-    }
-
-    public void setDelayMs(long delayMs) {
-      this.delayMs = delayMs;
-    }
-
-    public long getActualMs() {
-      return actualMs;
-    }
-
-    public void setActualMs(long actualMs) {
-      this.actualMs = actualMs;
-    }
   }
 
   @BeforeEach

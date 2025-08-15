@@ -5,6 +5,9 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Path("/hello")
 @Produces(MediaType.APPLICATION_JSON)
@@ -15,20 +18,10 @@ public class HelloWorldResource {
     return new HelloResponse("Hello, World!");
   }
 
+  @Data
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class HelloResponse {
-    private String message;
-
-    public HelloResponse() {
-      // Jackson deserialization
-    }
-
-    public HelloResponse(String message) {
-      this.message = message;
-    }
-
-    @JsonProperty
-    public String getMessage() {
-      return message;
-    }
+    @JsonProperty private String message;
   }
 }
