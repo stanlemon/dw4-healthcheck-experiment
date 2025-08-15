@@ -257,6 +257,24 @@
                                     <version>21</version>
                                 </requireJavaVersion>
                                 <banDuplicatePomDependencyVersions/>
+                                <!-- Banned dependencies for security -->                                
+                                <bannedDependencies>
+                                    <searchTransitive>true</searchTransitive>
+                                    <excludes>
+                                        <!-- Security: Ban vulnerable log4j versions -->
+                                        <exclude>log4j:log4j</exclude>
+                                        <exclude>org.apache.logging.log4j:log4j-core:(,2.17.0)</exclude>
+                                        
+                                        <!-- Security: Ban vulnerable Jackson versions -->
+                                        <exclude>com.fasterxml.jackson.core:jackson-databind:(,2.12.7.1)</exclude>
+                                        
+                                        <!-- Lombok: Ensure Java 21 compatibility -->
+                                        <exclude>org.projectlombok:lombok:(,1.18.20)</exclude>
+                                        
+                                        <!-- Commons Collections security issue -->
+                                        <exclude>commons-collections:commons-collections:(,3.2.2)</exclude>
+                                    </excludes>
+                                </bannedDependencies>
                                 <!-- Removed dependencyConvergence and requireUpperBoundDeps
                                      as they're too strict for Dropwizard projects -->
                             </rules>
