@@ -1,0 +1,127 @@
+package com.example.dw.architecture;
+
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
+
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.lang.ArchRule;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+@DisplayName("Security Rules")
+class SecurityRulesTest {
+
+  private static JavaClasses importedClasses;
+
+  @BeforeAll
+  static void setup() {
+    importedClasses =
+        new ClassFileImporter()
+            .withImportOption(location -> !location.contains("/test-classes/"))
+            .importPackages("com.example.dw");
+  }
+
+  @Test
+  @DisplayName("No hardcoded passwords or secrets should be present")
+  void noHardcodedPasswordsOrSecrets() {
+    ArchRule passwordFieldRule =
+        noFields()
+            .that()
+            .areDeclaredInClassesThat()
+            .areNotAssignableTo(SecurityRulesTest.class)
+            .should()
+            .haveNameMatching(".*[Pp]assword.*|.*[Ss]ecret.*|.*[Kk]ey.*|.*[Tt]oken.*")
+            .andShould()
+            .beStatic()
+            .andShould()
+            .beFinal()
+            .because("Hardcoded passwords, secrets, keys, or tokens pose security risks");
+
+    ArchRule secretStringRule =
+        fields()
+            .that()
+            .areDeclaredInClassesThat()
+            .areNotAssignableTo(SecurityRulesTest.class)
+            .and()
+            .areStatic()
+            .and()
+            .areFinal()
+            .and()
+            .haveRawType(String.class)
+            .should()
+            .notHaveNameMatching(".*[Pp]assword.*|.*[Ss]ecret.*|.*[Aa]pi[Kk]ey.*|.*[Tt]oken.*")
+            .because("Static final String fields should not contain secrets or credentials");
+
+    passwordFieldRule.check(importedClasses);
+    secretStringRule.check(importedClasses);
+  }
+
+  @Test
+  @DisplayName("No SQL injection vulnerabilities through string concatenation")
+  void noSqlInjectionVulnerabilities() {
+    ArchRule rule =
+        noClasses()
+            .that()
+            .areNotAssignableTo(SecurityRulesTest.class)
+            .should()
+            .callMethodWhere(
+                target ->
+                    target.getOwner().isAssignableTo(String.class)
+                            && target.getName().equals("format")
+                            && target.getFullName().contains("SELECT")
+                        || target.getFullName().contains("INSERT")
+                        || target.getFullName().contains("UPDATE")
+                        || target.getFullName().contains("DELETE"))
+            .because(
+                "String formatting with SQL keywords can lead to SQL injection vulnerabilities");
+
+    rule.check(importedClasses);
+  }
+
+  @Test
+  @DisplayName("No unsafe reflection usage")
+  void noUnsafeReflectionUsage() {
+    ArchRule rule =
+        noClasses()
+            .that()
+            .areNotAssignableTo(SecurityRulesTest.class)
+            .should()
+            .callMethodWhere(
+                target ->
+                    target.getOwner().getPackageName().startsWith("java.lang.reflect")
+                        && (target.getName().equals("newInstance")
+                            || target.getName().equals("setAccessible")))
+            .because("Unsafe reflection usage can lead to security vulnerabilities");
+
+    rule.check(importedClasses);
+  }
+
+  @Test
+  @DisplayName("No hardcoded database credentials")
+  void noHardcodedDatabaseCredentials() {
+    ArchRule rule =
+        fields()
+            .that()
+            .areDeclaredInClassesThat()
+            .areNotAssignableTo(SecurityRulesTest.class)
+            .and()
+            .areStatic()
+            .and()
+            .areFinal()
+            .and()
+            .haveRawType(String.class)
+            .should()
+            .notHaveNameMatching(
+                ".*[Dd]atabase.*[Uu]rl.*|.*[Dd]b.*[Uu]rl.*|.*[Cc]onnection.*[Ss]tring.*")
+            .andShould()
+            .notHaveNameMatching(
+                ".*[Dd]atabase.*[Uu]ser.*|.*[Dd]b.*[Uu]ser.*|.*[Dd]atabase.*[Pp]assword.*")
+            .because(
+                "Database credentials should be externalized to configuration or environment variables");
+
+    rule.check(importedClasses);
+  }
+}

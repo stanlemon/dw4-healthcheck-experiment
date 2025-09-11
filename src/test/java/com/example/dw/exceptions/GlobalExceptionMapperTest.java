@@ -27,7 +27,8 @@ class GlobalExceptionMapperTest {
   @Test
   void toResponse_WhenRuntimeException_ShouldReturn500AndRecordMetric() {
     // Setup
-    RuntimeException exception = new RuntimeException("Test runtime exception");
+    SomethingWentWrongException exception =
+        new SomethingWentWrongException("Test runtime exception");
     long initialErrorCount = metricsService.getErrorCountLastMinute();
 
     // Execute

@@ -1,0 +1,139 @@
+package com.example.dw.architecture;
+
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.lang.ArchRule;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Value;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+@DisplayName("Lombok Governance Rules")
+class LombokRulesTest {
+
+  private static JavaClasses importedClasses;
+
+  @BeforeAll
+  static void setup() {
+    importedClasses =
+        new ClassFileImporter()
+            .withImportOption(location -> !location.contains("/test-classes/"))
+            .importPackages("com.example.dw");
+  }
+
+  @Test
+  @DisplayName("Data classes should use Lombok @Data or @Value instead of manual implementations")
+  void dataClassesShouldUseLombokAnnotations() {
+    ArchRule rule =
+        classes()
+            .that()
+            .areNotAssignableTo(LombokRulesTest.class)
+            .and()
+            .areNotEnums()
+            .and()
+            .areNotInterfaces()
+            .and()
+            .areNotAnnotatedWith(Data.class)
+            .and()
+            .areNotAnnotatedWith(Value.class)
+            .should()
+            .notHaveMethodsThat()
+            .haveNameMatching("get[A-Z].*")
+            .andShould()
+            .notHaveMethodsThat()
+            .haveNameMatching("set[A-Z].*")
+            .because(
+                "Classes with getters and setters should use @Data or @Value instead of manual implementations");
+
+    rule.check(importedClasses);
+  }
+
+  @Test
+  @DisplayName("Builder pattern should use Lombok @Builder")
+  void builderPatternShouldUseLombokBuilder() {
+    ArchRule rule =
+        classes()
+            .that()
+            .areNotAssignableTo(LombokRulesTest.class)
+            .and()
+            .haveMethodsThat()
+            .haveNameMatching(".*[Bb]uilder.*")
+            .should()
+            .beAnnotatedWith(Builder.class)
+            .because("Classes implementing builder pattern should use Lombok @Builder annotation");
+
+    rule.check(importedClasses);
+  }
+
+  @Test
+  @DisplayName("No manual equals and hashCode when using Lombok")
+  void noManualEqualsAndHashCodeWhenUsingLombok() {
+    ArchRule equalsRule =
+        noClasses()
+            .that()
+            .areAnnotatedWith(Data.class)
+            .or()
+            .areAnnotatedWith(Value.class)
+            .should()
+            .callMethod(Object.class, "equals", Object.class)
+            .because("Classes with @Data or @Value should not manually implement equals method");
+
+    ArchRule hashCodeRule =
+        noClasses()
+            .that()
+            .areAnnotatedWith(Data.class)
+            .or()
+            .areAnnotatedWith(Value.class)
+            .should()
+            .callMethod(Object.class, "hashCode")
+            .because("Classes with @Data or @Value should not manually implement hashCode method");
+
+    equalsRule.check(importedClasses);
+    hashCodeRule.check(importedClasses);
+  }
+
+  @Test
+  @DisplayName("No manual toString when using Lombok")
+  void noManualToStringWhenUsingLombok() {
+    ArchRule rule =
+        noClasses()
+            .that()
+            .areAnnotatedWith(Data.class)
+            .or()
+            .areAnnotatedWith(Value.class)
+            .should()
+            .callMethod(Object.class, "toString")
+            .because("Classes with @Data or @Value should not manually implement toString method");
+
+    rule.check(importedClasses);
+  }
+
+  @Test
+  @DisplayName("Immutable data classes should use @Value instead of @Data")
+  void immutableDataClassesShouldUseValue() {
+    // This rule is currently disabled due to ArchUnit API limitations
+    // Classes with all final fields should manually be checked to use @Value
+    // instead of @Data for immutability
+  }
+
+  @Test
+  @DisplayName("Response DTOs should be immutable using @Value")
+  void responseDtosShouldBeImmutableUsingValue() {
+    ArchRule rule =
+        classes()
+            .that()
+            .haveSimpleNameContaining("Response")
+            .and()
+            .areNotAssignableTo(LombokRulesTest.class)
+            .should()
+            .beAnnotatedWith(Value.class)
+            .because("Response DTOs should be immutable and use @Value annotation");
+
+    rule.check(importedClasses);
+  }
+}

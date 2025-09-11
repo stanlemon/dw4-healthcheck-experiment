@@ -1,5 +1,6 @@
 package com.example.dw.resources;
 
+import com.example.dw.exceptions.SomethingWentWrongException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -15,7 +16,7 @@ public class TestErrorsResource {
   @GET
   @Path("/runtime/{message}")
   public String testRuntimeException(@PathParam("message") String message) {
-    throw new RuntimeException(message);
+    throw new SomethingWentWrongException(message);
   }
 
   @GET

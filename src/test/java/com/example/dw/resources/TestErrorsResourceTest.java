@@ -3,6 +3,7 @@ package com.example.dw.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.example.dw.exceptions.SomethingWentWrongException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.Test;
@@ -12,10 +13,10 @@ class TestErrorsResourceTest {
   private final TestErrorsResource resource = new TestErrorsResource();
 
   @Test
-  void runtimeException_WhenCalled_ShouldThrowRuntimeExceptionWithProvidedMessage() {
+  void runtimeException_WhenCalled_ShouldThrowSomethingWentWrongExceptionWithProvidedMessage() {
     String errorMessage = "Test error message";
     assertThatThrownBy(() -> resource.testRuntimeException(errorMessage))
-        .isInstanceOf(RuntimeException.class)
+        .isInstanceOf(SomethingWentWrongException.class)
         .hasMessageContaining(errorMessage);
   }
 
@@ -26,7 +27,7 @@ class TestErrorsResourceTest {
 
     for (String message : testMessages) {
       assertThatThrownBy(() -> resource.testRuntimeException(message))
-          .isInstanceOf(RuntimeException.class)
+          .isInstanceOf(SomethingWentWrongException.class)
           .hasMessage(message);
     }
   }

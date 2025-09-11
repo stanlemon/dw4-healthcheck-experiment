@@ -1,5 +1,6 @@
 package com.example.dw.resources;
 
+import com.example.dw.exceptions.SomethingWentWrongException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -16,7 +17,7 @@ public class ErrorResource {
     // as the GlobalExceptionMapper will handle that
 
     // Deliberately throw a runtime exception that will be caught by our mapper
-    throw new RuntimeException(
+    throw new SomethingWentWrongException(
         "This is a deliberate error that will be caught by our global handler");
   }
 }
