@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(sdk *)",
+      "Bash(source:*)",
+      "Bash(java:*)",
+      "WebFetch(domain:maven.apache.org)",
+      "WebFetch(domain:github.com)"
+    ],
+    "ask": [],
+    "defaultMode": "acceptEdits"
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mvn spotless:apply -q",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
