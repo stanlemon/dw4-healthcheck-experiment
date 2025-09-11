@@ -9,15 +9,22 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** Simple REST resource that provides a hello world endpoint for testing connectivity. */
 @Path("/hello")
 @Produces(MediaType.APPLICATION_JSON)
 public class HelloWorldResource {
 
+  /**
+   * Returns a simple greeting message.
+   *
+   * @return hello world response
+   */
   @GET
   public HelloResponse sayHello() {
     return new HelloResponse("Hello, World!");
   }
 
+  /** Response object containing a greeting message. */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor

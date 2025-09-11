@@ -14,8 +14,18 @@ import io.dropwizard.core.Application;
 import io.dropwizard.core.setup.Bootstrap;
 import io.dropwizard.core.setup.Environment;
 
+/**
+ * Main Dropwizard application class that provides REST endpoints for metrics tracking, error
+ * simulation, and latency testing.
+ */
 public class DwApplication extends Application<DwConfiguration> {
 
+  /**
+   * Application entry point.
+   *
+   * @param args command line arguments
+   * @throws Exception if the application fails to start
+   */
   public static void main(String[] args) throws Exception {
     new DwApplication().run(args);
   }
@@ -30,6 +40,13 @@ public class DwApplication extends Application<DwConfiguration> {
     // Nothing to initialize
   }
 
+  /**
+   * Configures and registers all application components including resources, filters, exception
+   * mappers, and health checks.
+   *
+   * @param configuration the application configuration
+   * @param environment the Dropwizard environment
+   */
   @Override
   public void run(DwConfiguration configuration, Environment environment) {
     // Create and register MetricsService as a singleton managed component

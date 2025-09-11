@@ -70,8 +70,8 @@ class MetricsResourceFunctionalTest {
     @JsonProperty("totalErrors")
     private long totalErrors;
 
-    @JsonProperty("avgLatencyLast60Minutes")
-    private double avgLatencyLast60Minutes;
+    @JsonProperty("avgLatencyLast60Seconds")
+    private double avgLatencyLast60Seconds;
 
     @JsonProperty("errorThresholdBreached")
     private boolean errorThresholdBreached;
@@ -116,7 +116,7 @@ class MetricsResourceFunctionalTest {
   private record MetricsSnapshot(
       long totalErrors,
       long errorsLastMinute,
-      double avgLatencyLast60Minutes,
+      double avgLatencyLast60Seconds,
       boolean errorThresholdBreached,
       boolean latencyThresholdBreached,
       boolean healthy) {
@@ -136,7 +136,7 @@ class MetricsResourceFunctionalTest {
       return new MetricsSnapshot(
           metrics.getTotalErrors(),
           metrics.getErrorsLastMinute(),
-          metrics.getAvgLatencyLast60Minutes(),
+          metrics.getAvgLatencyLast60Seconds(),
           metrics.isErrorThresholdBreached(),
           metrics.isLatencyThresholdBreached(),
           metrics.isHealthy());
@@ -246,13 +246,13 @@ class MetricsResourceFunctionalTest {
       waitForMetricsToUpdate(
           () -> {
             MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return metrics.avgLatencyLast60Minutes() > 0;
+            return metrics.avgLatencyLast60Seconds() > 0;
           });
 
       // Final verification
       MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       // Actual values are lower in the test environment, adjust expectations
-      assertThat(metrics.avgLatencyLast60Minutes()).isGreaterThan(0.0);
+      assertThat(metrics.avgLatencyLast60Seconds()).isGreaterThan(0.0);
     }
 
     @ParameterizedTest
@@ -281,13 +281,13 @@ class MetricsResourceFunctionalTest {
       waitForMetricsToUpdate(
           () -> {
             MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return metrics.avgLatencyLast60Minutes() > 0;
+            return metrics.avgLatencyLast60Seconds() > 0;
           });
 
       // Verification - actual delay varies in test environment
       MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       // Just verify it's greater than zero since exact timing can vary in the test environment
-      assertThat(metrics.avgLatencyLast60Minutes()).isGreaterThan(0.0);
+      assertThat(metrics.avgLatencyLast60Seconds()).isGreaterThan(0.0);
     }
 
     @Test
@@ -306,13 +306,13 @@ class MetricsResourceFunctionalTest {
       waitForMetricsToUpdate(
           () -> {
             MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return metrics.avgLatencyLast60Minutes() > 0;
+            return metrics.avgLatencyLast60Seconds() > 0;
           });
 
       // Verification
       MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       // Just verify it's greater than zero since exact timing can vary in the test environment
-      assertThat(metrics.avgLatencyLast60Minutes()).isGreaterThan(0.0);
+      assertThat(metrics.avgLatencyLast60Seconds()).isGreaterThan(0.0);
     }
 
     @Test
@@ -387,7 +387,7 @@ class MetricsResourceFunctionalTest {
       waitForMetricsToUpdate(
           () -> {
             MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return metrics.totalErrors() == errorCount && metrics.avgLatencyLast60Minutes() > 0;
+            return metrics.totalErrors() == errorCount && metrics.avgLatencyLast60Seconds() > 0;
           });
 
       // Final verification
@@ -398,7 +398,7 @@ class MetricsResourceFunctionalTest {
       assertThat(metrics.errorsLastMinute()).isEqualTo(errorCount);
 
       // Verify latency metrics - don't assert exact values as they can vary in test environment
-      assertThat(metrics.avgLatencyLast60Minutes()).isGreaterThan(0.0);
+      assertThat(metrics.avgLatencyLast60Seconds()).isGreaterThan(0.0);
 
       // Verify health status
       assertThat(metrics.errorThresholdBreached()).isFalse(); // 5 errors shouldn't breach threshold
@@ -442,12 +442,12 @@ class MetricsResourceFunctionalTest {
       waitForMetricsToUpdate(
           () -> {
             MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return metrics.avgLatencyLast60Minutes() > 0;
+            return metrics.avgLatencyLast60Seconds() > 0;
           });
 
       // Verify latency was recorded
       MetricsSnapshot afterLatency = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-      assertThat(afterLatency.avgLatencyLast60Minutes()).isGreaterThan(0.0);
+      assertThat(afterLatency.avgLatencyLast60Seconds()).isGreaterThan(0.0);
 
       // No need to clear metrics manually
 
@@ -475,7 +475,7 @@ class MetricsResourceFunctionalTest {
       assertThat(metricsMap)
           .containsKey("totalErrors")
           .containsKey("errorsLastMinute")
-          .containsKey("avgLatencyLast60Minutes")
+          .containsKey("avgLatencyLast60Seconds")
           .containsKey("errorThresholdBreached")
           .containsKey("latencyThresholdBreached")
           .containsKey("healthy");
@@ -483,7 +483,7 @@ class MetricsResourceFunctionalTest {
       // Verify types of values using instanceof pattern matching with JDK 21
       var totalErrors = metricsMap.get("totalErrors");
       var errorsLastMinute = metricsMap.get("errorsLastMinute");
-      var avgLatency = metricsMap.get("avgLatencyLast60Minutes");
+      var avgLatency = metricsMap.get("avgLatencyLast60Seconds");
       var errorThreshold = metricsMap.get("errorThresholdBreached");
       var latencyThreshold = metricsMap.get("latencyThresholdBreached");
       var healthy = metricsMap.get("healthy");

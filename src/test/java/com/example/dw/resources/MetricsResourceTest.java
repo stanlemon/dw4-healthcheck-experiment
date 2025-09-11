@@ -37,7 +37,7 @@ class MetricsResourceTest {
       assertThat(response).isNotNull();
       assertThat(response.getErrorsLastMinute()).isZero();
       assertThat(response.getTotalErrors()).isZero();
-      assertThat(response.getAvgLatencyLast60Minutes()).isZero();
+      assertThat(response.getAvgLatencyLast60Seconds()).isZero();
       assertThat(response.isErrorThresholdBreached()).isFalse();
       assertThat(response.isLatencyThresholdBreached()).isFalse();
       assertThat(response.isHealthy()).isTrue();
@@ -63,7 +63,7 @@ class MetricsResourceTest {
       assertThat(response).isNotNull();
       assertThat(response.getErrorsLastMinute()).isEqualTo(50);
       assertThat(response.getTotalErrors()).isEqualTo(50);
-      assertThat(response.getAvgLatencyLast60Minutes()).isZero(); // No latency recorded
+      assertThat(response.getAvgLatencyLast60Seconds()).isZero(); // No latency recorded
       assertThat(response.isErrorThresholdBreached()).isFalse(); // 50 < 100
       assertThat(response.isLatencyThresholdBreached()).isFalse();
       assertThat(response.isHealthy()).isTrue();
@@ -114,7 +114,7 @@ class MetricsResourceTest {
       assertThat(response).isNotNull();
       assertThat(response.getErrorsLastMinute()).isZero();
       assertThat(response.getTotalErrors()).isZero();
-      assertThat(response.getAvgLatencyLast60Minutes())
+      assertThat(response.getAvgLatencyLast60Seconds())
           .isCloseTo(63.33, withinPercentage(0.1)); // (50+60+80)/3 ≈ 63.33
       assertThat(response.isErrorThresholdBreached()).isFalse();
       assertThat(response.isLatencyThresholdBreached()).isFalse(); // 63.3 < 100
@@ -138,7 +138,7 @@ class MetricsResourceTest {
       assertThat(response).isNotNull();
       assertThat(response.getErrorsLastMinute()).isZero();
       assertThat(response.getTotalErrors()).isZero();
-      assertThat(response.getAvgLatencyLast60Minutes()).isEqualTo(172.0); // (150+200+180+160+170)/5
+      assertThat(response.getAvgLatencyLast60Seconds()).isEqualTo(172.0); // (150+200+180+160+170)/5
       assertThat(response.isErrorThresholdBreached()).isFalse();
       assertThat(response.isLatencyThresholdBreached()).isTrue(); // 172 > 100
       assertThat(response.isHealthy()).isFalse(); // Unhealthy due to latency

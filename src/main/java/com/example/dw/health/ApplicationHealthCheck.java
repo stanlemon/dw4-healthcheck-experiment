@@ -3,6 +3,7 @@ package com.example.dw.health;
 import com.codahale.metrics.health.HealthCheck;
 import com.example.dw.metrics.MetricsService;
 
+/** Health check that monitors application health based on error rates and latency thresholds. */
 public class ApplicationHealthCheck extends HealthCheck {
   private final MetricsService metricsService;
 
@@ -15,6 +16,11 @@ public class ApplicationHealthCheck extends HealthCheck {
     this.metricsService = metricsService;
   }
 
+  /**
+   * Performs the health check by evaluating current error rates and latency against thresholds.
+   *
+   * @return Result indicating healthy or unhealthy status with diagnostic information
+   */
   @Override
   protected Result check() {
     long errorCount = metricsService.getErrorCountLastMinute();

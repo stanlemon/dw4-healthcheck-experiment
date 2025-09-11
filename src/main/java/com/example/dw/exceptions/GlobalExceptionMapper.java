@@ -25,6 +25,12 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
     this.metricsService = metricsService;
   }
 
+  /**
+   * Converts any thrown exception into an appropriate HTTP response and tracks server errors.
+   *
+   * @param exception the exception to handle
+   * @return HTTP response with appropriate status code and error message
+   */
   @Override
   public Response toResponse(Throwable exception) {
     // First, determine the status code
@@ -53,6 +59,12 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
         .build();
   }
 
+  /**
+   * Determines the appropriate HTTP status code for the given exception.
+   *
+   * @param exception the exception to analyze
+   * @return HTTP status code (WebApplicationException status or 500)
+   */
   private int determineStatusCode(Throwable exception) {
     // If it's a WebApplicationException, use its status
     if (exception instanceof WebApplicationException webAppException

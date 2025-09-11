@@ -19,7 +19,7 @@ class ResourceIntegrationTest {
 
   private static final String CONFIG_PATH = ResourceHelpers.resourceFilePath("test-config.yml");
 
-  public static final DropwizardAppExtension<DwConfiguration> APP =
+  static final DropwizardAppExtension<DwConfiguration> APP =
       new DropwizardAppExtension<>(DwApplication.class, CONFIG_PATH);
 
   @Test
@@ -61,7 +61,7 @@ class ResourceIntegrationTest {
     assertThat(entity.isHealthy()).isTrue();
     // Average latency should be >= 0 (could be 0 if no requests recorded yet, or some value if this
     // request was recorded)
-    assertThat(entity.getAvgLatencyLast60Minutes()).isGreaterThanOrEqualTo(0.0);
+    assertThat(entity.getAvgLatencyLast60Seconds()).isGreaterThanOrEqualTo(0.0);
   }
 
   @Test
@@ -96,9 +96,9 @@ class ResourceIntegrationTest {
                   metricsResponse.readEntity(MetricsResource.MetricsResponse.class);
 
               // Latency should be recorded (might be 0 if requests are very fast, which is fine)
-              assertThat(metrics.getAvgLatencyLast60Minutes()).isGreaterThanOrEqualTo(0.0);
+              assertThat(metrics.getAvgLatencyLast60Seconds()).isGreaterThanOrEqualTo(0.0);
               // Should be reasonable latency (less than 1 second for simple requests)
-              assertThat(metrics.getAvgLatencyLast60Minutes()).isLessThan(1000.0);
+              assertThat(metrics.getAvgLatencyLast60Seconds()).isLessThan(1000.0);
               // Since latency is well below 500ms threshold, it should not be breached
               assertThat(metrics.isLatencyThresholdBreached()).isFalse();
             });
