@@ -12,8 +12,8 @@ package com.example.dw.metrics;
 public interface MetricsService {
 
   /**
-   * Record a new server error (typically 500 status code).
-   * This method must be thread-safe and support concurrent invocation.
+   * Record a new server error (typically 500 status code). This method must be thread-safe and
+   * support concurrent invocation.
    */
   void recordServerError();
 
@@ -49,8 +49,8 @@ public interface MetricsService {
   boolean isErrorThresholdBreached();
 
   /**
-   * Record request latency in milliseconds.
-   * This method must be thread-safe and support concurrent invocation.
+   * Record request latency in milliseconds. This method must be thread-safe and support concurrent
+   * invocation.
    *
    * @param latencyMs the latency in milliseconds
    */

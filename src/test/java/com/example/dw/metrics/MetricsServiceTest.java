@@ -2,6 +2,9 @@ package com.example.dw.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -1112,5 +1115,244 @@ class MetricsServiceTest {
     // Verify both are reset to -1
     assertThat(metricsService.getLastBucketTime()).isEqualTo(-1);
     assertThat(metricsService.getLastLatencyBucketTime()).isEqualTo(-1);
+  }
+
+  @Test
+  void recordServerError_WhenExtremeTimeJump_ShouldHandleCorrectly() {
+    // Test handling of extreme time jump scenario
+
+    // Setup: Record an initial error
+    metricsService.recordServerError();
+    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(1);
+    assertThat(metricsService.getTotalErrorCount()).isEqualTo(1);
+
+    // Set lastBucketTime to a very old timestamp (simulating extreme time jump)
+    metricsService.setLastBucketTimeForTesting(1); // Set to epoch + 1 second (1970)
+
+    // Record a new error which will trigger the extreme time jump handling
+    metricsService.recordServerError();
+
+    // Verify:
+    // 1. Total error count increments correctly
+    assertThat(metricsService.getTotalErrorCount()).isEqualTo(2);
+
+    // 2. Last minute error count should be 1 as old error would be cleared
+    //    due to extreme time jump (all buckets cleared)
+    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(1);
+
+    // 3. Last bucket time is updated to current time
+    long currentTime = System.currentTimeMillis() / 1000;
+    assertThat(metricsService.getLastBucketTime())
+        .isCloseTo(
+            currentTime, org.assertj.core.data.Offset.offset(5L)); // Allow 5-second tolerance
+  }
+
+  @Test
+  void recordRequestLatency_WhenExtremeTimeJump_ShouldHandleCorrectly() {
+    // Test handling of extreme time jump for latency metrics
+
+    // Setup: Record an initial latency
+    metricsService.recordRequestLatency(100);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(100.0);
+
+    // Set lastLatencyBucketTime to a very old timestamp
+    metricsService.setLastLatencyBucketTimeForTesting(1); // Set to epoch + 1 second (1970)
+
+    // Record a new latency which will trigger the extreme time jump handling
+    metricsService.recordRequestLatency(200);
+
+    // Verify:
+    // 1. Average latency should only include the latest record (old data cleared)
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(200.0);
+
+    // 2. Last latency bucket time is updated to current time
+    long currentTime = System.currentTimeMillis() / 1000;
+    assertThat(metricsService.getLastLatencyBucketTime())
+        .isCloseTo(
+            currentTime, org.assertj.core.data.Offset.offset(5L)); // Allow 5-second tolerance
+  }
+
+  @Test
+  void metrics_WhenUnderHighConcurrentLoad_ShouldMaintainConsistency() throws InterruptedException {
+    // Test for metrics consistency under high concurrent load
+
+    final int threadCount = 100;
+    final int operationsPerThread = 1000;
+    final CountDownLatch startLatch = new CountDownLatch(1);
+    final CountDownLatch endLatch = new CountDownLatch(threadCount);
+    final AtomicInteger errorCounter = new AtomicInteger(0);
+    final AtomicInteger latencyCounter = new AtomicInteger(0);
+
+    // Create and start threads
+    Thread[] threads = new Thread[threadCount];
+    for (int i = 0; i < threadCount; i++) {
+      final int threadId = i;
+      threads[i] =
+          new Thread(
+              () -> {
+                try {
+                  // Wait for all threads to be ready
+                  startLatch.await();
+
+                  // Each thread performs a mix of error recording and latency recording
+                  for (int j = 0; j < operationsPerThread; j++) {
+                    if (j % 10 == 0) { // 10% of operations are errors
+                      metricsService.recordServerError();
+                      errorCounter.incrementAndGet();
+                    } else {
+                      // Record latency with some variation based on thread ID and iteration
+                      long latencyMs = 50 + ((threadId * 5 + j) % 100);
+                      metricsService.recordRequestLatency(latencyMs);
+                      latencyCounter.incrementAndGet();
+                    }
+                  }
+                } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt();
+                } finally {
+                  endLatch.countDown();
+                }
+              });
+      threads[i].start();
+    }
+
+    // Release all threads simultaneously
+    startLatch.countDown();
+
+    // Wait for all threads to complete (with timeout for safety)
+    boolean allThreadsCompleted = endLatch.await(30, TimeUnit.SECONDS);
+    assertThat(allThreadsCompleted).as("All threads completed within timeout").isTrue();
+
+    // Calculate expected values
+    int expectedErrors = errorCounter.get();
+    int expectedLatencies = latencyCounter.get();
+
+    // Verify metrics integrity
+    assertThat(metricsService.getTotalErrorCount()).isEqualTo(expectedErrors);
+    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(expectedErrors);
+
+    // Total request count should match our expected latency recordings
+    assertThat(metricsService.getTotalRequestCountLast60Seconds()).isEqualTo(expectedLatencies);
+
+    // Average latency should be in a reasonable range (50-150ms)
+    double avgLatency = metricsService.getAverageLatencyLast60Seconds();
+    assertThat(avgLatency).isBetween(50.0, 150.0);
+  }
+
+  @Test
+  void metrics_WhenMixedErrorAndLatencyScenarios_ShouldHandleCorrectly() {
+    // Setup - Record some errors with varying latency patterns
+    metricsService.clearMetrics();
+
+    // Pattern 1: Error followed immediately by latency recording
+    metricsService.recordServerError();
+    metricsService.recordRequestLatency(50);
+
+    // Pattern 2: Multiple latencies followed by error
+    metricsService.recordRequestLatency(100);
+    metricsService.recordRequestLatency(150);
+    metricsService.recordRequestLatency(200);
+    metricsService.recordServerError();
+
+    // Pattern 3: Alternating error and latency
+    metricsService.recordServerError();
+    metricsService.recordRequestLatency(250);
+    metricsService.recordServerError();
+    metricsService.recordRequestLatency(300);
+
+    // Add more requests to exceed minimum sample size for threshold testing
+    metricsService.recordRequestLatency(150);
+    metricsService.recordRequestLatency(150);
+    metricsService.recordRequestLatency(150);
+    metricsService.recordRequestLatency(150);
+
+    // Verify combined metrics are correctly tracked
+    assertThat(metricsService.getTotalErrorCount()).isEqualTo(4);
+    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(4);
+
+    // Total request count should be the number of latency recordings (6 original + 4 additional =
+    // 10)
+    assertThat(metricsService.getTotalRequestCountLast60Seconds()).isEqualTo(10);
+
+    // Average latency should include all recordings: (50 + 100 + 150 + 200 + 250 + 300 + 150 * 4)
+    // / 10 = 1650 / 10 = 165
+    double expectedAvg = (50 + 100 + 150 + 200 + 250 + 300 + 150 + 150 + 150 + 150) / 10.0;
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(expectedAvg);
+
+    // Test thresholds - with 10+ requests, threshold evaluation is active
+    // With 4 errors and 10 requests, we're at the minimum sample size
+    // errorCount (4) > Math.min(threshold(3), requestCount/2(5)) -> 4 > 3 -> true
+    assertThat(metricsService.isErrorThresholdBreached(3)).isTrue();
+
+    // With sufficient samples, latency threshold should also evaluate correctly
+    assertThat(metricsService.isLatencyThresholdBreached(150.0)).isTrue();
+    assertThat(metricsService.isLatencyThresholdBreached(200.0)).isFalse();
+  }
+
+  @Test
+  void metrics_WhenTimeRollbackScenario_ShouldHandleGracefully() {
+    // Test handling of time rollback (backwards time jump)
+    // This simulates what happens when system time is adjusted backwards
+
+    // Setup - Record initial metrics
+    metricsService.clearMetrics();
+    metricsService.recordServerError();
+    metricsService.recordRequestLatency(100);
+
+    // Get current metrics
+    long initialErrorCount = metricsService.getErrorCountLastMinute();
+    double initialLatency = metricsService.getAverageLatencyLast60Seconds();
+
+    // Set bucket times to the future to simulate time rollback
+    long futureTime = System.currentTimeMillis() / 1000 + 30; // 30 seconds in future
+    metricsService.setLastBucketTimeForTesting(futureTime);
+    metricsService.setLastLatencyBucketTimeForTesting(futureTime);
+
+    // Record new metrics - this simulates recording after a time rollback
+    metricsService.recordServerError();
+    metricsService.recordRequestLatency(200);
+
+    // Verify metrics are still counted correctly
+    assertThat(metricsService.getTotalErrorCount()).isEqualTo(2);
+    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(2);
+
+    // Average latency should include both recordings: (100 + 200) / 2 = 150
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(150.0);
+
+    // Bucket time should be updated to the "new current time"
+    long currentTime = System.currentTimeMillis() / 1000;
+    assertThat(metricsService.getLastBucketTime())
+        .isCloseTo(currentTime, org.assertj.core.data.Offset.offset(5L));
+    assertThat(metricsService.getLastLatencyBucketTime())
+        .isCloseTo(currentTime, org.assertj.core.data.Offset.offset(5L));
+  }
+
+  @Test
+  void metrics_WhenZeroAndNegativeValues_ShouldHandleEdgeCases() {
+    // Test handling of various numeric edge cases
+    metricsService.clearMetrics();
+
+    // Test with zero latency
+    metricsService.recordRequestLatency(0);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
+
+    // Test with negative latency (shouldn't happen in practice but should be handled)
+    metricsService.recordRequestLatency(-100);
+
+    // Average should include both values: (0 + (-100)) / 2 = -50
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(-50.0);
+
+    // Test with very large latency value
+    metricsService.recordRequestLatency(Integer.MAX_VALUE);
+
+    // Average should now include the large value
+    double expectedAverage = (0.0 + (-100.0) + Integer.MAX_VALUE) / 3.0;
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(expectedAverage);
+
+    // Test with very small negative latency
+    metricsService.recordRequestLatency(Integer.MIN_VALUE);
+
+    // Average should now include all values
+    expectedAverage = (0.0 + (-100.0) + Integer.MAX_VALUE + Integer.MIN_VALUE) / 4.0;
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(expectedAverage);
   }
 }

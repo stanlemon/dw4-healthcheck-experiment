@@ -12,12 +12,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * threads without external synchronization. Thread-safety is guaranteed through:
  *
  * <ol>
- *   <li>Synchronized methods for critical sections ({@code recordServerError},
- *       {@code recordRequestLatency})</li>
- *   <li>Synchronized bucket clearing logic ({@code clearOldBuckets},
- *       {@code clearOldLatencyBuckets})</li>
- *   <li>Atomic operations for counter increments using AtomicLong</li>
- *   <li>Proper memory visibility using final fields and AtomicLong references</li>
+ *   <li>Synchronized methods for critical sections ({@code recordServerError}, {@code
+ *       recordRequestLatency})
+ *   <li>Synchronized bucket clearing logic ({@code clearOldBuckets}, {@code
+ *       clearOldLatencyBuckets})
+ *   <li>Atomic operations for counter increments using AtomicLong
+ *   <li>Proper memory visibility using final fields and AtomicLong references
  * </ol>
  *
  * <p>This class uses a sliding window approach for metrics tracking, with separate windows for
@@ -105,11 +105,12 @@ public class DefaultMetricsService implements MetricsService {
    * conditions between clearing buckets and incrementing counters.
    *
    * <p>The implementation performs the following steps atomically:
+   *
    * <ol>
-   *   <li>Clear stale error buckets if we've moved to a new time period</li>
-   *   <li>Increment the error count in the appropriate time bucket</li>
-   *   <li>Increment the total error count</li>
-   *   <li>Update the timestamp of the last recorded error</li>
+   *   <li>Clear stale error buckets if we've moved to a new time period
+   *   <li>Increment the error count in the appropriate time bucket
+   *   <li>Increment the total error count
+   *   <li>Update the timestamp of the last recorded error
    * </ol>
    */
   @Override
@@ -237,12 +238,13 @@ public class DefaultMetricsService implements MetricsService {
    * prevent race conditions between clearing buckets and updating counters.
    *
    * <p>The implementation performs the following steps atomically:
+   *
    * <ol>
-   *   <li>Clear stale latency buckets if we've moved to a new time period</li>
-   *   <li>Add the latency value to the appropriate time bucket</li>
-   *   <li>Increment the request count in the appropriate time bucket</li>
-   *   <li>Increment the total request count</li>
-   *   <li>Update the timestamp of the last recorded latency</li>
+   *   <li>Clear stale latency buckets if we've moved to a new time period
+   *   <li>Add the latency value to the appropriate time bucket
+   *   <li>Increment the request count in the appropriate time bucket
+   *   <li>Increment the total request count
+   *   <li>Update the timestamp of the last recorded latency
    * </ol>
    *
    * @param latencyMs the latency in milliseconds
