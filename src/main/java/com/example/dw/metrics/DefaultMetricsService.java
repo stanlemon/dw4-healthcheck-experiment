@@ -9,8 +9,19 @@ import java.util.concurrent.atomic.AtomicLong;
  * configurable buckets for error tracking (one per second) and latency tracking (one per second).
  *
  * <p>This implementation is thread-safe. All methods can be called concurrently from multiple
- * threads without external synchronization. Thread-safety is guaranteed through atomic operations
- * and proper memory visibility using AtomicLong references.
+ * threads without external synchronization. Thread-safety is guaranteed through:
+ *
+ * <ol>
+ *   <li>Synchronized methods for critical sections ({@code recordServerError},
+ *       {@code recordRequestLatency})</li>
+ *   <li>Synchronized bucket clearing logic ({@code clearOldBuckets},
+ *       {@code clearOldLatencyBuckets})</li>
+ *   <li>Atomic operations for counter increments using AtomicLong</li>
+ *   <li>Proper memory visibility using final fields and AtomicLong references</li>
+ * </ol>
+ *
+ * <p>This class uses a sliding window approach for metrics tracking, with separate windows for
+ * error rates and latency measurements. Old data is automatically cleared as the window moves.
  */
 public class DefaultMetricsService implements MetricsService {
   // Use 60 buckets for a 60-second sliding window (one bucket per second) for errors
@@ -92,6 +103,14 @@ public class DefaultMetricsService implements MetricsService {
    * Record a new 500 error in a thread-safe manner. This method can be called concurrently from
    * multiple threads. Thread-safety is guaranteed through synchronization to prevent race
    * conditions between clearing buckets and incrementing counters.
+   *
+   * <p>The implementation performs the following steps atomically:
+   * <ol>
+   *   <li>Clear stale error buckets if we've moved to a new time period</li>
+   *   <li>Increment the error count in the appropriate time bucket</li>
+   *   <li>Increment the total error count</li>
+   *   <li>Update the timestamp of the last recorded error</li>
+   * </ol>
    */
   @Override
   public synchronized void recordServerError() {
@@ -140,11 +159,12 @@ public class DefaultMetricsService implements MetricsService {
    *   <li>Normal time progression (< window size)
    * </ol>
    *
-   * <p>Thread-safety: This method uses atomic operations for all updates.
+   * <p>Thread-safety: This method is synchronized to ensure atomic operations during bucket
+   * clearing.
    *
    * @param currentSeconds current timestamp in seconds
    */
-  private void clearOldBuckets(long currentSeconds) {
+  private synchronized void clearOldBuckets(long currentSeconds) {
     // If this is the first write or we've moved significantly forward in time
     long lastTime = lastBucketTime.get();
     if (lastTime == -1 || currentSeconds - lastTime >= errorBucketCount) {
@@ -215,6 +235,15 @@ public class DefaultMetricsService implements MetricsService {
    * Record request latency in milliseconds in a thread-safe manner. This method can be called
    * concurrently from multiple threads. Thread-safety is guaranteed through synchronization to
    * prevent race conditions between clearing buckets and updating counters.
+   *
+   * <p>The implementation performs the following steps atomically:
+   * <ol>
+   *   <li>Clear stale latency buckets if we've moved to a new time period</li>
+   *   <li>Add the latency value to the appropriate time bucket</li>
+   *   <li>Increment the request count in the appropriate time bucket</li>
+   *   <li>Increment the total request count</li>
+   *   <li>Update the timestamp of the last recorded latency</li>
+   * </ol>
    *
    * @param latencyMs the latency in milliseconds
    */
@@ -347,11 +376,12 @@ public class DefaultMetricsService implements MetricsService {
    *   <li>Normal time progression (< window size)
    * </ol>
    *
-   * <p>Thread-safety: This method uses atomic operations for all updates.
+   * <p>Thread-safety: This method is synchronized to ensure atomic operations during bucket
+   * clearing.
    *
    * @param currentSeconds current timestamp in seconds
    */
-  private void clearOldLatencyBuckets(long currentSeconds) {
+  private synchronized void clearOldLatencyBuckets(long currentSeconds) {
     // If this is the first write or we've moved significantly forward in time
     long lastTime = lastLatencyBucketTime.get();
     if (lastTime == -1 || currentSeconds - lastTime >= latencyBucketCount) {
