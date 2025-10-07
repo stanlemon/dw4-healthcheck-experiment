@@ -7,6 +7,10 @@ import java.util.concurrent.atomic.AtomicLong;
  * Default implementation of MetricsService to track application metrics, including error counts and
  * request latency in sliding windows. Uses a high-performance circular buffer approach with
  * configurable buckets for error tracking (one per second) and latency tracking (one per second).
+ *
+ * <p>This implementation is thread-safe. All methods can be called concurrently from multiple
+ * threads without external synchronization. Thread-safety is guaranteed through atomic operations
+ * and proper memory visibility using AtomicLong references.
  */
 public class DefaultMetricsService implements MetricsService {
   // Use 60 buckets for a 60-second sliding window (one bucket per second) for errors
@@ -25,7 +29,7 @@ public class DefaultMetricsService implements MetricsService {
   // Circular buffer of error counts per second
   private final AtomicLong[] errorBuckets;
   // Track the last bucket we wrote to
-  private volatile long lastBucketTime = -1;
+  private final AtomicLong lastBucketTime = new AtomicLong(-1);
   // Total count of errors (for logging/metrics purposes)
   private final AtomicLong totalErrorCount = new AtomicLong(0);
 
@@ -35,7 +39,7 @@ public class DefaultMetricsService implements MetricsService {
   // Array to track count of requests per second bucket
   private final AtomicLong[] latencyCountBuckets;
   // Track the last minute bucket we wrote to for latency
-  private volatile long lastLatencyBucketTime = -1;
+  private final AtomicLong lastLatencyBucketTime = new AtomicLong(-1);
   // Total count of requests (for traffic volume calculations)
   private final AtomicLong totalRequestCount = new AtomicLong(0);
 
@@ -84,9 +88,13 @@ public class DefaultMetricsService implements MetricsService {
     }
   }
 
-  /** Record a new 500 error */
+  /**
+   * Record a new 500 error in a thread-safe manner. This method can be called concurrently from
+   * multiple threads. Thread-safety is guaranteed through synchronization to prevent race
+   * conditions between clearing buckets and incrementing counters.
+   */
   @Override
-  public void recordServerError() {
+  public synchronized void recordServerError() {
     long nowSeconds = Instant.now().getEpochSecond();
     int bucketIndex = (int) (nowSeconds % errorBucketCount);
 
@@ -97,7 +105,7 @@ public class DefaultMetricsService implements MetricsService {
     errorBuckets[bucketIndex].incrementAndGet();
     totalErrorCount.incrementAndGet();
 
-    lastBucketTime = nowSeconds;
+    lastBucketTime.set(nowSeconds);
   }
 
   /**
@@ -121,17 +129,32 @@ public class DefaultMetricsService implements MetricsService {
     return count;
   }
 
-  /** Clear buckets that are older than 60 seconds */
+  /**
+   * Clear buckets that are older than 60 seconds.
+   *
+   * <p>The algorithm handles three scenarios:
+   *
+   * <ol>
+   *   <li>First write after initialization (-1 timestamp)
+   *   <li>Large time jump (≥ window size)
+   *   <li>Normal time progression (< window size)
+   * </ol>
+   *
+   * <p>Thread-safety: This method uses atomic operations for all updates.
+   *
+   * @param currentSeconds current timestamp in seconds
+   */
   private void clearOldBuckets(long currentSeconds) {
     // If this is the first write or we've moved significantly forward in time
-    if (lastBucketTime == -1 || currentSeconds - lastBucketTime >= errorBucketCount) {
+    long lastTime = lastBucketTime.get();
+    if (lastTime == -1 || currentSeconds - lastTime >= errorBucketCount) {
       // Clear all buckets if we've jumped forward more than our window
       for (AtomicLong bucket : errorBuckets) {
         bucket.set(0);
       }
     } else {
       // Clear only the buckets that are now stale
-      for (long time = lastBucketTime + 1; time <= currentSeconds; time++) {
+      for (long time = lastTime + 1; time <= currentSeconds; time++) {
         if (currentSeconds - time < errorBucketCount) { // Only clear if within our window
           int bucketIndex = (int) (time % errorBucketCount);
           errorBuckets[bucketIndex].set(0);
@@ -189,12 +212,14 @@ public class DefaultMetricsService implements MetricsService {
   }
 
   /**
-   * Record request latency in milliseconds
+   * Record request latency in milliseconds in a thread-safe manner. This method can be called
+   * concurrently from multiple threads. Thread-safety is guaranteed through synchronization to
+   * prevent race conditions between clearing buckets and updating counters.
    *
    * @param latencyMs the latency in milliseconds
    */
   @Override
-  public void recordRequestLatency(long latencyMs) {
+  public synchronized void recordRequestLatency(long latencyMs) {
     long nowSeconds = Instant.now().getEpochSecond(); // Use seconds instead of minutes
     int bucketIndex = (int) (nowSeconds % latencyBucketCount);
 
@@ -208,7 +233,7 @@ public class DefaultMetricsService implements MetricsService {
     // Track total request count for traffic volume calculations
     totalRequestCount.incrementAndGet();
 
-    lastLatencyBucketTime = nowSeconds;
+    lastLatencyBucketTime.set(nowSeconds);
   }
 
   /**
@@ -311,11 +336,25 @@ public class DefaultMetricsService implements MetricsService {
     return latencyThresholdMs;
   }
 
-  /** Clear latency buckets that are older than 60 seconds */
+  /**
+   * Clear latency buckets that are older than 60 seconds.
+   *
+   * <p>The algorithm handles three scenarios:
+   *
+   * <ol>
+   *   <li>First write after initialization (-1 timestamp)
+   *   <li>Large time jump (≥ window size)
+   *   <li>Normal time progression (< window size)
+   * </ol>
+   *
+   * <p>Thread-safety: This method uses atomic operations for all updates.
+   *
+   * @param currentSeconds current timestamp in seconds
+   */
   private void clearOldLatencyBuckets(long currentSeconds) {
     // If this is the first write or we've moved significantly forward in time
-    if (lastLatencyBucketTime == -1
-        || currentSeconds - lastLatencyBucketTime >= latencyBucketCount) {
+    long lastTime = lastLatencyBucketTime.get();
+    if (lastTime == -1 || currentSeconds - lastTime >= latencyBucketCount) {
       // Clear all buckets if we've jumped forward more than our window
       for (int i = 0; i < latencyBucketCount; i++) {
         latencyTotalBuckets[i].set(0);
@@ -323,7 +362,7 @@ public class DefaultMetricsService implements MetricsService {
       }
     } else {
       // Clear only the buckets that are now stale
-      for (long time = lastLatencyBucketTime + 1; time <= currentSeconds; time++) {
+      for (long time = lastTime + 1; time <= currentSeconds; time++) {
         if (currentSeconds - time < latencyBucketCount) { // Only clear if within our window
           int bucketIndex = (int) (time % latencyBucketCount);
           latencyTotalBuckets[bucketIndex].set(0);
@@ -340,14 +379,14 @@ public class DefaultMetricsService implements MetricsService {
       bucket.set(0);
     }
     totalErrorCount.set(0);
-    lastBucketTime = -1;
+    lastBucketTime.set(-1);
 
     // Clear latency buckets as well
     for (int i = 0; i < latencyBucketCount; i++) {
       latencyTotalBuckets[i].set(0);
       latencyCountBuckets[i].set(0);
     }
-    lastLatencyBucketTime = -1;
+    lastLatencyBucketTime.set(-1);
 
     // Clear total request count
     totalRequestCount.set(0);
@@ -359,7 +398,7 @@ public class DefaultMetricsService implements MetricsService {
    * @return the last bucket time
    */
   long getLastBucketTime() {
-    return lastBucketTime;
+    return lastBucketTime.get();
   }
 
   /**
@@ -368,7 +407,7 @@ public class DefaultMetricsService implements MetricsService {
    * @return the last latency bucket time
    */
   long getLastLatencyBucketTime() {
-    return lastLatencyBucketTime;
+    return lastLatencyBucketTime.get();
   }
 
   /**
@@ -377,7 +416,7 @@ public class DefaultMetricsService implements MetricsService {
    * @param time the time to set
    */
   void setLastBucketTimeForTesting(long time) {
-    this.lastBucketTime = time;
+    this.lastBucketTime.set(time);
   }
 
   /**
@@ -386,6 +425,6 @@ public class DefaultMetricsService implements MetricsService {
    * @param time the time to set
    */
   void setLastLatencyBucketTimeForTesting(long time) {
-    this.lastLatencyBucketTime = time;
+    this.lastLatencyBucketTime.set(time);
   }
 }
