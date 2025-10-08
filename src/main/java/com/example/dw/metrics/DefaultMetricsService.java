@@ -132,12 +132,12 @@ public class DefaultMetricsService implements MetricsService {
    * Get the count of errors within the last minute.
    *
    * <p>This method provides a real-time snapshot of error counts within the most recent 60-second
-   * sliding window. It first clears any stale buckets, then aggregates the error counts across
-   * all active buckets.
+   * sliding window. It first clears any stale buckets, then aggregates the error counts across all
+   * active buckets.
    *
-   * <p>Thread-safety: This method is thread-safe and can be called concurrently with
-   * {@link #recordServerError()}. It internally uses {@link #clearOldBuckets(long)} which
-   * is synchronized to prevent race conditions during bucket clearing operations.
+   * <p>Thread-safety: This method is thread-safe and can be called concurrently with {@link
+   * #recordServerError()}. It internally uses {@link #clearOldBuckets(long)} which is synchronized
+   * to prevent race conditions during bucket clearing operations.
    *
    * <p>Performance note: This method has O(n) complexity where n is the number of buckets
    * (typically 60). It's designed for frequent calls without significant performance impact.
@@ -163,35 +163,35 @@ public class DefaultMetricsService implements MetricsService {
   /**
    * Clear buckets that are older than 60 seconds.
    *
-   * <p>This method implements a sliding window algorithm for error metrics tracking.
-   * The algorithm maintains a fixed number of buckets (typically 60, one per second)
-   * in a circular buffer arrangement. Each bucket stores error counts for a specific second.
-   * As time progresses, old buckets are cleared to maintain the sliding window effect.
+   * <p>This method implements a sliding window algorithm for error metrics tracking. The algorithm
+   * maintains a fixed number of buckets (typically 60, one per second) in a circular buffer
+   * arrangement. Each bucket stores error counts for a specific second. As time progresses, old
+   * buckets are cleared to maintain the sliding window effect.
    *
    * <p>The algorithm handles three scenarios:
    *
    * <ol>
-   *   <li>First write after initialization ({@code lastBucketTime == -1}):
-   *       When the service starts or after metrics are cleared, all buckets are
-   *       initialized to zero on the first write.</li>
-   *   <li>Large time jump ({@code currentSeconds - lastBucketTime >= errorBucketCount}):
-   *       If the time difference exceeds the window size (e.g., after system hibernation or
-   *       extreme time change), all buckets are cleared since the entire window is stale.</li>
+   *   <li>First write after initialization ({@code lastBucketTime == -1}): When the service starts
+   *       or after metrics are cleared, all buckets are initialized to zero on the first write.
+   *   <li>Large time jump ({@code currentSeconds - lastBucketTime >= errorBucketCount}): If the
+   *       time difference exceeds the window size (e.g., after system hibernation or extreme time
+   *       change), all buckets are cleared since the entire window is stale.
    *   <li>Normal time progression ({@code currentSeconds - lastBucketTime < errorBucketCount}):
-   *       Only buckets that have become stale since the last update are cleared, preserving
-   *       the remaining valid data within the window.</li>
+   *       Only buckets that have become stale since the last update are cleared, preserving the
+   *       remaining valid data within the window.
    * </ol>
    *
    * <p>Thread-safety: This method is synchronized to ensure atomic operations during bucket
-   * clearing. This prevents race conditions where multiple threads might
-   * attempt to clear or update the same buckets simultaneously.
+   * clearing. This prevents race conditions where multiple threads might attempt to clear or update
+   * the same buckets simultaneously.
    *
    * <p>Edge cases handled:
+   *
    * <ul>
    *   <li>Time rollback (system time adjusted backwards): The method will continue to function
-   *       correctly as it primarily operates on relative time differences.</li>
-   *   <li>Long periods of inactivity: All buckets are cleared if the inactive period
-   *       exceeds the window size.</li>
+   *       correctly as it primarily operates on relative time differences.
+   *   <li>Long periods of inactivity: All buckets are cleared if the inactive period exceeds the
+   *       window size.
    * </ul>
    *
    * @param currentSeconds current timestamp in seconds since epoch
@@ -202,7 +202,8 @@ public class DefaultMetricsService implements MetricsService {
 
     // SCENARIO 1: First write after initialization or SCENARIO 2: Large time jump
     if (lastTime == -1 || currentSeconds - lastTime >= errorBucketCount) {
-      // Clear all buckets if this is the first write or we've jumped forward more than our window size
+      // Clear all buckets if this is the first write or we've jumped forward more than our window
+      // size
       // This is more efficient than clearing individual buckets when the entire window is stale
       for (AtomicLong bucket : errorBuckets) {
         bucket.set(0);
@@ -241,18 +242,20 @@ public class DefaultMetricsService implements MetricsService {
    *
    * <p>This method implements adaptive thresholding based on traffic volume to provide meaningful
    * error detection across varying load conditions:
+   *
    * <ul>
    *   <li><b>Very low traffic</b> ({@code < minimumErrorSampleSize} requests): No threshold breach
-   *       reported regardless of error count, as the sample size is too small for meaningful analysis.</li>
-   *   <li><b>High traffic</b> ({@code >= 100} requests): Uses error rate percentage threshold (10%),
-   *       which is more appropriate for high-volume services.</li>
+   *       reported regardless of error count, as the sample size is too small for meaningful
+   *       analysis.
+   *   <li><b>High traffic</b> ({@code >= 100} requests): Uses error rate percentage threshold
+   *       (10%), which is more appropriate for high-volume services.
    *   <li><b>Moderate traffic</b> ({@code >= minimumErrorSampleSize && < 100} requests): Uses the
-   *       minimum of absolute threshold and half the request count, providing a balanced approach.</li>
+   *       minimum of absolute threshold and half the request count, providing a balanced approach.
    * </ul>
    *
-   * <p>Thread-safety: This method is thread-safe and can be called concurrently with
-   * {@link #recordServerError()} and other methods. It internally uses thread-safe methods
-   * {@link #getErrorCountLastMinute()} and {@link #getTotalRequestCountLast60Seconds()}.
+   * <p>Thread-safety: This method is thread-safe and can be called concurrently with {@link
+   * #recordServerError()} and other methods. It internally uses thread-safe methods {@link
+   * #getErrorCountLastMinute()} and {@link #getTotalRequestCountLast60Seconds()}.
    *
    * @param threshold the threshold for error count (used in moderate traffic scenarios)
    * @return true if the error count exceeds the threshold according to the adaptive rules
@@ -329,18 +332,20 @@ public class DefaultMetricsService implements MetricsService {
    * 60-second sliding window. It first clears any stale buckets, then aggregates the total latency
    * and request counts across all active buckets to compute the average.
    *
-   * <p>Thread-safety: This method is thread-safe and can be called concurrently with
-   * {@link #recordRequestLatency(long)}. It internally uses {@link #clearOldLatencyBuckets(long)}
-   * which is synchronized to prevent race conditions during bucket clearing operations.
+   * <p>Thread-safety: This method is thread-safe and can be called concurrently with {@link
+   * #recordRequestLatency(long)}. It internally uses {@link #clearOldLatencyBuckets(long)} which is
+   * synchronized to prevent race conditions during bucket clearing operations.
    *
    * <p>Performance note: This method has O(n) complexity where n is the number of buckets
    * (typically 60). It's designed for frequent calls without significant performance impact.
    *
    * <p>Edge cases handled:
+   *
    * <ul>
-   *   <li>No requests recorded: Returns 0.0</li>
-   *   <li>Negative latency values: Included in average calculation (though not expected in normal operation)</li>
-   *   <li>Extreme latency values: Handled correctly without overflow</li>
+   *   <li>No requests recorded: Returns 0.0
+   *   <li>Negative latency values: Included in average calculation (though not expected in normal
+   *       operation)
+   *   <li>Extreme latency values: Handled correctly without overflow
    * </ul>
    *
    * @return average latency in milliseconds, or 0 if no requests recorded
@@ -392,19 +397,20 @@ public class DefaultMetricsService implements MetricsService {
   /**
    * Check if the current average latency exceeds the specified threshold.
    *
-   * <p>This method implements intelligent threshold checking for latency metrics, taking
-   * into account traffic volume to avoid false positives during low-traffic periods:
+   * <p>This method implements intelligent threshold checking for latency metrics, taking into
+   * account traffic volume to avoid false positives during low-traffic periods:
+   *
    * <ul>
    *   <li>If the request count in the last 60 seconds is below {@code minimumLatencySampleSize}
    *       (typically 5 requests), the method always returns false regardless of latency values.
-   *       This prevents latency threshold breaches from being triggered based on too few samples.</li>
+   *       This prevents latency threshold breaches from being triggered based on too few samples.
    *   <li>With sufficient request volume, the method compares the average latency against the
-   *       specified threshold.</li>
+   *       specified threshold.
    * </ul>
    *
-   * <p>Thread-safety: This method is thread-safe and can be called concurrently with
-   * {@link #recordRequestLatency(long)} and other methods. It internally uses thread-safe methods
-   * {@link #getTotalRequestCountLast60Seconds()} and {@link #getAverageLatencyLast60Seconds()}.
+   * <p>Thread-safety: This method is thread-safe and can be called concurrently with {@link
+   * #recordRequestLatency(long)} and other methods. It internally uses thread-safe methods {@link
+   * #getTotalRequestCountLast60Seconds()} and {@link #getAverageLatencyLast60Seconds()}.
    *
    * @param thresholdMs the threshold in milliseconds
    * @return true if the average latency exceeds the threshold AND there's sufficient traffic volume
@@ -456,40 +462,40 @@ public class DefaultMetricsService implements MetricsService {
   /**
    * Clear latency buckets that are older than 60 seconds.
    *
-   * <p>This method implements a sliding window algorithm for latency metrics tracking.
-   * The algorithm maintains a fixed number of buckets (typically 60, one per second)
-   * in a circular buffer arrangement. Each bucket stores two values:
-   * 1. Total latency for the second (latencyTotalBuckets)
-   * 2. Request count for the second (latencyCountBuckets)
+   * <p>This method implements a sliding window algorithm for latency metrics tracking. The
+   * algorithm maintains a fixed number of buckets (typically 60, one per second) in a circular
+   * buffer arrangement. Each bucket stores two values: 1. Total latency for the second
+   * (latencyTotalBuckets) 2. Request count for the second (latencyCountBuckets)
    *
-   * <p>As time progresses, old buckets are cleared to maintain the sliding window effect.
-   * This ensures that latency statistics always reflect the most recent 60-second window.
+   * <p>As time progresses, old buckets are cleared to maintain the sliding window effect. This
+   * ensures that latency statistics always reflect the most recent 60-second window.
    *
    * <p>The algorithm handles three scenarios:
    *
    * <ol>
-   *   <li>First write after initialization ({@code lastLatencyBucketTime == -1}):
-   *       When the service starts or after metrics are cleared, all latency buckets are
-   *       initialized to zero on the first write.</li>
+   *   <li>First write after initialization ({@code lastLatencyBucketTime == -1}): When the service
+   *       starts or after metrics are cleared, all latency buckets are initialized to zero on the
+   *       first write.
    *   <li>Large time jump ({@code currentSeconds - lastLatencyBucketTime >= latencyBucketCount}):
-   *       If the time difference exceeds the window size (e.g., after system hibernation or
-   *       extreme time change), all latency buckets are cleared since the entire window is stale.</li>
-   *   <li>Normal time progression ({@code currentSeconds - lastLatencyBucketTime < latencyBucketCount}):
-   *       Only buckets that have become stale since the last update are cleared, preserving
-   *       the remaining valid latency data within the window.</li>
+   *       If the time difference exceeds the window size (e.g., after system hibernation or extreme
+   *       time change), all latency buckets are cleared since the entire window is stale.
+   *   <li>Normal time progression ({@code currentSeconds - lastLatencyBucketTime <
+   *       latencyBucketCount}): Only buckets that have become stale since the last update are
+   *       cleared, preserving the remaining valid latency data within the window.
    * </ol>
    *
    * <p>Thread-safety: This method is synchronized to ensure atomic operations during bucket
-   * clearing. This prevents race conditions where multiple threads might
-   * attempt to clear or update the same latency buckets simultaneously.
+   * clearing. This prevents race conditions where multiple threads might attempt to clear or update
+   * the same latency buckets simultaneously.
    *
    * <p>Edge cases handled:
+   *
    * <ul>
    *   <li>Time rollback (system time adjusted backwards): The method will continue to function
-   *       correctly as it primarily operates on relative time differences.</li>
+   *       correctly as it primarily operates on relative time differences.
    *   <li>Long periods of inactivity: All latency buckets are cleared if the inactive period
-   *       exceeds the window size.</li>
-   *   <li>Zero or negative latency values: These are handled the same as any other values.</li>
+   *       exceeds the window size.
+   *   <li>Zero or negative latency values: These are handled the same as any other values.
    * </ul>
    *
    * @param currentSeconds current timestamp in seconds since epoch
@@ -500,7 +506,8 @@ public class DefaultMetricsService implements MetricsService {
 
     // SCENARIO 1: First write after initialization or SCENARIO 2: Large time jump
     if (lastTime == -1 || currentSeconds - lastTime >= latencyBucketCount) {
-      // Clear all latency buckets if this is the first write or we've jumped forward more than our window size
+      // Clear all latency buckets if this is the first write or we've jumped forward more than our
+      // window size
       // This is more efficient than clearing individual buckets when the entire window is stale
       for (int i = 0; i < latencyBucketCount; i++) {
         // Reset both the total latency and count buckets to zero
