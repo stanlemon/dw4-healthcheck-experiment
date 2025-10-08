@@ -1,5 +1,7 @@
 package com.example.dw.metrics;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 /**
  * Service interface to track application metrics, including error counts and request latency in
  * sliding windows. Implementations should provide high-performance collection and retrieval of
@@ -8,7 +10,12 @@ package com.example.dw.metrics;
  * <p>Implementations of this interface must be thread-safe, as metrics collection and retrieval
  * will occur from multiple concurrent threads. All methods should support concurrent invocation
  * without external synchronization.
+ *
+ * <p>The implementation is designed to be used as a singleton service injected by Dropwizard.
+ * Classes using this interface are not required to create defensive copies when storing references
+ * to implementations, as they are designed to be shared across components.
  */
+@ThreadSafe
 public interface MetricsService {
 
   /**

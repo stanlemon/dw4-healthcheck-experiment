@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs exclusion filter for Dropwizard application
+
+  This filter suppresses certain SpotBugs warnings that are false positives
+  due to the architectural patterns used in this application, specifically:
+
+  1. EI_EXPOSE_REP2 - These are false positives for dependency injection patterns
+     where we store references to service interfaces that are intentionally shared
+     across components and are thread-safe by contract.
+
+  2. The MetricsService interface is designed to be used as a singleton and
+     implementations are required to be thread-safe per interface documentation.
+
+  This centralized exclusion approach is preferred over individual @SuppressFBWarnings
+  annotations to maintain clean code and ensure consistent handling of these patterns.
+-->
+<FindBugsFilter>
+  <!--
+    Suppress EI_EXPOSE_REP2 warnings for dependency injection patterns involving MetricsService
+
+    The MetricsService is designed as a thread-safe singleton that is shared across
+    multiple components in the application. It follows the Dropwizard dependency
+    injection pattern where services are created once in the application class and
+    injected into resources, filters, and other components.
+  -->
+  <Match>
+    <Class name="~.*\.(GlobalExceptionMapper|LatencyTrackingFilter|ApplicationHealthCheck|MetricsResource)"/>
+    <Field name="metricsService"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+</FindBugsFilter>
