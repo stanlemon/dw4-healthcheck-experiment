@@ -1,0 +1,33 @@
+# Dependency Review Configuration
+# This file configures which vulnerabilities to allow in dependency-review-action
+# See: https://github.com/actions/dependency-review-action#configuration-options
+
+# Fail on vulnerabilities of this severity or higher
+fail-on-severity: moderate
+
+# Allow specific GitHub Security Advisories (GHSAs)
+# Add GHSA IDs here to temporarily allow known vulnerabilities
+allow-ghsas:
+  # GHSA-qh8g-58pp-2wxh: Eclipse Jetty URI parsing of invalid authority (moderate)
+  # Jetty 11.0.26 is the latest version compatible with Dropwizard 4.0.16
+  # Waiting for Dropwizard to upgrade to Jetty 12 which fixes this vulnerability
+  - GHSA-qh8g-58pp-2wxh
+
+# Allow specific licenses (if needed)
+# allow-licenses:
+#   - MIT
+#   - Apache-2.0
+
+# Deny specific licenses (if needed)
+# deny-licenses:
+#   - GPL-3.0
+
+# Allow packages with vulnerabilities (use sparingly)
+# Note: This allows ALL vulnerabilities in these packages
+# Commented out in favor of specific GHSA allowance above
+# allow-dependencies-licenses:
+#   - pkg:maven/org.eclipse.jetty/jetty-http@11.0.26
+
+# Comment or reason for exceptions
+# Jetty 11.0.26 is the latest version compatible with Dropwizard 4.0.16
+# Waiting for Dropwizard to upgrade to Jetty 12 which fixes known vulnerabilities

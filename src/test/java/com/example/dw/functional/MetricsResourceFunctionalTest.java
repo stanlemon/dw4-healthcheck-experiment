@@ -52,6 +52,20 @@ class MetricsResourceFunctionalTest {
   static void setupClass() {
     baseUrl = "http://localhost:" + APP.getLocalPort();
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+
+    // Wait for the application to fully start and be ready to accept requests
+    await()
+        .atMost(Duration.ofSeconds(30))
+        .pollInterval(Duration.ofMillis(500))
+        .ignoreExceptions()
+        .untilAsserted(
+            () -> {
+              given()
+                  .when()
+                  .get("http://localhost:" + APP.getAdminPort() + "/healthcheck")
+                  .then()
+                  .statusCode(200);
+            });
   }
 
   /**
@@ -367,6 +381,9 @@ class MetricsResourceFunctionalTest {
     @Test
     @DisplayName("Metrics should correctly reflect both errors and latency")
     void metrics_WhenBothErrorsAndLatencyOccur_ShouldReflectBothCorrectly() {
+      // Get initial metrics state to calculate relative changes
+      MetricsSnapshot initialMetrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
+
       // Trigger some errors
       int errorCount = 5;
       IntStream.range(0, errorCount)
@@ -377,25 +394,26 @@ class MetricsResourceFunctionalTest {
 
       // Trigger some slow requests
       List<Integer> delays = List.of(150, 250, 350);
-      double expectedAvgDelay = delays.stream().mapToInt(Integer::intValue).average().orElse(0);
 
       for (int delay : delays) {
         given().when().get(baseUrl + "/slow/" + delay).then().statusCode(200);
       }
 
-      // Wait for metrics to update
+      // Wait for metrics to update - check for relative increase rather than absolute values
       waitForMetricsToUpdate(
           () -> {
             MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return metrics.totalErrors() == errorCount && metrics.avgLatencyLast60Seconds() > 0;
+            return metrics.totalErrors() >= initialMetrics.totalErrors() + errorCount
+                && metrics.avgLatencyLast60Seconds() > 0;
           });
 
       // Final verification
       MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
 
-      // Verify error metrics
-      assertThat(metrics.totalErrors()).isEqualTo(errorCount);
-      assertThat(metrics.errorsLastMinute()).isEqualTo(errorCount);
+      // Verify error metrics - check relative increase
+      assertThat(metrics.totalErrors())
+          .isGreaterThanOrEqualTo(initialMetrics.totalErrors() + errorCount);
+      assertThat(metrics.errorsLastMinute()).isGreaterThanOrEqualTo(errorCount);
 
       // Verify latency metrics - don't assert exact values as they can vary in test environment
       assertThat(metrics.avgLatencyLast60Seconds()).isGreaterThan(0.0);

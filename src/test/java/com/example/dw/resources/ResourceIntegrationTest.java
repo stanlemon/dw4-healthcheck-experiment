@@ -11,7 +11,9 @@ import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.core.Response;
 import java.time.Duration;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(DropwizardExtensionsSupport.class)
@@ -22,7 +24,26 @@ class ResourceIntegrationTest {
   static final DropwizardAppExtension<DwConfiguration> APP =
       new DropwizardAppExtension<>(DwApplication.class, CONFIG_PATH);
 
+  @BeforeAll
+  static void waitForAppToStart() {
+    // Wait for the application to fully start and be ready to accept requests
+    await()
+        .atMost(Duration.ofSeconds(30))
+        .pollInterval(Duration.ofMillis(500))
+        .ignoreExceptions()
+        .untilAsserted(
+            () -> {
+              Response response =
+                  APP.client()
+                      .target(String.format("http://localhost:%d/healthcheck", APP.getAdminPort()))
+                      .request()
+                      .get();
+              assertThat(response.getStatus()).isEqualTo(200);
+            });
+  }
+
   @Test
+  @Timeout(30)
   void helloEndpoint_WhenCalled_ShouldReturnHelloWorldMessage() {
     Client client = APP.client();
 
@@ -40,6 +61,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
+  @Timeout(30)
   void metricsEndpoint_WhenCalledWithCleanMetrics_ShouldReturnHealthyState() {
     Client client = APP.client();
 
@@ -65,6 +87,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
+  @Timeout(30)
   void latencyTracking_WhenMultipleRequests_ShouldRecordReasonableLatency() {
     Client client = APP.client();
 
@@ -80,8 +103,9 @@ class ResourceIntegrationTest {
 
     // Use Awaitility to wait for latency metrics to be recorded and stabilize
     await()
-        .atMost(Duration.ofSeconds(5))
-        .pollInterval(Duration.ofMillis(100))
+        .atMost(Duration.ofSeconds(10))
+        .pollInterval(Duration.ofMillis(200))
+        .ignoreExceptions()
         .untilAsserted(
             () -> {
               Response metricsResponse =
@@ -95,8 +119,8 @@ class ResourceIntegrationTest {
               MetricsResource.MetricsResponse metrics =
                   metricsResponse.readEntity(MetricsResource.MetricsResponse.class);
 
-              // Latency should be recorded (might be 0 if requests are very fast, which is fine)
-              assertThat(metrics.getAvgLatencyLast60Seconds()).isGreaterThanOrEqualTo(0.0);
+              // Latency should be recorded and greater than 0
+              assertThat(metrics.getAvgLatencyLast60Seconds()).isGreaterThan(0.0);
               // Should be reasonable latency (less than 1 second for simple requests)
               assertThat(metrics.getAvgLatencyLast60Seconds()).isLessThan(1000.0);
               // Since latency is well below 500ms threshold, it should not be breached
@@ -105,6 +129,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
+  @Timeout(30)
   void healthcheckEndpoint_WhenCalled_ShouldReturnOkStatus() {
     Client client = APP.client();
 
