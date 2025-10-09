@@ -79,7 +79,8 @@ jobs:
       if: github.event_name == 'pull_request'
       uses: actions/dependency-review-action@v4
       with:
-        fail-on-severity: moderate
+        # Use config file for vulnerability exceptions
+        config-file: '.github/dependency-review-config.yml'
 
     # CodeQL Analysis - only for scheduled runs or manual triggers
     - name: Initialize CodeQL
