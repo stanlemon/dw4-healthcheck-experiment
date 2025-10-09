@@ -8,10 +8,9 @@ fail-on-severity: moderate
 # Allow specific GitHub Security Advisories (GHSAs)
 # Add GHSA IDs here to temporarily allow known vulnerabilities
 # Example format: GHSA-xxxx-xxxx-xxxx
-allow-ghsas:
-  # Uncomment and add specific GHSA IDs for Jetty vulnerabilities
-  # To find the GHSA ID, check your GitHub Security tab or Dependabot alerts
-  # - GHSA-xxxx-xxxx-xxxx
+# To find the GHSA ID, check your GitHub Security tab or Dependabot alerts
+# allow-ghsas:
+#   - GHSA-xxxx-xxxx-xxxx
 
 # Allow specific licenses (if needed)
 # allow-licenses:
