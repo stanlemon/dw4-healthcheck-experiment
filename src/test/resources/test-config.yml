@@ -14,5 +14,5 @@ logging:
     org.eclipse.jetty: OFF
     io.dropwizard: OFF
     org.apache.http: OFF
-    com.tngtech.archunit: OFF
+    com.tngtech.archunit: WARN
     com.example.dw: INFO
