@@ -85,7 +85,7 @@ jobs:
     # CodeQL Analysis - only for scheduled runs or manual triggers
     - name: Initialize CodeQL
       if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.full_scan == 'true')
-      uses: github/codeql-action/init@f443b600d91635bebf5b0d9ebc620189c0d6fba5 # v4
+      uses: github/codeql-action/init@16140ae1a102900babc80a33c44059580f687047 # v4
       with:
         languages: java
         queries: security-and-quality
@@ -96,7 +96,7 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.full_scan == 'true')
-      uses: github/codeql-action/analyze@f443b600d91635bebf5b0d9ebc620189c0d6fba5 # v4
+      uses: github/codeql-action/analyze@16140ae1a102900babc80a33c44059580f687047 # v4
 
     # Summary
     - name: Security Scan Summary
