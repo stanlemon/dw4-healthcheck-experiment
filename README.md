@@ -1,41 +1,56 @@
 # Dropwizard Application
 
-A Dropwizard application running on JDK 21 with a health check based upon customer experience metrics:
+A Dropwizard application demonstrating real-time metrics collection and health monitoring based on customer experience signals.
 
-1. Hello World endpoint returning JSON
-2. Error endpoint that throws a 500 error
-3. Metrics endpoint showing error counts and latency statistics
-4. Health check endpoint that monitors both error rates and response latency
-5. Automatic latency tracking for all requests
-6. Dual-threshold monitoring (errors and latency)
+## Features
+
+- **Real-time Metrics**: Tracks error rates and response latency across all endpoints
+- **Dual-Threshold Health Monitoring**: Health checks based on both error counts and average latency
+- **Automatic Instrumentation**: Latency tracking via filter middleware, error tracking via global exception mapper
+- **REST API**: Simple endpoints for testing metrics collection and health monitoring
+- **Comprehensive Testing**: 85+ tests with high coverage and architecture enforcement
 
 ## Requirements
 
 - JDK 21
-- Maven
+- Maven 3.6.3+
 
-## Building the Application
-
-```bash
-mvn clean package
-```
-
-## Running the Application
-
-### Using Maven (Recommended for Development)
+## Quick Start
 
 ```bash
-mvn clean compile exec:java
-```
-
-### Using JAR (Recommended for Production)
-
-```bash
-# Build the application
+# Clone and build
+git clone <repository-url>
+cd dw-test2
 mvn clean package
 
-# Run the JAR
+# Run the application
+mvn exec:java
+
+# Or use the JAR
 java -jar target/dw-test2-1.0-SNAPSHOT.jar server config.yml
+```
+
+The application will start on:
+- **Application Port**: [http://localhost:8097](http://localhost:8097)
+- **Admin Port**: [http://localhost:8098](http://localhost:8098)
+
+## Development
+
+For detailed development guidelines, testing strategies, and code quality standards, see [CLAUDE.md](CLAUDE.md).
+
+```bash
+# Run tests
+mvn test
+
+# Run with coverage
+mvn clean test jacoco:report
+open target/site/jacoco/index.html
+
+# Check code formatting
+mvn spotless:check
+
+# Apply code formatting
+mvn spotless:apply
 ```
 
 ## Endpoints
@@ -48,12 +63,9 @@ java -jar target/dw-test2-1.0-SNAPSHOT.jar server config.yml
 
 ## Utility Scripts
 
-The project includes several utility scripts for testing and development:
-
-- **`generate_errors.sh [count] [latency_percentage]`** - Generate errors and latency for testing thresholds (default: 15 errors, 30% latency)
-- **`poll_metrics.sh`** - Continuously poll and display metrics
-- **`run_tests.sh`** - Run tests with coverage reporting
-- **`analyze-code.sh`** - Upload code analysis to SonarCloud
+- **`generate_errors.sh [count] [latency_percentage]`** - Generate errors and latency for testing thresholds
+- **`poll_metrics.sh`** - Continuously poll and display metrics in real-time
+- **`analyze-code.sh`** - Run tests and upload analysis to SonarCloud
 
 ### Test Error Endpoints
 
@@ -140,274 +152,87 @@ The application uses a global exception mapper to catch all exceptions:
 - Different types of exceptions are handled appropriately
 - The middleware approach ensures no errors slip through untracked
 
-## Architecture and Implementation
+## Architecture
 
-### Latency Tracking Filter
+The application uses a dual-threshold monitoring approach:
 
-The application includes a `LatencyTrackingFilter` that automatically measures request latency:
+- **Latency Tracking**: JAX-RS filter measures all request response times
+- **Error Tracking**: Global exception mapper captures all 5xx errors
+- **Metrics Storage**: Circular buffer implementation with sliding time windows
+- **Health Monitoring**: Configurable thresholds for both errors and latency
 
-- **Implementation**: Implements both `ContainerRequestFilter` and `ContainerResponseFilter`
-- **Timing**: Records start time on request, calculates duration on response
-- **Coverage**: Tracks all HTTP requests automatically
-- **Storage**: Uses MetricsService's 60-minute sliding window with per-minute buckets
-- **Performance**: Minimal overhead using simple timestamp recording
-
-### Metrics Service
-
-The `MetricsService` uses high-performance circular buffer implementations:
-
-- **Error Tracking**: 60 buckets for 1-minute sliding window (one bucket per second)
-- **Latency Tracking**: 60 buckets for 60-minute sliding window (one bucket per minute)
-- **Thread Safety**: Uses `AtomicLong` arrays for lock-free concurrent access
-- **Memory Efficiency**: Fixed-size arrays with automatic cleanup of stale data
-- **Singleton Pattern**: Single instance for application-wide metrics
-
-### Integration Points
-
-- **Filter Registration**: Automatically registers via `@Provider` annotation
-- **Health Checks**: ApplicationHealthCheck integrates both error and latency thresholds
-- **Metrics Endpoint**: Real-time reporting of all metrics and threshold status
-- **Exception Mapping**: Global exception mapper records 5xx errors automatically
+For detailed architecture and implementation patterns, see [CLAUDE.md](CLAUDE.md).
 
 ## Testing
 
-The application includes comprehensive test coverage:
+The application has 85+ tests covering:
 
-- **Unit Tests**: 85+ tests covering all components with extensive edge case coverage
-- **Integration Tests**: End-to-end validation of latency tracking and application functionality
-- **Branch Coverage**: Comprehensive testing of all code paths including bucket clearing logic
-- **Thread Safety Tests**: Concurrent access validation for metrics recording
-- **Health Check Testing**: All threshold scenarios and edge cases
-- **Mock Removal**: Refactored tests to use real implementations for better integration testing
-
-### Running Tests
+- Unit tests for all components
+- Integration tests for end-to-end validation
+- Functional tests for API behavior
+- Architecture tests enforcing design rules
+- Thread safety and concurrent access validation
 
 ```bash
-mvn clean test
-```
+# Run all tests
+mvn test
 
-### Running Test Coverage
-
-The project uses JaCoCo for test coverage analysis. To generate and view coverage reports:
-
-```bash
-# Run tests and generate coverage report
+# Run with coverage report
 mvn clean test jacoco:report
-
-# View the coverage report in your browser
 open target/site/jacoco/index.html
 ```
 
-**Note**: The SlowResource tests are optimized to use minimal delays (5ms) to avoid slowing down the test suite. The default slow endpoint (`/slow`) with its 1-second delay is NOT tested in automated tests to keep test execution fast. For latency testing, use the parameterized endpoint (`/slow/{delayMs}`) with custom delays via manual testing or the utility scripts.
-
-**Troubleshooting**: If you see "Skipping JaCoCo execution due to missing execution data file", ensure the Maven Surefire plugin uses `@{argLine}` to preserve JaCoCo's agent configuration alongside any other Java agents.
-
-The coverage report provides:
-
-- **Line Coverage**: Percentage of code lines executed during tests
-- **Branch Coverage**: Percentage of conditional branches tested
-- **Method Coverage**: Percentage of methods invoked during tests
-- **Class Coverage**: Percentage of classes that have at least one method invoked
-
-Coverage reports are generated in HTML format and include:
-
-- Overall project coverage summary
-- Per-package coverage breakdown
-- Per-class detailed coverage with highlighted source code
-- Identification of untested code paths
+For testing strategies, patterns, and best practices, see [CLAUDE.md](CLAUDE.md).
 
 ## Code Quality & Security
 
-The project includes comprehensive code quality and security tooling:
+The project enforces quality and security through:
 
-### Static Analysis & Quality
-
-- **SonarCloud**: Continuous code quality analysis with coverage integration
-- **Spotless**: Google Java Format enforcement for consistent code style
-- **JaCoCo**: Test coverage analysis with 70% minimum threshold
-
-### Security Scanning
-
-- **GitHub Dependency Review**: Scans for known vulnerabilities in dependencies on PRs
-- **GitHub CodeQL**: Static Application Security Testing (SAST)
-- **SpotBugs**: Security-focused static analysis
-- **Security Workflow**: Weekly automated security scans
-
-### Build Standards
-
-- **Maven Enforcer**: Ensures Java 21 and Maven 3.6.3+ requirements
-- **Dependency Management**: Renovate Bot for automated dependency updates
-
-### Running Security Checks
+- **Spotless**: Google Java Format for consistent code style
+- **SpotBugs with FindSecBugs**: Static analysis and security scanning
+- **JaCoCo**: 70% minimum test coverage threshold
+- **ArchUnit**: Architecture rules enforcement
+- **Maven Enforcer**: Dependency security rules
+- **GitHub Actions**: Automated CI/CD with security scans
 
 ```bash
-# Run SpotBugs security analysis
-mvn compile spotbugs:check
-
-# Check code formatting
-mvn spotless:check
-
-# Apply code formatting
+# Format code
 mvn spotless:apply
 
-# Run all quality checks
+# Run security analysis
+mvn spotbugs:check
+
+# Run all checks
 mvn clean verify
 ```
 
-### Continuous Integration
+For detailed code quality standards and development workflow, see [CLAUDE.md](CLAUDE.md).
 
-The project includes GitHub Actions workflows for:
 
-- **Test Workflow**: Runs tests, coverage, and uploads results to Codecov
-- **Security Workflow**: SpotBugs, dependency review, and CodeQL analysis
-- **Release Workflow**: Automated releases on version tags
+## SonarCloud Integration
 
-## Code Formatting
+The project supports SonarCloud for continuous code quality analysis. SonarCloud is free for open source projects and provides detailed reports on code smells, bugs, security vulnerabilities, coverage, and complexity.
 
-The project uses [Spotless](https://github.com/diffplug/spotless) with Google Java Format to maintain consistent code formatting across the codebase.
+### Setup
 
-### Checking Code Format
-
-To check if all code follows the Google Java Format style:
-
-```bash
-mvn spotless:check
-```
-
-### Applying Code Format
-
-To automatically format all Java code according to Google Java Format:
-
-```bash
-mvn spotless:apply
-```
-
-### Code Format Features
-
-- **Google Java Format**: Uses Google's official Java formatting style
-- **Import Organization**: Removes unused imports automatically
-- **Whitespace Management**: Trims trailing whitespace and ensures files end with newlines
-- **Consistent Style**: Enforces consistent indentation, spacing, and line breaks
-
-The Spotless plugin is configured to:
-
-- Format all Java files in `src/main/java` and `src/test/java`
-- Use Google Java Format version 1.19.2 with GOOGLE style
-- Remove unused imports automatically
-- Trim trailing whitespace
-- Ensure files end with a newline
-
-**Tip**: Run `mvn spotless:apply` before committing code to ensure consistent formatting.
-
-## Code Quality Analysis with SonarCloud
-
-The project is configured to work with SonarCloud (free for open source projects) for comprehensive code quality analysis:
-
-- **Code Smells**: Maintainability issues and anti-patterns
-- **Bugs**: Potential runtime errors and logic issues
-- **Security Vulnerabilities**: Security hotspots and vulnerabilities
-- **Code Coverage**: Integration with JaCoCo coverage reports
-- **Duplicated Code**: Detection of code duplication across the project
-- **Complexity Metrics**: Cyclomatic complexity and cognitive complexity analysis
-
-### Setup and Usage
-
-1. **Sign up for SonarCloud**: Go to [sonarcloud.io](https://sonarcloud.io) and sign in with your GitHub account
-2. **Import your project**: Add this repository to SonarCloud
-3. **Generate a token**: Go to [sonarcloud.io/account/security](https://sonarcloud.io/account/security)
-4. **Check if you need an organization**:
-   - **Personal account**: You might not need an organization key
-   - **Organization account**: Find your key at [sonarcloud.io/organizations](https://sonarcloud.io/organizations)
+1. Sign up at [sonarcloud.io](https://sonarcloud.io) with your GitHub account
+2. Import this repository to SonarCloud
+3. Generate a token from [your account security settings](https://sonarcloud.io/account/security)
 
 ### Run Analysis
 
-**For personal accounts** (try this first):
-
 ```bash
-# Set only your token
-export SONAR_TOKEN=your_token_here
-
-# Run analysis
-./analyze-code.sh
-```
-
-**If you need a custom project key**:
-
-```bash
-# Set token and custom project key
-export SONAR_TOKEN=your_token_here
-export SONAR_PROJECT_KEY=your-custom-project-key
-
-# Run analysis
-./analyze-code.sh
-```
-
-**For organization accounts**:
-
-```bash
-# Set both token and organization
-export SONAR_TOKEN=your_token_here
-export SONAR_ORGANIZATION=your_organization_key
-
-# Run analysis
-./analyze-code.sh
-```
-
-The script will:
-
-- Run all tests and generate JaCoCo coverage reports
-- Upload code analysis to SonarCloud
-- Provide a direct link to view results
-
-### Analysis Reports
-
-SonarCloud provides detailed reports including:
-
-- **Quality Gates**: Pass/fail criteria for code quality
-- **Code Coverage**: Line and branch coverage metrics from JaCoCo
-- **Maintainability Rating**: Technical debt ratio assessment
-- **Reliability Rating**: Bug density analysis
-- **Security Rating**: Security vulnerability assessment
-- **Duplication**: Percentage of duplicated lines
-- **Issues Breakdown**: Detailed list of all detected issues with severity levels
-
-### Project Analysis Focus
-
-For this Dropwizard project, SonarCloud will analyze:
-
-- **Line Coverage**: Currently achieving high coverage through comprehensive test suite (95 tests)
-- **Code Quality**: 20 Java files including metrics service, health checks, and REST endpoints
-- **Security**: Input validation and exception handling patterns
-- **Maintainability**: Code complexity in latency calculations and filter logic
-
-### Quick Start Summary
-
-**For personal accounts:**
-
-```bash
-# 1. Sign up at https://sonarcloud.io with GitHub
-# 2. Import your repository
-# 3. Get your token from account security
-# 4. Run analysis:
-
+# For personal accounts
 export SONAR_TOKEN=your_token_here
 ./analyze-code.sh
-```
 
-**For organization accounts:**
-
-```bash
-# 1. Sign up at https://sonarcloud.io with GitHub
-# 2. Import your repository to your organization
-# 3. Get your organization key and token
-# 4. Run analysis:
-
+# For organization accounts
 export SONAR_TOKEN=your_token_here
 export SONAR_ORGANIZATION=your_organization_key
 ./analyze-code.sh
 ```
 
-That's it! Your code quality analysis will be available at SonarCloud.
+The script runs tests with coverage and uploads the analysis to SonarCloud.
 
 ## Example Usage
 
