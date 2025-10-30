@@ -1,0 +1,14 @@
+# Server configuration
+server:
+  applicationConnectors:
+    - type: http
+      port: 8097
+  adminConnectors:
+    - type: http
+      port: 8098
+
+# Logging settings
+logging:
+  level: INFO
+  loggers:
+    com.example.dw: DEBUG

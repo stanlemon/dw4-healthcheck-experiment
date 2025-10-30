@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.stanlemon.healthy</groupId>
+        <artifactId>healthy-parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>healthy-metrics</artifactId>
+
+    <name>Healthy Metrics</name>
+    <description>Reusable metrics collection library for tracking errors and latency</description>
+
+    <!--
+        All dependencies inherited from parent:
+        - lombok (provided)
+        - spotbugs-annotations (provided)
+        - junit-jupiter-api (test)
+        - junit-jupiter-engine (test)
+        - mockito-core (test)
+        - mockito-junit-jupiter (test)
+        - assertj-core (test)
+        - awaitility (test)
+        - byte-buddy-agent (test)
+        - archunit-junit5 (test)
+
+        All build plugins inherited from parent:
+        - maven-compiler-plugin
+        - maven-surefire-plugin
+        - jacoco-maven-plugin
+        - spotless-maven-plugin
+        - maven-enforcer-plugin
+        - spotbugs-maven-plugin
+        - sonar-maven-plugin
+    -->
+
+    <dependencies>
+        <!-- Architecture rules for testing -->
+        <dependency>
+            <groupId>com.stanlemon.healthy</groupId>
+            <artifactId>architecture-rules</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,6 +1,12 @@
 # Dropwizard Application
 
-A Dropwizard application demonstrating real-time metrics collection and health monitoring based on customer experience signals.
+A multi-module Dropwizard application demonstrating real-time metrics collection and health monitoring based on customer experience signals.
+
+## Project Structure
+
+This is a multi-module Maven project:
+- **dw4-app**: The main Dropwizard application module
+- Additional modules can be added as needed
 
 ## Features
 
@@ -23,11 +29,11 @@ git clone <repository-url>
 cd dw-test2
 mvn clean package
 
-# Run the application
-mvn exec:java
+# Run the application (from the root directory)
+mvn exec:java -pl dw4-app
 
-# Or use the JAR
-java -jar target/dw-test2-1.0-SNAPSHOT.jar server config.yml
+# Or use the JAR (from the root directory)
+java -jar dw4-app/target/dw4-app-1.0-SNAPSHOT.jar server dw4-app/config.yml
 ```
 
 The application will start on:
@@ -39,17 +45,17 @@ The application will start on:
 For detailed development guidelines, testing strategies, and code quality standards, see [CLAUDE.md](CLAUDE.md).
 
 ```bash
-# Run tests
+# Run tests (from root directory)
 mvn test
 
-# Run with coverage
+# Run with coverage (from root directory)
 mvn clean test jacoco:report
-open target/site/jacoco/index.html
+open dw4-app/target/site/jacoco/index.html
 
-# Check code formatting
+# Check code formatting (from root directory)
 mvn spotless:check
 
-# Apply code formatting
+# Apply code formatting (from root directory)
 mvn spotless:apply
 ```
 
@@ -63,6 +69,22 @@ mvn spotless:apply
 
 ## Utility Scripts
 
+### Quality Checks
+
+- **`scripts/run-quality-checks.sh`** - Run all quality checks sequentially (Spotless, SpotBugs, Tests, SonarQube)
+
+```bash
+# Run all checks (requires SONAR_TOKEN for SonarQube)
+./scripts/run-quality-checks.sh
+
+# Skip SonarQube analysis
+./scripts/run-quality-checks.sh --skip-sonar
+
+# Auto-fix formatting issues
+./scripts/run-quality-checks.sh --fix-formatting
+```
+
+### Testing & Monitoring
 - **`generate_errors.sh [count] [latency_percentage]`** - Generate errors and latency for testing thresholds
 - **`poll_metrics.sh`** - Continuously poll and display metrics in real-time
 - **`analyze-code.sh`** - Run tests and upload analysis to SonarCloud
@@ -174,12 +196,12 @@ The application has 85+ tests covering:
 - Thread safety and concurrent access validation
 
 ```bash
-# Run all tests
+# Run all tests (from root directory)
 mvn test
 
-# Run with coverage report
+# Run with coverage report (from root directory)
 mvn clean test jacoco:report
-open target/site/jacoco/index.html
+open dw4-app/target/site/jacoco/index.html
 ```
 
 For testing strategies, patterns, and best practices, see [CLAUDE.md](CLAUDE.md).
