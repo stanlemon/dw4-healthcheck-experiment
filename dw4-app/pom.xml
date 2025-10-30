@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.stanlemon.healthy</groupId>
+        <artifactId>healthy-parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>dw4-app</artifactId>
+
+    <properties>
+        <mainClass>com.stanlemon.healthy.dw4app.DwApplication</mainClass>
+    </properties>
+
+    <!-- Module-specific dependencies only (framework-specific) -->
+    <dependencies>
+        <!-- Metrics module -->
+        <dependency>
+            <groupId>com.stanlemon.healthy</groupId>
+            <artifactId>healthy-metrics</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Architecture rules for testing -->
+        <dependency>
+            <groupId>com.stanlemon.healthy</groupId>
+            <artifactId>architecture-rules</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Dropwizard framework -->
+        <dependency>
+            <groupId>io.dropwizard</groupId>
+            <artifactId>dropwizard-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard</groupId>
+            <artifactId>dropwizard-testing</artifactId>
+        </dependency>
+
+        <!-- REST API testing -->
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+        </dependency>
+
+        <!-- All other dependencies inherited from parent:
+             - lombok (provided)
+             - spotbugs-annotations (provided)
+             - junit-jupiter-api (test)
+             - junit-jupiter-engine (test)
+             - mockito-core (test)
+             - mockito-junit-jupiter (test)
+             - assertj-core (test)
+             - awaitility (test)
+             - byte-buddy-agent (test)
+             - archunit-junit5 (test)
+        -->
+    </dependencies>
+
+    <!-- Module-specific plugins only (executable-app-specific) -->
+    <build>
+        <plugins>
+            <!-- Application packaging (fat JAR) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+            </plugin>
+
+            <!-- Application execution -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>${mainClass}</mainClass>
+                    <commandlineArgs>server config.yml</commandlineArgs>
+                </configuration>
+            </plugin>
+
+            <!-- All other plugins inherited from parent and auto-executed:
+                 - maven-compiler-plugin (compile)
+                 - maven-surefire-plugin (test)
+                 - jacoco-maven-plugin (coverage)
+                 - spotless-maven-plugin (formatting)
+                 - maven-enforcer-plugin (security)
+                 - spotbugs-maven-plugin (bug analysis)
+                 - sonar-maven-plugin (code quality analysis)
+            -->
+        </plugins>
+    </build>
+</project>
