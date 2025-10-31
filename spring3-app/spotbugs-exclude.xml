@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter
+    xmlns="https://github.com/spotbugs/filter/3.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0 https://raw.githubusercontent.com/spotbugs/spotbugs/3.1.0/spotbugs/etc/findbugsfilter.xsd">
+
+    <!-- Exclude test classes -->
+    <Match>
+        <Class name="~.*\.*Test"/>
+    </Match>
+
+    <!-- Exclude generated classes -->
+    <Match>
+        <Class name="~.*\$.*"/>
+    </Match>
+
+    <!-- Exclude SlowResource.delay() method which intentionally uses Thread.sleep() -->
+    <Match>
+        <Class name="com.stanlemon.healthy.spring3app.resources.SlowResource"/>
+        <Method name="delay"/>
+        <Bug pattern="SWL_SLEEP_WITH_LOCK_HELD"/>
+    </Match>
+
+    <!-- Spring Boot-specific exclusions -->
+    <Match>
+        <Class name="com.stanlemon.healthy.spring3app.Spring3Application"/>
+        <Method name="main"/>
+        <Bug pattern="DM_EXIT"/>
+    </Match>
+
+    <!-- Exclude false positives from Spring Framework usage -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="~com\.stanlemon\.healthy\.spring3app\.resources\..*Response"/>
+    </Match>
+</FindBugsFilter>
