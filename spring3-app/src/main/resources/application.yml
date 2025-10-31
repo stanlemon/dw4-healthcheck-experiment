@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: spring3-app
+  # Enable Spring Boot's auto-configuration features explicitly
+  jmx:
+    enabled: true
+
+server:
+  port: 8080
+
+# Spring Boot Actuator configuration for monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,loggers
+  endpoint:
+    health:
+      show-details: always

@@ -1,18 +1,16 @@
-package com.stanlemon.healthy.dw4app.resources;
+package com.stanlemon.healthy.spring3app.resources;
 
-import com.stanlemon.healthy.dw4app.exceptions.SomethingWentWrongException;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
+import com.stanlemon.healthy.spring3app.exceptions.SomethingWentWrongException;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST resource for testing error handling and metrics tracking by deliberately throwing
  * exceptions.
  */
-@Path("/error-trigger")
-@Produces(MediaType.APPLICATION_JSON)
+@RestController
+@RequestMapping("/error-trigger")
 public class ErrorResource {
 
   /**
@@ -21,12 +19,12 @@ public class ErrorResource {
    * @return never returns normally, always throws an exception
    * @throws SomethingWentWrongException always thrown to simulate an error condition
    */
-  @GET
-  public Response triggerError() {
+  @GetMapping
+  public void triggerError() {
     // We don't need to manually record the error anymore
-    // as the GlobalExceptionMapper will handle that
+    // as the GlobalExceptionHandler will handle that
 
-    // Deliberately throw a runtime exception that will be caught by our mapper
+    // Deliberately throw a runtime exception that will be caught by our handler
     throw new SomethingWentWrongException(
         "This is a deliberate error that will be caught by our global handler");
   }

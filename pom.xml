@@ -13,6 +13,7 @@
         <module>architecture-rules</module>
         <module>healthy-metrics</module>
         <module>dw4-app</module>
+        <module>spring3-app</module>
     </modules>
 
     <properties>

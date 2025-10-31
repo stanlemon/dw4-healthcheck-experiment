@@ -1,20 +1,23 @@
-# Dropwizard Application
+# Multi-App Metrics Project
 
-A multi-module Dropwizard application demonstrating real-time metrics collection and health monitoring based on customer experience signals.
+A multi-module project demonstrating real-time metrics collection and health monitoring in both Dropwizard 4 and Spring Boot 3 applications.
 
 ## Project Structure
 
 This is a multi-module Maven project:
-- **dw4-app**: The main Dropwizard application module
-- Additional modules can be added as needed
+- **architecture-rules**: Shared ArchUnit rules for enforcing architectural constraints and coding standards
+- **healthy-metrics**: Reusable metrics collection library used by both applications
+- **dw4-app**: Dropwizard 4.x application implementation
+- **spring3-app**: Spring Boot 3.x application implementation
 
 ## Features
 
+- **Framework Agnostic Metrics**: Same metrics library works in both Dropwizard and Spring Boot
 - **Real-time Metrics**: Tracks error rates and response latency across all endpoints
 - **Dual-Threshold Health Monitoring**: Health checks based on both error counts and average latency
-- **Automatic Instrumentation**: Latency tracking via filter middleware, error tracking via global exception mapper
-- **REST API**: Simple endpoints for testing metrics collection and health monitoring
-- **Comprehensive Testing**: 85+ tests with high coverage and architecture enforcement
+- **Automatic Instrumentation**: Latency tracking via filter middleware, error tracking via global exception handling
+- **REST API**: Consistent endpoints across both implementations
+- **Comprehensive Testing**: High coverage and architecture enforcement
 
 ## Requirements
 
@@ -23,58 +26,82 @@ This is a multi-module Maven project:
 
 ## Quick Start
 
-```bash
-# Clone and build
-git clone <repository-url>
-cd dw-test2
-mvn clean package
+### Building the Project
 
-# Run the application (from the root directory)
+```bash
+mvn clean install -DskipTests -Dspotbugs.skip=true
+```
+
+### Running the Dropwizard Application
+
+```bash
+# Using Maven exec plugin
 mvn exec:java -pl dw4-app
 
-# Or use the JAR (from the root directory)
+# Or using the JAR directly
 java -jar dw4-app/target/dw4-app-1.0-SNAPSHOT.jar server dw4-app/config.yml
 ```
 
-The application will start on:
+The Dropwizard application will start on:
 - **Application Port**: [http://localhost:8097](http://localhost:8097)
 - **Admin Port**: [http://localhost:8098](http://localhost:8098)
 
-## Development
-
-For detailed development guidelines, testing strategies, and code quality standards, see [CLAUDE.md](CLAUDE.md).
+### Running the Spring Boot Application
 
 ```bash
-# Run tests (from root directory)
-mvn test
+# Using Spring Boot Maven plugin
+mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8081" -pl spring3-app
 
-# Run with coverage (from root directory)
-mvn clean test jacoco:report
-open dw4-app/target/site/jacoco/index.html
-
-# Check code formatting (from root directory)
-mvn spotless:check
-
-# Apply code formatting (from root directory)
-mvn spotless:apply
+# Or using the JAR directly
+java -jar spring3-app/target/spring3-app-1.0-SNAPSHOT.jar --server.port=8081
 ```
 
-## Endpoints
+The Spring Boot application will start on:
+- **Application Port**: [http://localhost:8080](http://localhost:8080)
+- **Actuator Endpoints**: [http://localhost:8080/actuator](http://localhost:8080/actuator)
 
-- Hello World: [http://localhost:8097/hello](http://localhost:8097/hello) - Returns a simple JSON message
-- Error Test: [http://localhost:8097/error](http://localhost:8097/error) - Deliberately throws a 500 error
-- Metrics: [http://localhost:8097/metrics](http://localhost:8097/metrics) - Shows comprehensive error counts, latency statistics, and threshold status
-- Health Check: [http://localhost:8098/healthcheck](http://localhost:8098/healthcheck) - Returns health status based on error and latency thresholds
-- Slow Requests: [http://localhost:8097/slow](http://localhost:8097/slow) - Introduces artificial delays to test latency thresholds
+## Development Commands
 
-## Utility Scripts
-
-### Quality Checks
-
-- **`scripts/run-quality-checks.sh`** - Run all quality checks sequentially (Spotless, SpotBugs, Tests, SonarQube)
+### Testing
 
 ```bash
-# Run all checks (requires SONAR_TOKEN for SonarQube)
+# Run tests for all modules
+mvn test
+
+# Run tests for a specific module
+mvn test -pl spring3-app
+mvn test -pl dw4-app
+
+# Run a specific test class
+mvn test -Dtest=MetricsResourceTest -pl spring3-app
+
+# Run architecture tests only
+mvn test -Dtest="*Architecture*" -pl spring3-app
+mvn test -Dtest="com.stanlemon.architecture.*" -pl dw4-app
+
+# Run tests with coverage reports
+mvn clean test jacoco:report
+```
+
+### Code Quality
+
+```bash
+# Format all code using Spotless
+mvn spotless:apply
+
+# Check formatting without modifying files
+mvn spotless:check
+
+# Run Spotless on a specific module
+mvn spotless:apply -pl spring3-app
+
+# Run SpotBugs to identify potential bugs
+mvn clean compile spotbugs:check
+
+# Run SpotBugs on a specific module
+mvn clean compile spotbugs:check -pl spring3-app
+
+# Run all quality checks
 ./scripts/run-quality-checks.sh
 
 # Skip SonarQube analysis
@@ -84,56 +111,59 @@ mvn spotless:apply
 ./scripts/run-quality-checks.sh --fix-formatting
 ```
 
-### Testing & Monitoring
-- **`generate_errors.sh [count] [latency_percentage]`** - Generate errors and latency for testing thresholds
-- **`poll_metrics.sh`** - Continuously poll and display metrics in real-time
-- **`analyze-code.sh`** - Run tests and upload analysis to SonarCloud
+## Endpoints
 
-### Test Error Endpoints
+Both applications provide equivalent functionality with similar endpoints:
 
-These endpoints demonstrate how the global exception mapper catches different types of errors:
+### Dropwizard Endpoints (Port 8097)
 
-- Runtime Exception: [http://localhost:8097/test-errors/runtime/your-message](http://localhost:8097/test-errors/runtime/your-message)
-- Web Application Exception: [http://localhost:8097/test-errors/web-app/500](http://localhost:8097/test-errors/web-app/500)
+- Hello World: [http://localhost:8097/hello](http://localhost:8097/hello) - Returns a simple JSON message
+- Error Test: [http://localhost:8097/error-trigger](http://localhost:8097/error-trigger) - Deliberately throws a 500 error
+- Metrics: [http://localhost:8097/metrics](http://localhost:8097/metrics) - Shows error counts, latency statistics, and threshold status
+- Health Check: [http://localhost:8098/healthcheck](http://localhost:8098/healthcheck) - Returns health status based on error and latency thresholds
+- Test Errors:
+  - [http://localhost:8097/test-errors/runtime/random-message](http://localhost:8097/test-errors/runtime/random-message) - Test a run time error with a random message
+  - [http://localhost:8097/test-errors/web-app/1234](http://localhost:8097/test-errors/web-app/429) - Test a web application error with a random code
+- Slow Requests: [http://localhost:8097/slow](http://localhost:8097/slow) - Introduces artificial delays to test latency thresholds
 
-### Slow Request Endpoints
+### Spring Boot Endpoints (Port 8081)
 
-These endpoints introduce artificial delays to test latency monitoring:
-
-- Default 1-second delay: [http://localhost:8097/slow](http://localhost:8097/slow)
-- Custom delay (in milliseconds): [http://localhost:8097/slow/2000](http://localhost:8097/slow/2000)
-- Examples for testing:
-  - 600ms delay: [http://localhost:8097/slow/600](http://localhost:8097/slow/600) - Exceeds 100ms threshold
-  - 2-second delay: [http://localhost:8097/slow/2000](http://localhost:8097/slow/2000) - Significantly exceeds threshold
-  - 5-second delay: [http://localhost:8097/slow/5000](http://localhost:8097/slow/5000) - Maximum practical delay
-
-**Note:** Maximum allowed delay is 10 seconds to prevent abuse.
+- Hello World: [http://localhost:8080/hello](http://localhost:8080/hello) - Returns a simple JSON message
+- Error Test: [http://localhost:8080/error-trigger](http://localhost:8080/error-trigger) - Deliberately throws a 500 error
+- Metrics: [http://localhost:8080/metrics](http://localhost:8080/metrics) - Shows error counts, latency statistics, and threshold status
+- Health Check: [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) - Returns health status based on error and latency thresholds
+- Test Errors:
+  - [http://localhost:8080/test-errors/runtime/message](http://localhost:8080/test-errors/runtime/message) - Test a runtime exception with a custom message
+  - [http://localhost:8080/test-errors/web-app/404](http://localhost:8080/test-errors/web-app/404) - Test a web application exception with a specific status code
+- Slow Requests:
+  - [http://localhost:8080/slow](http://localhost:8080/slow) - GET endpoint with default 1-second delay
+  - [http://localhost:8080/slow/500](http://localhost:8080/slow/500) - GET endpoint with custom delay in milliseconds
 
 ## Metrics and Monitoring
 
-The application provides comprehensive monitoring with dual-threshold alerting:
+Both applications use the same metrics library with these features:
 
 ### Error Monitoring
 
 - Tracks 5xx errors in a 1-minute sliding window using circular buffers
 - Default threshold: 100 errors per minute
-- Automatic recording via global exception mapper
+- Automatic recording via global exception handling
 
 ### Latency Monitoring
 
-- Tracks request latency for all HTTP requests in a 60-minute sliding window
+- Tracks request latency for all HTTP requests in a 60-second sliding window
 - Default threshold: 100ms average latency
 - Automatic recording via request/response filter middleware
 
 ### Metrics Endpoint Response
 
-The `/metrics` endpoint returns comprehensive monitoring data:
+The `/metrics` endpoint returns the same data format in both applications:
 
 ```json
 {
   "errorsLastMinute": 5,
   "totalErrors": 25,
-  "avgLatencyLast60Minutes": 245.5,
+  "avgLatencyLast60Seconds": 245.5,
   "errorThresholdBreached": false,
   "latencyThresholdBreached": false,
   "healthy": true
@@ -145,41 +175,18 @@ The `/metrics` endpoint returns comprehensive monitoring data:
 The health check monitors both error rates and response latency:
 
 - **Error Threshold**: More than 100 errors in the last minute
-- **Latency Threshold**: Average latency exceeding 100ms over the last 60 minutes
+- **Latency Threshold**: Average latency exceeding 100ms over the last 60 seconds
 - **Health Status**:
   - `Healthy`: Both thresholds within limits
   - `Unhealthy`: One or both thresholds exceeded
-  - `Critical`: Both thresholds exceeded simultaneously
-
-### Threshold Methods
-
-Both error and latency monitoring support custom and default thresholds:
-
-```java
-// Error thresholds
-metricsService.isErrorThresholdBreached();        // Uses default 100
-metricsService.isErrorThresholdBreached(50);      // Custom threshold
-
-// Latency thresholds
-metricsService.isLatencyThresholdBreached();      // Uses default 100ms
-metricsService.isLatencyThresholdBreached(300.0); // Custom threshold
-```
-
-## Global Exception Handling
-
-The application uses a global exception mapper to catch all exceptions:
-
-- All endpoints benefit from consistent error handling
-- All 5xx errors are automatically tracked for health monitoring
-- Different types of exceptions are handled appropriately
-- The middleware approach ensures no errors slip through untracked
 
 ## Architecture
 
-The application uses a dual-threshold monitoring approach:
+The project demonstrates the same metrics collection with different frameworks:
 
-- **Latency Tracking**: JAX-RS filter measures all request response times
-- **Error Tracking**: Global exception mapper captures all 5xx errors
+- **Shared Metrics Library**: Framework-agnostic library used by both applications
+- **Error Tracking**: Global exception handling captures all errors
+- **Latency Tracking**: Filters measure all request response times
 - **Metrics Storage**: Circular buffer implementation with sliding time windows
 - **Health Monitoring**: Configurable thresholds for both errors and latency
 
@@ -187,24 +194,12 @@ For detailed architecture and implementation patterns, see [CLAUDE.md](CLAUDE.md
 
 ## Testing
 
-The application has 85+ tests covering:
+The project has comprehensive tests covering:
 
 - Unit tests for all components
 - Integration tests for end-to-end validation
-- Functional tests for API behavior
 - Architecture tests enforcing design rules
 - Thread safety and concurrent access validation
-
-```bash
-# Run all tests (from root directory)
-mvn test
-
-# Run with coverage report (from root directory)
-mvn clean test jacoco:report
-open dw4-app/target/site/jacoco/index.html
-```
-
-For testing strategies, patterns, and best practices, see [CLAUDE.md](CLAUDE.md).
 
 ## Code Quality & Security
 
@@ -214,154 +209,5 @@ The project enforces quality and security through:
 - **SpotBugs with FindSecBugs**: Static analysis and security scanning
 - **JaCoCo**: 70% minimum test coverage threshold
 - **ArchUnit**: Architecture rules enforcement
-- **Maven Enforcer**: Dependency security rules
-- **GitHub Actions**: Automated CI/CD with security scans
-
-```bash
-# Format code
-mvn spotless:apply
-
-# Run security analysis
-mvn spotbugs:check
-
-# Run all checks
-mvn clean verify
-```
 
 For detailed code quality standards and development workflow, see [CLAUDE.md](CLAUDE.md).
-
-
-## SonarCloud Integration
-
-The project supports SonarCloud for continuous code quality analysis. SonarCloud is free for open source projects and provides detailed reports on code smells, bugs, security vulnerabilities, coverage, and complexity.
-
-### Setup
-
-1. Sign up at [sonarcloud.io](https://sonarcloud.io) with your GitHub account
-2. Import this repository to SonarCloud
-3. Generate a token from [your account security settings](https://sonarcloud.io/account/security)
-
-### Run Analysis
-
-```bash
-# For personal accounts
-export SONAR_TOKEN=your_token_here
-./analyze-code.sh
-
-# For organization accounts
-export SONAR_TOKEN=your_token_here
-export SONAR_ORGANIZATION=your_organization_key
-./analyze-code.sh
-```
-
-The script runs tests with coverage and uploads the analysis to SonarCloud.
-
-## Example Usage
-
-### Monitoring Latency in Real-Time
-
-```bash
-# Make some requests
-curl http://localhost:8097/hello
-curl http://localhost:8097/hello
-curl http://localhost:8097/hello
-
-# Check metrics
-curl http://localhost:8097/metrics
-```
-
-### Triggering Error Thresholds
-
-```bash
-# Generate errors using the provided script
-./generate_errors.sh                    # Generates 15 errors with 30% latency (default)
-./generate_errors.sh 25                 # Generates 25 errors with 30% latency
-./generate_errors.sh 25 50              # Generates 25 errors with 50% latency
-./generate_errors.sh 101 0              # Generates 101 errors with no latency (errors only)
-./generate_errors.sh 50 100             # Generates 50 errors with 100% latency (all requests slow)
-
-# Aggressive latency testing (percentages > 100%)
-./generate_errors.sh 10 200             # 10 errors + 20 latency requests (2x multiplier)
-./generate_errors.sh 5 500              # 5 errors + 25 latency requests (5x multiplier)
-./generate_errors.sh 20 300             # 20 errors + 60 latency requests (3x multiplier)
-
-# Alternative: Generate errors manually
-for i in {1..101}; do curl http://localhost:8097/error; done
-
-# Check health status
-curl http://localhost:8098/healthcheck
-```
-
-### Triggering Latency Thresholds
-
-```bash
-# Single slow requests to test latency tracking
-curl http://localhost:8097/slow/600    # 600ms delay (exceeds 100ms threshold)
-curl http://localhost:8097/slow/1000   # 1 second delay
-curl http://localhost:8097/slow/2000   # 2 second delay
-
-# Multiple slow requests to breach average latency threshold
-# Generate several slow requests to raise average latency above 100ms
-for i in {1..10}; do curl http://localhost:8097/slow/800; done
-
-# Check metrics and health status
-curl http://localhost:8097/metrics
-curl http://localhost:8098/healthcheck
-```
-
-### Combined Error and Latency Testing
-
-The `generate_errors.sh` script now supports testing both error and latency thresholds simultaneously:
-
-```bash
-# Test scenarios for comprehensive monitoring validation
-
-# Scenario 1: High error rate with moderate latency
-./generate_errors.sh 150 25           # 150 errors, 25% slow - triggers error threshold
-
-# Scenario 2: Moderate errors with high latency
-./generate_errors.sh 50 80            # 50 errors, 80% slow - may trigger latency threshold
-
-# Scenario 3: Critical scenario - both thresholds breached
-./generate_errors.sh 120 70           # 120 errors, 70% slow - likely triggers both thresholds
-
-# Scenario 4: Latency testing without error threshold breach
-./generate_errors.sh 30 100           # 30 errors, 100% slow - focuses on latency impact
-
-# Scenario 5: Egregious latency testing (percentages > 100%)
-./generate_errors.sh 10 500           # 10 errors + 50 latency requests - guaranteed latency threshold breach
-./generate_errors.sh 20 300           # 20 errors + 60 latency requests - aggressive latency testing
-./generate_errors.sh 5 1000           # 5 errors + 50 latency requests - extreme latency scenario
-
-# Monitor the results
-curl http://localhost:8097/metrics     # Check current metrics
-curl http://localhost:8098/healthcheck # Check health status
-```
-
-**Latency Delays Used**: The script randomly selects from delays ranging from 600ms to 10 seconds (600ms, 800ms, 1000ms, 1200ms, 1500ms, 2000ms, 3000ms, 4000ms, 5000ms, 7000ms, 10000ms) - all exceeding the default 100ms threshold, with the higher delays guaranteeing latency threshold breaches.
-
-### Health Check Responses
-
-**Healthy State:**
-
-```text
-OK - 5 errors in last minute (threshold: 100), 250.0ms average latency in last 60 minutes (threshold: 100ms)
-```
-
-**Error Threshold Breached:**
-
-```text
-Too many errors: 150 errors in last minute (threshold: 100)
-```
-
-**Latency Threshold Breached:**
-
-```text
-High latency: 750.0ms average latency in last 60 minutes (threshold: 100ms)
-```
-
-**Critical State (Both Breached):**
-
-```text
-Critical: Both error and latency thresholds breached - 150 errors in last minute (threshold: 100), 750.0ms average latency in last 60 minutes (threshold: 100ms)
-```

@@ -1,5 +1,6 @@
 package com.stanlemon.healthy.dw4app.resources;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.stanlemon.healthy.dw4app.exceptions.SomethingWentWrongException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -8,6 +9,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import lombok.Data;
 
 /**
  * REST resource for testing different types of exceptions and their handling by the global
@@ -30,6 +32,19 @@ public class TestErrorsResource {
     throw new SomethingWentWrongException(message);
   }
 
+  /** Error message wrapper for JSON responses. */
+  @Data
+  public static class ErrorMessage {
+    @JsonProperty private String message;
+
+    @JsonProperty private int code;
+
+    public ErrorMessage(String message, int code) {
+      this.message = message;
+      this.code = code;
+    }
+  }
+
   /**
    * Tests WebApplicationException handling with a specific HTTP status code.
    *
@@ -40,7 +55,11 @@ public class TestErrorsResource {
   @GET
   @Path("/web-app/{code}")
   public String testWebAppException(@PathParam("code") int code) {
-    throw new WebApplicationException(
-        "Web application exception with code " + code, Response.Status.fromStatusCode(code));
+    Response response =
+        Response.status(code)
+            .entity(new ErrorMessage("Web application exception with code " + code, code))
+            .type(MediaType.APPLICATION_JSON)
+            .build();
+    throw new WebApplicationException(response);
   }
 }
