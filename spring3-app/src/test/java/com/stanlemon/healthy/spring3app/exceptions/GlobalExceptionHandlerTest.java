@@ -31,7 +31,7 @@ class GlobalExceptionHandlerTest {
   @DisplayName("Should handle generic exceptions as 500 errors")
   void handleException_WhenGenericException_ShouldReturn500() {
     // Setup test data
-    Exception exception = new RuntimeException("Test exception");
+    Exception exception = new SomethingWentWrongException("Test exception");
 
     // Call the method under test
     ResponseEntity<GlobalExceptionHandler.ErrorResponse> response =

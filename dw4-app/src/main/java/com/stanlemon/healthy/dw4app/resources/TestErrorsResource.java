@@ -55,11 +55,12 @@ public class TestErrorsResource {
   @GET
   @Path("/web-app/{code}")
   public String testWebAppException(@PathParam("code") int code) {
+    String errorMessage = "Web application exception with code " + code;
     Response response =
         Response.status(code)
-            .entity(new ErrorMessage("Web application exception with code " + code, code))
+            .entity(new ErrorMessage(errorMessage, code))
             .type(MediaType.APPLICATION_JSON)
             .build();
-    throw new WebApplicationException(response);
+    throw new WebApplicationException(errorMessage, response);
   }
 }

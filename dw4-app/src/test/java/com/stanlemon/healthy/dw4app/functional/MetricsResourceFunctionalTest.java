@@ -182,7 +182,7 @@ class MetricsResourceFunctionalTest {
       initialMetricsRef.set(initialMetrics);
 
       // Trigger an error
-      given().when().get(baseUrl + "/error").then().statusCode(500);
+      given().when().get(baseUrl + "/error-trigger").then().statusCode(500);
 
       // Wait for metrics to update and verify
       waitForMetricsToUpdate(
@@ -208,7 +208,7 @@ class MetricsResourceFunctionalTest {
       IntStream.range(0, errorCount)
           .forEach(
               i -> {
-                given().when().get(baseUrl + "/error").then().statusCode(500);
+                given().when().get(baseUrl + "/error-trigger").then().statusCode(500);
               });
 
       // Wait for metrics to update and verify
@@ -389,7 +389,7 @@ class MetricsResourceFunctionalTest {
       IntStream.range(0, errorCount)
           .forEach(
               i -> {
-                given().when().get(baseUrl + "/error").then().statusCode(500);
+                given().when().get(baseUrl + "/error-trigger").then().statusCode(500);
               });
 
       // Trigger some slow requests
@@ -435,7 +435,7 @@ class MetricsResourceFunctionalTest {
       IntStream.range(0, 25)
           .forEach(
               i -> {
-                given().when().get(baseUrl + "/error").then().statusCode(500);
+                given().when().get(baseUrl + "/error-trigger").then().statusCode(500);
                 counter.incrementAndGet();
               });
 
