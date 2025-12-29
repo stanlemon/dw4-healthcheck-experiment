@@ -65,7 +65,6 @@ mvn spotless:apply
 
 - **`generate_errors.sh [count] [latency_percentage]`** - Generate errors and latency for testing thresholds
 - **`poll_metrics.sh`** - Continuously poll and display metrics in real-time
-- **`analyze-code.sh`** - Run tests and upload analysis to SonarCloud
 
 ### Test Error Endpoints
 
@@ -207,32 +206,6 @@ mvn clean verify
 ```
 
 For detailed code quality standards and development workflow, see [CLAUDE.md](CLAUDE.md).
-
-
-## SonarCloud Integration
-
-The project supports SonarCloud for continuous code quality analysis. SonarCloud is free for open source projects and provides detailed reports on code smells, bugs, security vulnerabilities, coverage, and complexity.
-
-### Setup
-
-1. Sign up at [sonarcloud.io](https://sonarcloud.io) with your GitHub account
-2. Import this repository to SonarCloud
-3. Generate a token from [your account security settings](https://sonarcloud.io/account/security)
-
-### Run Analysis
-
-```bash
-# For personal accounts
-export SONAR_TOKEN=your_token_here
-./analyze-code.sh
-
-# For organization accounts
-export SONAR_TOKEN=your_token_here
-export SONAR_ORGANIZATION=your_organization_key
-./analyze-code.sh
-```
-
-The script runs tests with coverage and uploads the analysis to SonarCloud.
 
 ## Example Usage
 
