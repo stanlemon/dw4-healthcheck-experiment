@@ -23,7 +23,7 @@ jobs:
         distribution: 'temurin'
 
     - name: Cache Maven dependencies
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
+      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -32,7 +32,7 @@ jobs:
       run: mvn clean verify
 
     - name: Create Release
-      uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
+      uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2
       with:
         files: |
           target/*.jar
