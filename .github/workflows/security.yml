@@ -40,7 +40,7 @@ jobs:
         distribution: 'temurin'
 
     - name: Cache Maven dependencies
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
+      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -85,7 +85,7 @@ jobs:
     # CodeQL Analysis - only for scheduled runs or manual triggers
     - name: Initialize CodeQL
       if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.full_scan == 'true')
-      uses: github/codeql-action/init@9e907b5e64f6b83e7804b09294d44122997950d6 # v4
+      uses: github/codeql-action/init@c10b8064de6f491fea524254123dbe5e09572f13 # v4
       with:
         languages: java
         queries: security-and-quality
@@ -96,7 +96,7 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.full_scan == 'true')
-      uses: github/codeql-action/analyze@9e907b5e64f6b83e7804b09294d44122997950d6 # v4
+      uses: github/codeql-action/analyze@c10b8064de6f491fea524254123dbe5e09572f13 # v4
 
     # Summary
     - name: Security Scan Summary

@@ -26,7 +26,7 @@ jobs:
         distribution: 'temurin'
 
     - name: Cache Maven dependencies
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
+      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
       with:
         path: ~/.m2
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -42,7 +42,7 @@ jobs:
 
     - name: Generate test report
       id: test-report
-      uses: dorny/test-reporter@b082adf0eced0765477756c2a610396589b8c637 # v2
+      uses: dorny/test-reporter@df6247429542221bc30d46a036ee47af1102c451 # v2
       if: always()
       continue-on-error: true
       with:
@@ -61,7 +61,7 @@ jobs:
         ls -la target/surefire-reports/ || echo "Directory not found"
 
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5
+      uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5
       if: success() || failure()
       with:
         file: target/site/jacoco/jacoco.xml
