@@ -109,7 +109,7 @@ mvn test -Dtest=ArchitectureTest
 
 Both test classes follow a common pattern:
 
-1. **Setup Phase**: Import all classes from `com.example.dw` package using `ClassFileImporter`
+1. **Setup Phase**: Import all classes from `com.stanlemon.healthy.dw4app` package using `ClassFileImporter`
 2. **Rule Definition**: Define architectural rules using ArchUnit's fluent API
 3. **Rule Execution**: Apply rules to imported classes with descriptive failure messages
 

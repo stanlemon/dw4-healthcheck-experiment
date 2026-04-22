@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs exclusion filter for Dropwizard application
+
+  Suppresses EI_EXPOSE_REP2 for dependency injection patterns where we store
+  references to service interfaces that are intentionally shared across components
+  and are thread-safe by contract.
+-->
+<FindBugsFilter>
+  <Match>
+    <Class name="~.*\.(GlobalExceptionMapper|LatencyTrackingFilter|MetricsResource)"/>
+    <Field name="metricsService"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Class name="~.*\.(ApplicationHealthCheck|HealthResource)"/>
+    <Field name="evaluator"/>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+</FindBugsFilter>

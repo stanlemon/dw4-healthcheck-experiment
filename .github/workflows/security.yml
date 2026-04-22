@@ -4,9 +4,10 @@ on:
   pull_request:
     branches: [ main ]
     paths:
-      - 'pom.xml'
-      - 'src/**'
+      - '**/pom.xml'
+      - '**/src/**'
       - '.github/workflows/security.yml'
+      - '.github/dependency-review-config.yml'
   schedule:
     # Run weekly on Sunday at 2 AM UTC
     - cron: '0 2 * * 0'
