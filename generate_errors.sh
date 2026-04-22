@@ -75,10 +75,10 @@ for ((i=1; i<=NUM_ERRORS; i++)); do
         curl -s http://localhost:8097/slow/$DELAY > /dev/null
 
         # Then make an error request
-        curl -s http://localhost:8097/error > /dev/null
+        curl -s http://localhost:8097/test-errors/trigger > /dev/null
     else
         # Generate a regular error without latency
-        curl -s http://localhost:8097/error > /dev/null
+        curl -s http://localhost:8097/test-errors/trigger > /dev/null
         echo "Generated error $i/$NUM_ERRORS"
     fi
 done
