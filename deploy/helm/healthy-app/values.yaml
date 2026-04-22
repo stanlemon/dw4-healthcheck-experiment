@@ -15,7 +15,7 @@ adminPort: null
 
 probes:
   readiness:
-    path: /health
+    path: /health/ready
     port: http
     initialDelaySeconds: 15
     periodSeconds: 5
@@ -23,7 +23,7 @@ probes:
     successThreshold: 1
     timeoutSeconds: 3
   liveness:
-    path: /health
+    path: /health/live
     port: http
     initialDelaySeconds: 20
     periodSeconds: 10

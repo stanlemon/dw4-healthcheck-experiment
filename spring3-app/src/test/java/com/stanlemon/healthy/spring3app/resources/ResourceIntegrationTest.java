@@ -111,9 +111,9 @@ class ResourceIntegrationTest {
 
   @Test
   @Timeout(30)
-  void healthEndpoint_WhenCalled_ShouldReturnFrameworkNeutralHealthResponse() {
+  void readinessEndpoint_WhenCalled_ShouldReturnHealthResponse() {
     ResponseEntity<HealthResponse> response =
-        restTemplate.getForEntity(baseUrl + "/health", HealthResponse.class);
+        restTemplate.getForEntity(baseUrl + "/health/ready", HealthResponse.class);
 
     assertThat(response.getStatusCode().value()).isEqualTo(200);
     assertThat(response.getBody()).isNotNull();
@@ -125,5 +125,20 @@ class ResourceIntegrationTest {
     assertThat(health.getErrorsLastMinute()).isGreaterThanOrEqualTo(0);
     assertThat(health.isErrorThresholdBreached()).isFalse();
     assertThat(health.isLatencyThresholdBreached()).isFalse();
+  }
+
+  @Test
+  @Timeout(30)
+  void livenessEndpoint_WhenCalled_ShouldReturnAliveResponse() {
+    ResponseEntity<com.stanlemon.healthy.metrics.LivenessResponse> response =
+        restTemplate.getForEntity(
+            baseUrl + "/health/live", com.stanlemon.healthy.metrics.LivenessResponse.class);
+
+    assertThat(response.getStatusCode().value()).isEqualTo(200);
+    assertThat(response.getBody()).isNotNull();
+
+    com.stanlemon.healthy.metrics.LivenessResponse liveness = response.getBody();
+    assertThat(liveness.getStatus()).isEqualTo("alive");
+    assertThat(liveness.isAlive()).isTrue();
   }
 }

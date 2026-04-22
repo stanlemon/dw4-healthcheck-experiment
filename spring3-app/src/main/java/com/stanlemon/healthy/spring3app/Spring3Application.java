@@ -27,4 +27,10 @@ public class Spring3Application {
   public HealthEvaluator healthEvaluator(MetricsService metricsService) {
     return new HealthEvaluator(metricsService);
   }
+
+  @Bean
+  public com.stanlemon.healthy.metrics.LivenessEvaluator livenessEvaluator(
+      MetricsService metricsService) {
+    return new com.stanlemon.healthy.metrics.LivenessEvaluator(metricsService);
+  }
 }

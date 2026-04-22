@@ -32,8 +32,12 @@ trap cleanup EXIT
 
 # Show current health
 echo ""
-echo "--- Step 4: Current health status (should be 200 healthy) ---"
-curl -s -w "\nHTTP Status: %{http_code}\n" http://localhost:9999/health
+echo "--- Step 4: Current readiness and liveness status ---"
+echo "Readiness:"
+curl -s -w "\nHTTP Status: %{http_code}\n" http://localhost:9999/health/ready
+echo ""
+echo "Liveness:"
+curl -s -w "\nHTTP Status: %{http_code}\n" http://localhost:9999/health/live
 
 # Hammer the error endpoint
 echo ""
@@ -47,8 +51,12 @@ done
 
 # Verify the pod is now unhealthy
 echo ""
-echo "--- Step 6: Health status after errors (should be 503 unhealthy) ---"
-curl -s -w "\nHTTP Status: %{http_code}\n" http://localhost:9999/health
+echo "--- Step 6: Status after errors ---"
+echo "Readiness (should be 503):"
+curl -s -w "\nHTTP Status: %{http_code}\n" http://localhost:9999/health/ready
+echo ""
+echo "Liveness (should be 503 — all requests failing):"
+curl -s -w "\nHTTP Status: %{http_code}\n" http://localhost:9999/health/live
 
 # Stop port-forward before pod restarts
 cleanup

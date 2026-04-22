@@ -5,7 +5,7 @@
     MetricsService is a thread-safe singleton shared across application components.
   -->
   <Match>
-    <Class name="com.stanlemon.healthy.metrics.HealthEvaluator"/>
+    <Class name="~com\.stanlemon\.healthy\.metrics\.(HealthEvaluator|LivenessEvaluator)"/>
     <Field name="metricsService"/>
     <Bug pattern="EI_EXPOSE_REP2"/>
   </Match>

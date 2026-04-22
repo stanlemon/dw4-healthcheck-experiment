@@ -6,6 +6,7 @@ import static org.awaitility.Awaitility.await;
 import com.stanlemon.healthy.dw4app.DwApplication;
 import com.stanlemon.healthy.dw4app.DwConfiguration;
 import com.stanlemon.healthy.metrics.HealthResponse;
+import com.stanlemon.healthy.metrics.LivenessResponse;
 import com.stanlemon.healthy.metrics.MetricsResponse;
 import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
@@ -152,7 +153,8 @@ class ResourceIntegrationTest {
 
     assertThat(client.target(base + "/hello").request().get().getStatus()).isEqualTo(200);
     assertThat(client.target(base + "/metrics").request().get().getStatus()).isEqualTo(200);
-    assertThat(client.target(base + "/health").request().get().getStatus()).isEqualTo(200);
+    assertThat(client.target(base + "/health/ready").request().get().getStatus()).isEqualTo(200);
+    assertThat(client.target(base + "/health/live").request().get().getStatus()).isEqualTo(200);
     assertThat(client.target(base + "/slow/1").request().get().getStatus()).isEqualTo(200);
     // /test-errors/trigger returns 500 intentionally — a 500 proves the resource is registered
     assertThat(client.target(base + "/test-errors/trigger").request().get().getStatus())
@@ -161,12 +163,12 @@ class ResourceIntegrationTest {
 
   @Test
   @Timeout(30)
-  void healthEndpoint_WhenCalled_ShouldReturnFrameworkNeutralHealthResponse() {
+  void readinessEndpoint_WhenCalled_ShouldReturnHealthResponse() {
     Client client = APP.client();
 
     Response response =
         client
-            .target(String.format("http://localhost:%d/health", APP.getLocalPort()))
+            .target(String.format("http://localhost:%d/health/ready", APP.getLocalPort()))
             .request()
             .get();
 
@@ -179,5 +181,23 @@ class ResourceIntegrationTest {
     assertThat(entity.getErrorsLastMinute()).isGreaterThanOrEqualTo(0);
     assertThat(entity.isErrorThresholdBreached()).isFalse();
     assertThat(entity.isLatencyThresholdBreached()).isFalse();
+  }
+
+  @Test
+  @Timeout(30)
+  void livenessEndpoint_WhenCalled_ShouldReturnAliveResponse() {
+    Client client = APP.client();
+
+    Response response =
+        client
+            .target(String.format("http://localhost:%d/health/live", APP.getLocalPort()))
+            .request()
+            .get();
+
+    assertThat(response.getStatus()).isEqualTo(200);
+
+    LivenessResponse entity = response.readEntity(LivenessResponse.class);
+    assertThat(entity.getStatus()).isEqualTo("alive");
+    assertThat(entity.isAlive()).isTrue();
   }
 }

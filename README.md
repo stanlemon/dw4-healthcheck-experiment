@@ -65,7 +65,8 @@ Both applications expose equivalent functionality. The table shows the default p
 |----------|-------------------|--------------------|
 | Hello | `/hello` | `/hello` |
 | Metrics | `/metrics` | `/metrics` |
-| Health (unified) | `/health` | `/health` |
+| Readiness | `/health/ready` | `/health/ready` |
+| Liveness | `/health/live` | `/health/live` |
 | Health (native) | `:8098/healthcheck` | `/actuator/health` |
 | Trigger error | `/test-errors/trigger` | `/test-errors/trigger` |
 | Runtime error | `/test-errors/runtime/{msg}` | `/test-errors/runtime/{msg}` |
@@ -119,9 +120,9 @@ The health check evaluates two thresholds against the metrics data:
 | Latency threshold breached | Average latency exceeds 100ms with sufficient traffic |
 | Critical | Both thresholds exceeded |
 
-#### Unified `/health` Endpoint (Both Frameworks)
+#### Readiness: `GET /health/ready`
 
-Both apps expose `GET /health` returning identical JSON — the framework-neutral `HealthResponse`:
+Reports whether this instance can handle traffic. Checks error rates and latency thresholds. Returns 200 when healthy, 503 when degraded. Maps to a Kubernetes readiness probe.
 
 ```json
 {
@@ -135,17 +136,17 @@ Both apps expose `GET /health` returning identical JSON — the framework-neutra
 }
 ```
 
-When unhealthy:
+#### Liveness: `GET /health/live`
+
+Reports whether the process is fundamentally functional. Only fails when 100% of requests are erroring with sufficient traffic (10+ requests). Returns 200 when alive, 503 when dead. Maps to a Kubernetes liveness probe.
 
 ```json
 {
-  "status": "unhealthy",
-  "message": "Too many errors: 150 errors in last minute (threshold: 100)",
-  "errorsLastMinute": 150,
-  "avgLatencyLast60Seconds": 45.5,
-  "errorThresholdBreached": true,
-  "latencyThresholdBreached": false,
-  "healthy": false
+  "status": "alive",
+  "message": "OK - 0 errors out of 20 requests in last minute",
+  "errorsLastMinute": 0,
+  "totalRequestsLastMinute": 20,
+  "alive": true
 }
 ```
 
@@ -176,8 +177,8 @@ for i in {1..20}; do curl -s http://localhost:8097/test-errors/trigger > /dev/nu
 # Also generate some successful requests so total traffic >= 10
 for i in {1..5}; do curl -s http://localhost:8097/hello > /dev/null; done
 
-# Check health — should show errors breached
-curl http://localhost:8097/health
+# Check readiness — should show errors breached
+curl http://localhost:8097/health/ready
 ```
 
 ### Triggering Latency Thresholds
@@ -186,8 +187,8 @@ curl http://localhost:8097/health
 # Generate slow requests (need at least 5 for threshold evaluation)
 for i in {1..6}; do curl -s http://localhost:8097/slow/600 > /dev/null; done
 
-# Check health — average latency should exceed 100ms threshold
-curl http://localhost:8097/health
+# Check readiness — average latency should exceed 100ms threshold
+curl http://localhost:8097/health/ready
 ```
 
 ### Using the Helper Scripts

@@ -37,7 +37,7 @@
         <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
     <Match>
-        <Class name="~.*\.(ApplicationHealthIndicator|HealthResource)"/>
+        <Class name="~.*\.(ApplicationHealthIndicator|ReadinessResource|LivenessResource)"/>
         <Field name="evaluator"/>
         <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>

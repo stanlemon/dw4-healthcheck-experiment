@@ -8,19 +8,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** REST endpoint returning framework-neutral health status identical across all app modules. */
+/** Readiness endpoint — reports whether this instance can handle traffic. */
 @RestController
-@RequestMapping("/health")
-public class HealthResource {
+@RequestMapping("/health/ready")
+public class ReadinessResource {
 
   private final HealthEvaluator evaluator;
 
-  public HealthResource(HealthEvaluator evaluator) {
+  public ReadinessResource(HealthEvaluator evaluator) {
     this.evaluator = evaluator;
   }
 
   @GetMapping
-  public ResponseEntity<HealthResponse> getHealth() {
+  public ResponseEntity<HealthResponse> getReadiness() {
     HealthResponse health = evaluator.evaluate();
     HttpStatus status = health.isHealthy() ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE;
     return new ResponseEntity<>(health, status);

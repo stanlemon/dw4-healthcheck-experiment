@@ -8,19 +8,19 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-/** REST endpoint returning framework-neutral health status identical across all app modules. */
-@Path("/health")
+/** Readiness endpoint — reports whether this instance can handle traffic. */
+@Path("/health/ready")
 @Produces(MediaType.APPLICATION_JSON)
-public class HealthResource {
+public class ReadinessResource {
 
   private final HealthEvaluator evaluator;
 
-  public HealthResource(HealthEvaluator evaluator) {
+  public ReadinessResource(HealthEvaluator evaluator) {
     this.evaluator = evaluator;
   }
 
   @GET
-  public Response getHealth() {
+  public Response getReadiness() {
     HealthResponse health = evaluator.evaluate();
     int statusCode = health.isHealthy() ? 200 : 503;
     return Response.status(statusCode).entity(health).build();

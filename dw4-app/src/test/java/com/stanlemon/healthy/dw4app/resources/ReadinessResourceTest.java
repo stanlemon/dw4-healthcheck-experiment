@@ -10,26 +10,26 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("Health Resource Tests")
-class HealthResourceTest {
+@DisplayName("Readiness Resource Tests")
+class ReadinessResourceTest {
 
   private DefaultMetricsService metricsService;
-  private HealthResource resource;
+  private ReadinessResource resource;
   private long errorThreshold;
   private double latencyThreshold;
 
   @BeforeEach
   void setUp() {
     metricsService = new DefaultMetricsService();
-    resource = new HealthResource(new HealthEvaluator(metricsService));
+    resource = new ReadinessResource(new HealthEvaluator(metricsService));
     errorThreshold = metricsService.getDefaultErrorThreshold();
     latencyThreshold = metricsService.getDefaultLatencyThresholdMs();
   }
 
   @Test
   @DisplayName("Should return 200 with healthy response when no thresholds breached")
-  void getHealth_WhenHealthy_ShouldReturn200WithHealthyResponse() {
-    Response response = resource.getHealth();
+  void getReadiness_WhenHealthy_ShouldReturn200() {
+    Response response = resource.getReadiness();
 
     assertThat(response.getStatus()).isEqualTo(200);
 
@@ -43,8 +43,8 @@ class HealthResourceTest {
   }
 
   @Test
-  @DisplayName("Should return 503 with unhealthy response when error threshold breached")
-  void getHealth_WhenErrorThresholdBreached_ShouldReturn503WithUnhealthy() {
+  @DisplayName("Should return 503 when error threshold breached")
+  void getReadiness_WhenErrorThresholdBreached_ShouldReturn503() {
     int errorsToGenerate = (int) (errorThreshold * 1.5);
     for (int i = 0; i < errorsToGenerate; i++) {
       metricsService.recordServerError();
@@ -53,7 +53,7 @@ class HealthResourceTest {
       metricsService.recordRequestLatency((long) (latencyThreshold * 0.5));
     }
 
-    Response response = resource.getHealth();
+    Response response = resource.getReadiness();
 
     assertThat(response.getStatus()).isEqualTo(503);
 
@@ -66,13 +66,13 @@ class HealthResourceTest {
   }
 
   @Test
-  @DisplayName("Should return 503 with unhealthy response when latency threshold breached")
-  void getHealth_WhenLatencyThresholdBreached_ShouldReturn503WithUnhealthy() {
+  @DisplayName("Should return 503 when latency threshold breached")
+  void getReadiness_WhenLatencyThresholdBreached_ShouldReturn503() {
     for (int i = 0; i < 5; i++) {
       metricsService.recordRequestLatency((long) (latencyThreshold * 2.0));
     }
 
-    Response response = resource.getHealth();
+    Response response = resource.getReadiness();
 
     assertThat(response.getStatus()).isEqualTo(503);
 
@@ -86,7 +86,7 @@ class HealthResourceTest {
 
   @Test
   @DisplayName("Should return 503 with critical response when both thresholds breached")
-  void getHealth_WhenBothBreached_ShouldReturn503WithCritical() {
+  void getReadiness_WhenBothBreached_ShouldReturn503WithCritical() {
     int errorsToGenerate = (int) (errorThreshold * 1.5);
     for (int i = 0; i < errorsToGenerate; i++) {
       metricsService.recordServerError();
@@ -95,7 +95,7 @@ class HealthResourceTest {
       metricsService.recordRequestLatency((long) (latencyThreshold * 2.0));
     }
 
-    Response response = resource.getHealth();
+    Response response = resource.getReadiness();
 
     assertThat(response.getStatus()).isEqualTo(503);
 
