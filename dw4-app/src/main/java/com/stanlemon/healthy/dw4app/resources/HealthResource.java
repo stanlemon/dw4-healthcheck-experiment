@@ -6,6 +6,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 /** REST endpoint returning framework-neutral health status identical across all app modules. */
 @Path("/health")
@@ -19,7 +20,9 @@ public class HealthResource {
   }
 
   @GET
-  public HealthResponse getHealth() {
-    return evaluator.evaluate();
+  public Response getHealth() {
+    HealthResponse health = evaluator.evaluate();
+    int statusCode = health.isHealthy() ? 200 : 503;
+    return Response.status(statusCode).entity(health).build();
   }
 }

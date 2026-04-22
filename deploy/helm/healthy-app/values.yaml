@@ -1,0 +1,39 @@
+replicaCount: 3
+
+image:
+  repository: ""
+  tag: "latest"
+  pullPolicy: Never
+
+appName: ""
+
+service:
+  type: ClusterIP
+  port: 8080
+
+adminPort: null
+
+probes:
+  readiness:
+    path: /health
+    port: http
+    initialDelaySeconds: 15
+    periodSeconds: 5
+    failureThreshold: 2
+    successThreshold: 1
+    timeoutSeconds: 3
+  liveness:
+    path: /health
+    port: http
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    failureThreshold: 3
+    timeoutSeconds: 3
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"

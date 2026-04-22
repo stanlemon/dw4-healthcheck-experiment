@@ -8,6 +8,8 @@ import com.stanlemon.healthy.metrics.HealthResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 @DisplayName("Health Resource Tests")
 class HealthResourceTest {
@@ -26,21 +28,25 @@ class HealthResourceTest {
   }
 
   @Test
-  @DisplayName("Should return healthy response when no thresholds breached")
-  void getHealth_WhenHealthy_ShouldReturnHealthyResponse() {
-    HealthResponse response = resource.getHealth();
+  @DisplayName("Should return 200 with healthy response when no thresholds breached")
+  void getHealth_WhenHealthy_ShouldReturn200WithHealthyResponse() {
+    ResponseEntity<HealthResponse> response = resource.getHealth();
 
-    assertThat(response.getStatus()).isEqualTo("healthy");
-    assertThat(response.isHealthy()).isTrue();
-    assertThat(response.getMessage()).startsWith("OK");
-    assertThat(response.getErrorsLastMinute()).isZero();
-    assertThat(response.isErrorThresholdBreached()).isFalse();
-    assertThat(response.isLatencyThresholdBreached()).isFalse();
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
+
+    HealthResponse health = response.getBody();
+    assertThat(health.getStatus()).isEqualTo("healthy");
+    assertThat(health.isHealthy()).isTrue();
+    assertThat(health.getMessage()).startsWith("OK");
+    assertThat(health.getErrorsLastMinute()).isZero();
+    assertThat(health.isErrorThresholdBreached()).isFalse();
+    assertThat(health.isLatencyThresholdBreached()).isFalse();
   }
 
   @Test
-  @DisplayName("Should return unhealthy response when error threshold breached")
-  void getHealth_WhenErrorThresholdBreached_ShouldReturnUnhealthy() {
+  @DisplayName("Should return 503 with unhealthy response when error threshold breached")
+  void getHealth_WhenErrorThresholdBreached_ShouldReturn503WithUnhealthy() {
     int errorsToGenerate = (int) (errorThreshold * 1.5);
     for (int i = 0; i < errorsToGenerate; i++) {
       metricsService.recordServerError();
@@ -49,34 +55,42 @@ class HealthResourceTest {
       metricsService.recordRequestLatency((long) (latencyThreshold * 0.5));
     }
 
-    HealthResponse response = resource.getHealth();
+    ResponseEntity<HealthResponse> response = resource.getHealth();
 
-    assertThat(response.getStatus()).isEqualTo("unhealthy");
-    assertThat(response.isHealthy()).isFalse();
-    assertThat(response.getMessage()).contains("Too many errors");
-    assertThat(response.isErrorThresholdBreached()).isTrue();
-    assertThat(response.isLatencyThresholdBreached()).isFalse();
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+    assertThat(response.getBody()).isNotNull();
+
+    HealthResponse health = response.getBody();
+    assertThat(health.getStatus()).isEqualTo("unhealthy");
+    assertThat(health.isHealthy()).isFalse();
+    assertThat(health.getMessage()).contains("Too many errors");
+    assertThat(health.isErrorThresholdBreached()).isTrue();
+    assertThat(health.isLatencyThresholdBreached()).isFalse();
   }
 
   @Test
-  @DisplayName("Should return unhealthy response when latency threshold breached")
-  void getHealth_WhenLatencyThresholdBreached_ShouldReturnUnhealthy() {
+  @DisplayName("Should return 503 with unhealthy response when latency threshold breached")
+  void getHealth_WhenLatencyThresholdBreached_ShouldReturn503WithUnhealthy() {
     for (int i = 0; i < 5; i++) {
       metricsService.recordRequestLatency((long) (latencyThreshold * 2.0));
     }
 
-    HealthResponse response = resource.getHealth();
+    ResponseEntity<HealthResponse> response = resource.getHealth();
 
-    assertThat(response.getStatus()).isEqualTo("unhealthy");
-    assertThat(response.isHealthy()).isFalse();
-    assertThat(response.getMessage()).contains("High latency");
-    assertThat(response.isErrorThresholdBreached()).isFalse();
-    assertThat(response.isLatencyThresholdBreached()).isTrue();
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+    assertThat(response.getBody()).isNotNull();
+
+    HealthResponse health = response.getBody();
+    assertThat(health.getStatus()).isEqualTo("unhealthy");
+    assertThat(health.isHealthy()).isFalse();
+    assertThat(health.getMessage()).contains("High latency");
+    assertThat(health.isErrorThresholdBreached()).isFalse();
+    assertThat(health.isLatencyThresholdBreached()).isTrue();
   }
 
   @Test
-  @DisplayName("Should return critical when both thresholds breached")
-  void getHealth_WhenBothBreached_ShouldReturnCritical() {
+  @DisplayName("Should return 503 with critical response when both thresholds breached")
+  void getHealth_WhenBothBreached_ShouldReturn503WithCritical() {
     int errorsToGenerate = (int) (errorThreshold * 1.5);
     for (int i = 0; i < errorsToGenerate; i++) {
       metricsService.recordServerError();
@@ -85,12 +99,16 @@ class HealthResourceTest {
       metricsService.recordRequestLatency((long) (latencyThreshold * 2.0));
     }
 
-    HealthResponse response = resource.getHealth();
+    ResponseEntity<HealthResponse> response = resource.getHealth();
 
-    assertThat(response.getStatus()).isEqualTo("unhealthy");
-    assertThat(response.isHealthy()).isFalse();
-    assertThat(response.getMessage()).contains("Critical");
-    assertThat(response.isErrorThresholdBreached()).isTrue();
-    assertThat(response.isLatencyThresholdBreached()).isTrue();
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+    assertThat(response.getBody()).isNotNull();
+
+    HealthResponse health = response.getBody();
+    assertThat(health.getStatus()).isEqualTo("unhealthy");
+    assertThat(health.isHealthy()).isFalse();
+    assertThat(health.getMessage()).contains("Critical");
+    assertThat(health.isErrorThresholdBreached()).isTrue();
+    assertThat(health.isLatencyThresholdBreached()).isTrue();
   }
 }

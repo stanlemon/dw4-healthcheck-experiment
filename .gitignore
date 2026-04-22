@@ -45,3 +45,8 @@ dependency-reduced-pom.xml
 # OS
 .DS_Store
 Thumbs.db
+
+# Terraform
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
