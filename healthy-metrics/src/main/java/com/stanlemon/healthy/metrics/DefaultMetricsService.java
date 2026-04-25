@@ -265,7 +265,7 @@ public class DefaultMetricsService implements MetricsService {
   }
 
   @Override
-  public void clearMetrics() {
+  public synchronized void clearMetrics() {
     for (AtomicLong bucket : errorBuckets) {
       bucket.set(0);
     }

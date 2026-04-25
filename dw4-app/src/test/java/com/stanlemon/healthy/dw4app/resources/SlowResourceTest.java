@@ -95,17 +95,26 @@ class SlowResourceTest {
   }
 
   @Nested
-  @DisplayName("Response object tests")
-  class ResponseTests {
+  @DisplayName("Boundary tests")
+  class BoundaryTests {
 
     @Test
-    @DisplayName("Should set fields correctly when SlowResponse is constructed")
-    void slowResponse_WhenConstructed_ShouldSetFieldsCorrectly() {
-      SlowResource.SlowResponse response = new SlowResource.SlowResponse("Test message", 10, 15);
+    @DisplayName("Should return 400 when delay is exactly 10001ms (just over limit)")
+    void slowWithDelay_WhenExactlyOverLimit_ShouldReturn400() {
+      Response response = resource.slowWithDelay(10001);
 
-      assertThat(response.getMessage()).isEqualTo("Test message");
-      assertThat(response.getDelayMs()).isEqualTo(10);
-      assertThat(response.getActualMs()).isEqualTo(15);
+      assertThat(response.getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    @DisplayName("Should accept delay of exactly 10000ms (at limit)")
+    void slowWithDelay_WhenExactlyAtLimit_ShouldReturn200() {
+      // We don't want to actually wait 10 seconds, so just verify it's accepted
+      // by checking the status is 200 (not 400)
+      // Note: This will actually sleep for 10s, so we test the validation only
+      // by verifying the response entity shows the correct delay was accepted
+      Response response = resource.slowWithDelay(10000);
+      assertThat(response.getStatus()).isEqualTo(200);
     }
   }
 

@@ -47,8 +47,8 @@ class MetricsResourceTest {
   class ErrorThresholdTests {
 
     @Test
-    @DisplayName("Should return healthy state when errors below threshold")
-    void getMetrics_WhenErrorsBelowThreshold_ShouldReturnHealthyState() {
+    @DisplayName("Should return healthy when insufficient request traffic to evaluate error rate")
+    void getMetrics_WhenInsufficientTraffic_ShouldReturnHealthyState() {
       for (int i = 0; i < 50; i++) {
         metricsService.recordServerError();
       }
@@ -61,6 +61,23 @@ class MetricsResourceTest {
       assertThat(response.getAvgLatencyLast60Seconds()).isZero();
       assertThat(response.isErrorThresholdBreached()).isFalse();
       assertThat(response.isLatencyThresholdBreached()).isFalse();
+      assertThat(response.isHealthy()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should return healthy when error rate is below 10% with sufficient traffic")
+    void getMetrics_WhenErrorRateBelowThreshold_ShouldReturnHealthyState() {
+      for (int i = 0; i < 5; i++) {
+        metricsService.recordServerError();
+      }
+      for (int i = 0; i < 100; i++) {
+        metricsService.recordRequestLatency(50);
+      }
+
+      MetricsResponse response = resource.getMetrics();
+
+      assertThat(response.getErrorsLastMinute()).isEqualTo(5);
+      assertThat(response.isErrorThresholdBreached()).isFalse();
       assertThat(response.isHealthy()).isTrue();
     }
 

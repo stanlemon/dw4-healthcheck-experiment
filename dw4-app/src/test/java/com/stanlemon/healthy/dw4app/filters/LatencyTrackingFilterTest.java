@@ -71,5 +71,6 @@ class LatencyTrackingFilterTest {
     filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 
     assertThat(metricsService.getTotalRequestCountLast60Seconds()).isEqualTo(3);
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isNotNaN();
   }
 }

@@ -2,6 +2,7 @@ package com.stanlemon.healthy.spring3app.exceptions;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.stanlemon.healthy.metrics.MetricsService;
+import jakarta.validation.ConstraintViolationException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +56,23 @@ public class GlobalExceptionHandler {
             statusCode, exception.getReason() != null ? exception.getReason() : "Server Error");
 
     return new ResponseEntity<>(errorResponse, status);
+  }
+
+  /**
+   * Handles Bean Validation failures from @Validated method parameters (e.g. path variables).
+   * Spring does not map ConstraintViolationException to an HTTP status automatically, so without
+   * this handler it would fall through to a 500.
+   *
+   * @param exception the ConstraintViolationException to handle
+   * @return 400 Bad Request with error details
+   */
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ResponseEntity<ErrorResponse> handleConstraintViolation(
+      ConstraintViolationException exception) {
+    log.warn("Constraint violation", exception);
+    return new ResponseEntity<>(
+        new ErrorResponse(HttpStatus.BAD_REQUEST.value(), exception.getMessage()),
+        HttpStatus.BAD_REQUEST);
   }
 
   /**

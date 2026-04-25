@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -392,6 +393,37 @@ class MetricsResourceFunctionalTest {
       assertThat(metricsMap.get("errorThresholdBreached")).isInstanceOf(Boolean.class);
       assertThat(metricsMap.get("latencyThresholdBreached")).isInstanceOf(Boolean.class);
       assertThat(metricsMap.get("healthy")).isInstanceOf(Boolean.class);
+    }
+
+    @Test
+    @Timeout(60)
+    @DisplayName("Readiness endpoint returns 503 when error threshold is breached")
+    void readinessEndpoint_WhenErrorThresholdBreached_ShouldReturn503() {
+      // Shared DropwizardAppExtension means prior tests have accumulated requests.
+      // Generate enough errors to guarantee >10% error rate on the high-traffic
+      // path (requestCount >= 100), regardless of prior request count.
+      int errorCount = 200;
+      IntStream.range(0, errorCount)
+          .forEach(
+              i -> {
+                given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500);
+              });
+
+      waitForMetricsToUpdate(
+          () -> MetricsSnapshot.fromMetricsEndpoint(baseUrl).errorThresholdBreached());
+
+      @SuppressWarnings("unchecked")
+      Map<String, Object> healthBody =
+          given()
+              .when()
+              .get(baseUrl + "/health/ready")
+              .then()
+              .statusCode(503)
+              .contentType(ContentType.JSON)
+              .extract()
+              .as(Map.class);
+
+      assertThat(healthBody.get("errorThresholdBreached")).isEqualTo(true);
     }
   }
 }

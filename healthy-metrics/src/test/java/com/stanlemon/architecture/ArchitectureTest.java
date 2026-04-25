@@ -45,4 +45,11 @@ class ArchitectureTest {
     ArchRule rule = serviceInterfacesEndWithService("..metrics..");
     rule.check(importedClasses);
   }
+
+  @Test
+  @DisplayName("Shared module must not depend on any framework-specific packages")
+  void sharedModuleShouldNotDependOnFrameworks() {
+    ArchRule rule = ArchitectureRules.noFrameworkDependencies("com.stanlemon.healthy.metrics");
+    rule.check(importedClasses);
+  }
 }

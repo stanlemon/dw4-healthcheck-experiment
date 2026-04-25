@@ -3,12 +3,15 @@ package com.stanlemon.healthy.dw4app;
 import com.stanlemon.healthy.dw4app.exceptions.GlobalExceptionMapper;
 import com.stanlemon.healthy.dw4app.filters.LatencyTrackingFilter;
 import com.stanlemon.healthy.dw4app.health.ApplicationHealthCheck;
-import com.stanlemon.healthy.dw4app.resources.HelloWorldResource;
+import com.stanlemon.healthy.dw4app.resources.HangarResource;
 import com.stanlemon.healthy.dw4app.resources.LivenessResource;
 import com.stanlemon.healthy.dw4app.resources.MetricsResource;
 import com.stanlemon.healthy.dw4app.resources.ReadinessResource;
 import com.stanlemon.healthy.dw4app.resources.SlowResource;
 import com.stanlemon.healthy.dw4app.resources.TestErrorsResource;
+import com.stanlemon.healthy.hangar.DefaultAerodynamicsPredictor;
+import com.stanlemon.healthy.hangar.DefaultHangarService;
+import com.stanlemon.healthy.hangar.HangarService;
 import com.stanlemon.healthy.metrics.DefaultMetricsService;
 import com.stanlemon.healthy.metrics.HealthEvaluator;
 import com.stanlemon.healthy.metrics.LivenessEvaluator;
@@ -57,18 +60,20 @@ public class DwApplication extends Application<DwConfiguration> {
     final MetricsService metricsService = new DefaultMetricsService();
     final HealthEvaluator healthEvaluator = new HealthEvaluator(metricsService);
     final LivenessEvaluator livenessEvaluator = new LivenessEvaluator(metricsService);
+    final DefaultAerodynamicsPredictor aerodynamicsPredictor = new DefaultAerodynamicsPredictor();
+    final HangarService hangarService = new DefaultHangarService();
 
     environment
         .servlets()
         .addFilter("latency-tracking", new LatencyTrackingFilter(metricsService))
         .addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, "/*");
 
-    environment.jersey().register(new HelloWorldResource());
     environment.jersey().register(new MetricsResource(metricsService));
     environment.jersey().register(new ReadinessResource(healthEvaluator));
     environment.jersey().register(new LivenessResource(livenessEvaluator));
     environment.jersey().register(new TestErrorsResource());
     environment.jersey().register(new SlowResource());
+    environment.jersey().register(new HangarResource(hangarService, aerodynamicsPredictor));
 
     environment.jersey().register(new GlobalExceptionMapper(metricsService));
 

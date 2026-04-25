@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#!/bin/bash
-
 # Script to generate errors and latency for testing the health check system
 # Usage: ./generate_errors.sh [number_of_errors] [latency_percentage]
 # Default: 15 errors, 30% of requests will have latency
@@ -43,7 +41,7 @@ fi
 
 # Check if server is running before attempting to generate errors
 echo "Checking if server is running..."
-if ! curl -s --connect-timeout 5 http://localhost:8097/hello > /dev/null 2>&1; then
+if ! curl -s --connect-timeout 5 http://localhost:8097/health/live > /dev/null 2>&1; then
     echo "Error: Server is not running on localhost:8097"
     echo "Please start the server first:"
     echo "  mvn clean compile exec:java"

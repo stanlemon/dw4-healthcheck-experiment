@@ -50,6 +50,20 @@ class LivenessEvaluatorTest {
     }
 
     @Test
+    @DisplayName("evaluate should return alive with insufficient traffic at exactly 9 requests")
+    void evaluate_WhenExactly9Requests_ShouldReturnAliveInsufficientTraffic() {
+      for (int i = 0; i < 9; i++) {
+        metricsService.recordServerError();
+        metricsService.recordRequestLatency(100);
+      }
+
+      LivenessResponse response = evaluator.evaluate();
+
+      assertThat(response.getStatus()).isEqualTo("alive");
+      assertThat(response.getMessage()).contains("insufficient traffic");
+    }
+
+    @Test
     @DisplayName("Should return alive when some requests succeed")
     void evaluate_WhenSomeRequestsSucceed_ShouldReturnAlive() {
       for (int i = 0; i < 8; i++) {
@@ -118,6 +132,23 @@ class LivenessEvaluatorTest {
       assertThat(response.isAlive()).isFalse();
       assertThat(response.getErrorsLastMinute()).isEqualTo(10);
       assertThat(response.getTotalRequestsLastMinute()).isEqualTo(10);
+    }
+
+    @Test
+    @DisplayName("evaluate should report dead when errors exceed total requests")
+    void evaluate_WhenErrorsExceedTotalRequests_ShouldReturnDead() {
+      // Record 20 errors and only 15 latency records (totalRequests=15)
+      for (int i = 0; i < 20; i++) {
+        metricsService.recordServerError();
+      }
+      for (int i = 0; i < 15; i++) {
+        metricsService.recordRequestLatency(100);
+      }
+
+      LivenessResponse response = evaluator.evaluate();
+
+      assertThat(response.getStatus()).isEqualTo("dead");
+      assertThat(response.isAlive()).isFalse();
     }
   }
 

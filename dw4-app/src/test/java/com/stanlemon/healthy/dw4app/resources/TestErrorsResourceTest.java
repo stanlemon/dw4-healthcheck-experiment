@@ -17,6 +17,15 @@ class TestErrorsResourceTest {
   private final TestErrorsResource resource = new TestErrorsResource();
 
   @Test
+  @DisplayName(
+      "triggerError always throws SomethingWentWrongException with deliberate error message")
+  void triggerError_WhenCalled_ShouldThrowSomethingWentWrongException() {
+    assertThatThrownBy(() -> resource.triggerError())
+        .isInstanceOf(SomethingWentWrongException.class)
+        .hasMessageContaining("deliberate error");
+  }
+
+  @Test
   void runtimeException_WhenCalled_ShouldThrowSomethingWentWrongExceptionWithProvidedMessage() {
     String errorMessage = "Test error message";
     assertThatThrownBy(() -> resource.testRuntimeException(errorMessage))

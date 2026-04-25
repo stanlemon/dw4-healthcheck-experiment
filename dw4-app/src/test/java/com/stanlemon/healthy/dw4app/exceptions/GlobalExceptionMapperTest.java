@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.stanlemon.healthy.exceptions.SomethingWentWrongException;
 import com.stanlemon.healthy.metrics.DefaultMetricsService;
 import com.stanlemon.healthy.metrics.MetricsService;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -118,6 +119,16 @@ class GlobalExceptionMapperTest {
     Response response = exceptionMapper.toResponse(exception);
 
     assertThat(response.getStatus()).isEqualTo(600);
+    assertThat(metricsService.getErrorCountLastMinute()).isZero();
+  }
+
+  @Test
+  @DisplayName(
+      "Jakarta NotFoundException flows through the mapper as 404 without recording a 5xx metric")
+  void toResponse_WhenNotFoundException_ShouldReturn404AndNotRecordMetric() {
+    Response response = exceptionMapper.toResponse(new NotFoundException());
+
+    assertThat(response.getStatus()).isEqualTo(404);
     assertThat(metricsService.getErrorCountLastMinute()).isZero();
   }
 }

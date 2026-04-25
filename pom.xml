@@ -12,6 +12,7 @@
     <modules>
         <module>architecture-rules</module>
         <module>healthy-metrics</module>
+        <module>healthy-hangar</module>
         <module>dw4-app</module>
         <module>spring3-app</module>
     </modules>
@@ -25,6 +26,10 @@
 
     <dependencyManagement>
         <dependencies>
+            <!--
+                Note: jackson-annotations trails jackson-core on patch cadence (jackson-annotations 2.21
+                is the 2.21.x release — there is no 2.21.2 artifact).
+            -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
@@ -39,6 +44,16 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>2.21.2</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>2.21.2</version>
+            </dependency>
+            <dependency>
+                <groupId>jakarta.validation</groupId>
+                <artifactId>jakarta.validation-api</artifactId>
+                <version>3.1.1</version>
             </dependency>
             <dependency>
                 <groupId>com.github.spotbugs</groupId>
@@ -243,6 +258,7 @@
                         </execution>
                         <execution>
                             <id>check</id>
+                            <phase>test</phase>
                             <goals>
                                 <goal>check</goal>
                             </goals>
@@ -255,6 +271,11 @@
                                                 <counter>LINE</counter>
                                                 <value>COVEREDRATIO</value>
                                                 <minimum>0.70</minimum>
+                                            </limit>
+                                            <limit>
+                                                <counter>BRANCH</counter>
+                                                <value>COVEREDRATIO</value>
+                                                <minimum>0.50</minimum>
                                             </limit>
                                         </limits>
                                     </rule>
