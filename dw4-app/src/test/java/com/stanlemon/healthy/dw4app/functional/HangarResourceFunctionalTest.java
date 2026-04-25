@@ -173,9 +173,21 @@ class HangarResourceFunctionalTest {
   }
 
   @Test
-  @DisplayName("GET /hangar/planes/{unknown} returns 404")
-  void getById_UnknownIdReturns404() {
-    given().when().get(baseUrl + "/hangar/planes/does-not-exist").then().statusCode(404);
+  @DisplayName("GET /hangar/planes/{unknown} returns 404 with code and message in body")
+  void getById_UnknownIdReturns404WithErrorBody() {
+    Map<String, Object> body =
+        given()
+            .when()
+            .get(baseUrl + "/hangar/planes/does-not-exist")
+            .then()
+            .statusCode(404)
+            .contentType(ContentType.JSON)
+            .extract()
+            .as(Map.class);
+
+    assertThat(body).containsKey("code").containsKey("message");
+    assertThat(((Number) body.get("code")).intValue()).isEqualTo(404);
+    assertThat(body.get("message")).isEqualTo("Plane not found");
   }
 
   @Test

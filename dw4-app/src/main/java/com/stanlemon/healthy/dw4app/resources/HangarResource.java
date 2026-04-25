@@ -17,8 +17,9 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.net.URI;
+import jakarta.ws.rs.core.UriBuilder;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 /** REST resource exposing the paper airplane hangar: stow, lookup, and list. */
@@ -40,7 +41,10 @@ public class HangarResource {
   public Response stow(@Valid PaperPlaneRequest request) {
     PaperPlane plane = hangarService.stow(request);
     PaperPlaneResponse body = new PaperPlaneResponse(plane, predictor.predictDistance(plane));
-    return Response.created(URI.create("/hangar/planes/" + plane.getId())).entity(body).build();
+    return Response.created(
+            UriBuilder.fromResource(HangarResource.class).path(plane.getId()).build())
+        .entity(body)
+        .build();
   }
 
   @GET
@@ -53,7 +57,12 @@ public class HangarResource {
             .orElseThrow(
                 () -> {
                   log.info("Plane not found - id: {}", id);
-                  return new NotFoundException();
+                  return new NotFoundException(
+                      "Plane not found",
+                      Response.status(Response.Status.NOT_FOUND)
+                          .type(MediaType.APPLICATION_JSON_TYPE)
+                          .entity(Map.of("code", 404, "message", "Plane not found"))
+                          .build());
                 });
     return new PaperPlaneResponse(plane, predictor.predictDistance(plane));
   }

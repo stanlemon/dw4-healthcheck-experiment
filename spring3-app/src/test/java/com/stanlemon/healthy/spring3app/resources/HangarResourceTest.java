@@ -90,7 +90,7 @@ class HangarResourceTest {
             ex -> {
               ResponseStatusException rse = (ResponseStatusException) ex;
               assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-              assertThat(rse.getReason()).isNull();
+              assertThat(rse.getReason()).isEqualTo("Plane not found");
               assertThat(rse.getMessage()).doesNotContain("does-not-exist");
             });
   }

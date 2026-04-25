@@ -183,6 +183,7 @@ class HangarResourceFunctionalTest {
 
     assertThat(body).containsKey("code").containsKey("message");
     assertThat(((Number) body.get("code")).intValue()).isEqualTo(404);
+    assertThat(body.get("message")).isEqualTo("Plane not found");
   }
 
   @Test

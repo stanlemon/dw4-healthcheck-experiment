@@ -59,7 +59,7 @@ public class HangarResource {
             .orElseThrow(
                 () -> {
                   log.info("Plane not found - id: {}", id);
-                  return new ResponseStatusException(HttpStatus.NOT_FOUND);
+                  return new ResponseStatusException(HttpStatus.NOT_FOUND, "Plane not found");
                 });
     return new PaperPlaneResponse(plane, predictor.predictDistance(plane));
   }

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
@@ -21,9 +22,9 @@ public class DefaultHangarService implements HangarService {
       Comparator.comparing(PaperPlane::getStowedAt).thenComparing(PaperPlane::getId);
 
   private final ConcurrentMap<String, PaperPlane> planes = new ConcurrentHashMap<>();
+  private final ConcurrentLinkedQueue<String> insertionOrder = new ConcurrentLinkedQueue<>();
   private final Clock clock;
   private final Supplier<String> idSupplier;
-  private final Object evictionLock = new Object();
 
   public DefaultHangarService() {
     this(Clock.systemUTC(), () -> UUID.randomUUID().toString());
@@ -45,15 +46,18 @@ public class DefaultHangarService implements HangarService {
             request.getNoseStyle(),
             clock.instant());
     planes.put(plane.getId(), plane);
+    insertionOrder.offer(plane.getId());
     evictOldestIfOverCapacity();
     return plane;
   }
 
   private void evictOldestIfOverCapacity() {
-    synchronized (evictionLock) {
-      while (planes.size() > MAX_PLANES) {
-        planes.values().stream().min(OLDEST_FIRST).ifPresent(p -> planes.remove(p.getId(), p));
+    while (planes.size() > MAX_PLANES) {
+      String oldestId = insertionOrder.poll();
+      if (oldestId == null) {
+        return;
       }
+      planes.remove(oldestId);
     }
   }
 
