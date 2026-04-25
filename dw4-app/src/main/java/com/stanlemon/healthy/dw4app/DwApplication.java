@@ -9,6 +9,8 @@ import com.stanlemon.healthy.dw4app.resources.MetricsResource;
 import com.stanlemon.healthy.dw4app.resources.ReadinessResource;
 import com.stanlemon.healthy.dw4app.resources.SlowResource;
 import com.stanlemon.healthy.dw4app.resources.TestErrorsResource;
+import com.stanlemon.healthy.dw4app.tasks.ClearMetricsTask;
+import com.stanlemon.healthy.hangar.AerodynamicsPredictor;
 import com.stanlemon.healthy.hangar.DefaultAerodynamicsPredictor;
 import com.stanlemon.healthy.hangar.DefaultHangarService;
 import com.stanlemon.healthy.hangar.HangarService;
@@ -60,7 +62,7 @@ public class DwApplication extends Application<DwConfiguration> {
     final MetricsService metricsService = new DefaultMetricsService();
     final HealthEvaluator healthEvaluator = new HealthEvaluator(metricsService);
     final LivenessEvaluator livenessEvaluator = new LivenessEvaluator(metricsService);
-    final DefaultAerodynamicsPredictor aerodynamicsPredictor = new DefaultAerodynamicsPredictor();
+    final AerodynamicsPredictor aerodynamicsPredictor = new DefaultAerodynamicsPredictor();
     final HangarService hangarService = new DefaultHangarService();
 
     environment
@@ -76,6 +78,8 @@ public class DwApplication extends Application<DwConfiguration> {
     environment.jersey().register(new HangarResource(hangarService, aerodynamicsPredictor));
 
     environment.jersey().register(new GlobalExceptionMapper(metricsService));
+
+    environment.admin().addTask(new ClearMetricsTask(metricsService));
 
     environment.healthChecks().register("application", new ApplicationHealthCheck(healthEvaluator));
   }

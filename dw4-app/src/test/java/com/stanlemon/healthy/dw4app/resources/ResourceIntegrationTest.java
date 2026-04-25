@@ -12,6 +12,7 @@ import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.Response;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -49,8 +50,16 @@ class ResourceIntegrationTest {
 
   @Test
   @Timeout(30)
-  void metricsEndpoint_WhenCalled_ShouldReturnHealthyStructure() {
+  void metricsEndpoint_WhenCalledWithCleanMetrics_ShouldReturnHealthyState() {
     Client client = APP.client();
+
+    // Reset state so prior tests in the shared APP extension don't leak errors/latency in.
+    Response clearResponse =
+        client
+            .target(String.format("http://localhost:%d/tasks/clear-metrics", APP.getAdminPort()))
+            .request()
+            .post(Entity.text(""));
+    assertThat(clearResponse.getStatus()).isEqualTo(200);
 
     Response response =
         client
@@ -61,8 +70,11 @@ class ResourceIntegrationTest {
     assertThat(response.getStatus()).isEqualTo(200);
 
     MetricsResponse entity = response.readEntity(MetricsResponse.class);
-    assertThat(entity.getTotalErrors()).isGreaterThanOrEqualTo(0);
-    assertThat(entity.getErrorsLastMinute()).isGreaterThanOrEqualTo(0);
+    assertThat(entity.getTotalErrors()).isZero();
+    assertThat(entity.getErrorsLastMinute()).isZero();
+    assertThat(entity.isErrorThresholdBreached()).isFalse();
+    assertThat(entity.isLatencyThresholdBreached()).isFalse();
+    assertThat(entity.isHealthy()).isTrue();
     assertThat(entity.getAvgLatencyLast60Seconds()).isGreaterThanOrEqualTo(0.0);
   }
 

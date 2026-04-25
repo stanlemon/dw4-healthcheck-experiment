@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import com.stanlemon.healthy.metrics.HealthResponse;
 import com.stanlemon.healthy.metrics.MetricsResponse;
+import com.stanlemon.healthy.metrics.MetricsService;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +29,8 @@ class ResourceIntegrationTest {
 
   @Autowired private TestRestTemplate restTemplate;
 
+  @Autowired private MetricsService metricsService;
+
   private String baseUrl;
 
   @BeforeAll
@@ -48,15 +51,21 @@ class ResourceIntegrationTest {
 
   @Test
   @Timeout(30)
-  void metricsEndpoint_WhenCalled_ShouldReturnHealthyStructure() {
+  void metricsEndpoint_WhenCalledWithCleanMetrics_ShouldReturnHealthyState() {
+    // Reset state so prior tests in the shared Spring context don't leak errors/latency in.
+    metricsService.clearMetrics();
+
     ResponseEntity<MetricsResponse> response =
         restTemplate.getForEntity(baseUrl + "/metrics", MetricsResponse.class);
 
     assertThat(response.getStatusCode().value()).isEqualTo(200);
     assertThat(response.getBody()).isNotNull();
     MetricsResponse metrics = response.getBody();
-    assertThat(metrics.getTotalErrors()).isGreaterThanOrEqualTo(0);
-    assertThat(metrics.getErrorsLastMinute()).isGreaterThanOrEqualTo(0);
+    assertThat(metrics.getTotalErrors()).isZero();
+    assertThat(metrics.getErrorsLastMinute()).isZero();
+    assertThat(metrics.isErrorThresholdBreached()).isFalse();
+    assertThat(metrics.isLatencyThresholdBreached()).isFalse();
+    assertThat(metrics.isHealthy()).isTrue();
     assertThat(metrics.getAvgLatencyLast60Seconds()).isGreaterThanOrEqualTo(0.0);
   }
 

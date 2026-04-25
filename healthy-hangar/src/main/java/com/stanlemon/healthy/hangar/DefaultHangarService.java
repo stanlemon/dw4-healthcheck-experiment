@@ -2,27 +2,36 @@ package com.stanlemon.healthy.hangar;
 
 import java.time.Clock;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
 /**
  * In-memory thread-safe implementation of {@link HangarService}. Not durable — state is lost on
  * restart — and bounded by {@link #MAX_PLANES}; when full the oldest plane is evicted.
+ *
+ * <p>Backed by a {@link LinkedHashMap} whose {@link LinkedHashMap#removeEldestEntry} hook performs
+ * eviction, so insertion order and presence stay in lockstep. All access is guarded by the map
+ * instance.
  */
 public class DefaultHangarService implements HangarService {
 
   static final int MAX_PLANES = 1000;
 
-  private static final Comparator<PaperPlane> OLDEST_FIRST =
-      Comparator.comparing(PaperPlane::getStowedAt).thenComparing(PaperPlane::getId);
+  private static final Comparator<PaperPlane> NEWEST_FIRST =
+      Comparator.comparing(PaperPlane::getStowedAt).thenComparing(PaperPlane::getId).reversed();
 
-  private final ConcurrentMap<String, PaperPlane> planes = new ConcurrentHashMap<>();
-  private final ConcurrentLinkedQueue<String> insertionOrder = new ConcurrentLinkedQueue<>();
+  private final Map<String, PaperPlane> planes =
+      new LinkedHashMap<>(16, 0.75f, false) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, PaperPlane> eldest) {
+          return size() > MAX_PLANES;
+        }
+      };
+
   private final Clock clock;
   private final Supplier<String> idSupplier;
 
@@ -45,34 +54,30 @@ public class DefaultHangarService implements HangarService {
             request.getPaperGsm(),
             request.getNoseStyle(),
             clock.instant());
-    planes.put(plane.getId(), plane);
-    insertionOrder.offer(plane.getId());
-    evictOldestIfOverCapacity();
-    return plane;
-  }
-
-  private void evictOldestIfOverCapacity() {
-    while (planes.size() > MAX_PLANES) {
-      String oldestId = insertionOrder.poll();
-      if (oldestId == null) {
-        return;
-      }
-      planes.remove(oldestId);
+    synchronized (planes) {
+      planes.put(plane.getId(), plane);
     }
+    return plane;
   }
 
   @Override
   public Optional<PaperPlane> find(String id) {
-    return Optional.ofNullable(planes.get(id));
+    synchronized (planes) {
+      return Optional.ofNullable(planes.get(id));
+    }
   }
 
   @Override
   public List<PaperPlane> listAll() {
-    return planes.values().stream().sorted(OLDEST_FIRST.reversed()).toList();
+    synchronized (planes) {
+      return planes.values().stream().sorted(NEWEST_FIRST).toList();
+    }
   }
 
   @Override
   public int count() {
-    return planes.size();
+    synchronized (planes) {
+      return planes.size();
+    }
   }
 }

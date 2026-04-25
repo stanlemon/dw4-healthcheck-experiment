@@ -19,7 +19,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import java.util.List;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 /** REST resource exposing the paper airplane hangar: stow, lookup, and list. */
@@ -57,12 +56,7 @@ public class HangarResource {
             .orElseThrow(
                 () -> {
                   log.info("Plane not found - id: {}", id);
-                  return new NotFoundException(
-                      "Plane not found",
-                      Response.status(Response.Status.NOT_FOUND)
-                          .type(MediaType.APPLICATION_JSON_TYPE)
-                          .entity(Map.of("code", 404, "message", "Plane not found"))
-                          .build());
+                  return new NotFoundException("Plane not found");
                 });
     return new PaperPlaneResponse(plane, predictor.predictDistance(plane));
   }

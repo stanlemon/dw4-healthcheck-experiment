@@ -37,23 +37,22 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
   public Response toResponse(Throwable exception) {
     log.error("Unhandled exception", exception);
 
-    if (exception instanceof WebApplicationException webAppException
-        && webAppException.getResponse() != null) {
-      int status = webAppException.getResponse().getStatus();
-      if (status >= 500 && status < 600) {
-        metricsService.recordServerError();
-      }
-      return webAppException.getResponse();
+    int status =
+        (exception instanceof WebApplicationException webAppException
+                && webAppException.getResponse() != null)
+            ? webAppException.getResponse().getStatus()
+            : Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
+
+    if (status >= 500 && status < 600) {
+      metricsService.recordServerError();
     }
 
-    metricsService.recordServerError();
-
-    return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+    return Response.status(status)
         .type(MediaType.APPLICATION_JSON_TYPE)
         .entity(
             Map.of(
                 "code",
-                Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(),
+                status,
                 "message",
                 exception.getMessage() != null ? exception.getMessage() : "Server Error"))
         .build();
