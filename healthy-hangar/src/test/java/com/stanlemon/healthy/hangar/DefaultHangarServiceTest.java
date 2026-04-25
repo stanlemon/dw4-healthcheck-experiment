@@ -117,6 +117,19 @@ class DefaultHangarServiceTest {
   }
 
   @Test
+  @DisplayName("default constructor wires a usable service that generates unique ids")
+  void defaultConstructor_StowsPlanesWithUniqueIds() {
+    DefaultHangarService production = new DefaultHangarService();
+
+    PaperPlane first = production.stow(sampleRequest("a"));
+    PaperPlane second = production.stow(sampleRequest("b"));
+
+    assertThat(first.getId()).isNotBlank().isNotEqualTo(second.getId());
+    assertThat(first.getStowedAt()).isNotNull();
+    assertThat(production.count()).isEqualTo(2);
+  }
+
+  @Test
   @DisplayName("count reflects the number of stowed planes")
   void count_ReflectsStowedPlanes() {
     assertThat(service.count()).isZero();
