@@ -79,7 +79,7 @@ Both applications expose equivalent functionality. The table shows the default p
 
 > **Note:** The `/test-errors` and `/slow` endpoints exist to exercise the health check. They would not be included in a production application. The `/hangar/planes` endpoints are a demo of the shared-domain pattern (see Project Structure).
 
-**Error bodies.** Both apps emit the same shape for error responses — `{"code": <int>, "message": <string>}` — with identical HTTP status codes. The one intentional divergence is the validation error status: Spring returns `400 Bad Request` (via `MethodArgumentNotValidException`) while Dropwizard returns `422 Unprocessable Entity` (via JAX-RS `ConstraintViolationException` mapping). This reflects each framework's built-in Bean Validation convention; the body shape is the same either way.
+**Error bodies.** Both apps emit the same shape for error responses — `{"code": <int>, "message": <string>}` — with identical HTTP status codes. Bean Validation failures return `400 Bad Request` in both runtimes; Dropwizard's default `422` is overridden by `ConstraintViolationExceptionMapper` to match Spring's behavior.
 
 ## Metrics and Health Monitoring
 

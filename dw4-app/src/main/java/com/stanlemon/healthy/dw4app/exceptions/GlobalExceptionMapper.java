@@ -35,8 +35,6 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
    */
   @Override
   public Response toResponse(Throwable exception) {
-    log.error("Unhandled exception", exception);
-
     int status =
         (exception instanceof WebApplicationException webAppException
                 && webAppException.getResponse() != null)
@@ -44,6 +42,7 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
             : Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
 
     if (status >= 500 && status < 600) {
+      log.error("Unhandled exception", exception);
       metricsService.recordServerError();
     }
 

@@ -106,6 +106,41 @@ class ResourceIntegrationTest {
 
   @Test
   @Timeout(30)
+  void applicationWiring_AllResourcesShouldBeRegistered() {
+    assertThat(
+            restTemplate.getForEntity(baseUrl + "/metrics", String.class).getStatusCode().value())
+        .isEqualTo(200);
+    assertThat(
+            restTemplate
+                .getForEntity(baseUrl + "/health/ready", String.class)
+                .getStatusCode()
+                .value())
+        .isEqualTo(200);
+    assertThat(
+            restTemplate
+                .getForEntity(baseUrl + "/health/live", String.class)
+                .getStatusCode()
+                .value())
+        .isEqualTo(200);
+    assertThat(restTemplate.getForEntity(baseUrl + "/slow/1", String.class).getStatusCode().value())
+        .isEqualTo(200);
+    assertThat(
+            restTemplate
+                .getForEntity(baseUrl + "/hangar/planes", String.class)
+                .getStatusCode()
+                .value())
+        .isEqualTo(200);
+    // /test-errors/trigger returns 500 intentionally — a 500 proves the resource is registered.
+    assertThat(
+            restTemplate
+                .getForEntity(baseUrl + "/test-errors/trigger", String.class)
+                .getStatusCode()
+                .value())
+        .isEqualTo(500);
+  }
+
+  @Test
+  @Timeout(30)
   void readinessEndpoint_WhenCalled_ShouldReturnHealthResponse() {
     ResponseEntity<HealthResponse> response =
         restTemplate.getForEntity(baseUrl + "/health/ready", HealthResponse.class);

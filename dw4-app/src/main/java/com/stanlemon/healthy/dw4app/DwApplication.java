@@ -1,5 +1,6 @@
 package com.stanlemon.healthy.dw4app;
 
+import com.stanlemon.healthy.dw4app.exceptions.ConstraintViolationExceptionMapper;
 import com.stanlemon.healthy.dw4app.exceptions.GlobalExceptionMapper;
 import com.stanlemon.healthy.dw4app.filters.LatencyTrackingFilter;
 import com.stanlemon.healthy.dw4app.health.ApplicationHealthCheck;
@@ -77,6 +78,7 @@ public class DwApplication extends Application<DwConfiguration> {
     environment.jersey().register(new SlowResource());
     environment.jersey().register(new HangarResource(hangarService, aerodynamicsPredictor));
 
+    environment.jersey().register(new ConstraintViolationExceptionMapper());
     environment.jersey().register(new GlobalExceptionMapper(metricsService));
 
     environment.admin().addTask(new ClearMetricsTask(metricsService));

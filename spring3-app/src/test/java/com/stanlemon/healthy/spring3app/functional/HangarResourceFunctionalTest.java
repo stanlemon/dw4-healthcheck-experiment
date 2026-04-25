@@ -192,7 +192,6 @@ class HangarResourceFunctionalTest {
     given().when().delete(baseUrl + "/hangar/planes/any-id").then().statusCode(405);
   }
 
-  // Spring maps Bean Validation failures to 400; JAX-RS (Dropwizard) maps them to 422.
   @Test
   @DisplayName("POST with invalid payload returns 400")
   void post_InvalidPayloadReturns400() {
@@ -226,7 +225,7 @@ class HangarResourceFunctionalTest {
     int status =
         given().when().get(baseUrl + "/hangar/planes/" + oversizedId).then().extract().statusCode();
 
-    assertThat(status).isIn(400, 404, 422);
+    assertThat(status).isIn(400, 404);
   }
 
   @Test
@@ -235,7 +234,7 @@ class HangarResourceFunctionalTest {
     int status =
         given().when().get(baseUrl + "/hangar/planes/" + "../secret").then().extract().statusCode();
 
-    assertThat(status).isIn(400, 404, 422);
+    assertThat(status).isIn(400, 404);
   }
 
   @Test
@@ -249,6 +248,6 @@ class HangarResourceFunctionalTest {
             .extract()
             .statusCode();
 
-    assertThat(status).isIn(400, 404, 422);
+    assertThat(status).isIn(400, 404);
   }
 }

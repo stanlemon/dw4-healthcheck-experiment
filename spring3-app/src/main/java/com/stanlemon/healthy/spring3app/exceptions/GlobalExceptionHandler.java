@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -42,18 +43,17 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
   public ResponseEntity<ErrorResponse> handleResponseStatusException(
       org.springframework.web.server.ResponseStatusException exception) {
-    log.error("Status exception", exception);
-
-    int statusCode = exception.getStatusCode().value();
-    HttpStatus status = HttpStatus.valueOf(statusCode);
+    // HttpStatusCode accepts arbitrary integers; HttpStatus.valueOf throws for non-enum codes.
+    HttpStatusCode status = HttpStatusCode.valueOf(exception.getStatusCode().value());
 
     if (status.is5xxServerError()) {
+      log.error("Status exception", exception);
       metricsService.recordServerError();
     }
 
     ErrorResponse errorResponse =
         new ErrorResponse(
-            statusCode, exception.getReason() != null ? exception.getReason() : "Server Error");
+            status.value(), exception.getReason() != null ? exception.getReason() : "Server Error");
 
     return new ResponseEntity<>(errorResponse, status);
   }
@@ -69,7 +69,6 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ConstraintViolationException.class)
   public ResponseEntity<ErrorResponse> handleConstraintViolation(
       ConstraintViolationException exception) {
-    log.warn("Constraint violation", exception);
     return new ResponseEntity<>(
         new ErrorResponse(HttpStatus.BAD_REQUEST.value(), exception.getMessage()),
         HttpStatus.BAD_REQUEST);
@@ -85,19 +84,14 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleException(Exception exception) {
-    HttpStatus status;
-
-    if (exception instanceof org.springframework.web.ErrorResponse springError) {
-      status = HttpStatus.valueOf(springError.getStatusCode().value());
-    } else {
-      status = HttpStatus.INTERNAL_SERVER_ERROR;
-    }
+    HttpStatusCode status =
+        (exception instanceof org.springframework.web.ErrorResponse springError)
+            ? HttpStatusCode.valueOf(springError.getStatusCode().value())
+            : HttpStatus.INTERNAL_SERVER_ERROR;
 
     if (status.is5xxServerError()) {
       log.error("Unhandled exception", exception);
       metricsService.recordServerError();
-    } else {
-      log.warn("Client error - status: {}", status.value(), exception);
     }
 
     String message = exception.getMessage() != null ? exception.getMessage() : "Server Error";

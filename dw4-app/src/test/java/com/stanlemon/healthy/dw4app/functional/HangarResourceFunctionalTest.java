@@ -196,22 +196,21 @@ class HangarResourceFunctionalTest {
     given().when().delete(baseUrl + "/hangar/planes/any-id").then().statusCode(405);
   }
 
-  // JAX-RS maps Bean Validation failures to 422; Spring maps them to 400.
   @Test
-  @DisplayName("POST with invalid payload returns 422")
-  void post_InvalidPayloadReturns422() {
+  @DisplayName("POST with invalid payload returns 400")
+  void post_InvalidPayloadReturns400() {
     given()
         .contentType(ContentType.JSON)
         .body(Map.of("name", "", "wingspanCm", 1.0, "paperGsm", 10, "noseStyle", "pointed"))
         .when()
         .post(baseUrl + "/hangar/planes")
         .then()
-        .statusCode(422);
+        .statusCode(400);
   }
 
   @Test
-  @DisplayName("POST with only wingspanCm out of range returns 422")
-  void post_WingspanOnlyViolationReturns422() {
+  @DisplayName("POST with only wingspanCm out of range returns 400")
+  void post_WingspanOnlyViolationReturns400() {
     given()
         .contentType(ContentType.JSON)
         .body(
@@ -219,7 +218,7 @@ class HangarResourceFunctionalTest {
         .when()
         .post(baseUrl + "/hangar/planes")
         .then()
-        .statusCode(422);
+        .statusCode(400);
   }
 
   @Test
@@ -230,7 +229,7 @@ class HangarResourceFunctionalTest {
     int status =
         given().when().get(baseUrl + "/hangar/planes/" + oversizedId).then().extract().statusCode();
 
-    assertThat(status).isIn(400, 404, 422);
+    assertThat(status).isIn(400, 404);
   }
 
   @Test
@@ -239,7 +238,7 @@ class HangarResourceFunctionalTest {
     int status =
         given().when().get(baseUrl + "/hangar/planes/" + "../secret").then().extract().statusCode();
 
-    assertThat(status).isIn(400, 404, 422);
+    assertThat(status).isIn(400, 404);
   }
 
   @Test
@@ -253,6 +252,6 @@ class HangarResourceFunctionalTest {
             .extract()
             .statusCode();
 
-    assertThat(status).isIn(400, 404, 422);
+    assertThat(status).isIn(400, 404);
   }
 }
