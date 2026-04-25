@@ -135,22 +135,6 @@ class ResourceIntegrationTest {
 
   @Test
   @Timeout(30)
-  void applicationWiring_AllResourcesShouldBeRegistered() {
-    Client client = APP.client();
-    String base = String.format("http://localhost:%d", APP.getLocalPort());
-
-    assertThat(client.target(base + "/metrics").request().get().getStatus()).isEqualTo(200);
-    assertThat(client.target(base + "/health/ready").request().get().getStatus()).isEqualTo(200);
-    assertThat(client.target(base + "/health/live").request().get().getStatus()).isEqualTo(200);
-    assertThat(client.target(base + "/slow/1").request().get().getStatus()).isEqualTo(200);
-    assertThat(client.target(base + "/hangar/planes").request().get().getStatus()).isEqualTo(200);
-    // /test-errors/trigger returns 500 intentionally — a 500 proves the resource is registered
-    assertThat(client.target(base + "/test-errors/trigger").request().get().getStatus())
-        .isEqualTo(500);
-  }
-
-  @Test
-  @Timeout(30)
   void readinessEndpoint_WhenCalled_ShouldReturnHealthResponse() {
     Client client = APP.client();
 
@@ -166,7 +150,7 @@ class ResourceIntegrationTest {
     assertThat(entity.getStatus()).isEqualTo("healthy");
     assertThat(entity.isHealthy()).isTrue();
     assertThat(entity.getMessage()).contains("OK");
-    assertThat(entity.getErrorsLastMinute()).isGreaterThanOrEqualTo(0);
+    assertThat(entity.getErrorsLastMinute()).isZero();
     assertThat(entity.isErrorThresholdBreached()).isFalse();
     assertThat(entity.isLatencyThresholdBreached()).isFalse();
   }

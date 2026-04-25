@@ -218,27 +218,30 @@ class HangarResourceFunctionalTest {
   }
 
   @Test
-  @DisplayName("GET /hangar/planes/{id} with oversized id returns 400 or 404")
+  @DisplayName("GET /hangar/planes/{id} with oversized id returns 400")
   void get_WhenIdExceedsMaxLength_ShouldReject() {
     String oversizedId = "a".repeat(65);
 
     int status =
         given().when().get(baseUrl + "/hangar/planes/" + oversizedId).then().extract().statusCode();
 
-    assertThat(status).isIn(400, 404);
+    assertThat(status).isEqualTo(400);
   }
 
   @Test
-  @DisplayName("GET /hangar/planes/{id} with path traversal characters returns 400 or 404")
+  @DisplayName("GET /hangar/planes/{id} with path traversal characters is routed away")
   void get_WhenIdContainsPathTraversal_ShouldReject() {
+    // The HTTP server normalizes `../secret` before dispatch, so the request never reaches the
+    // handler as an id. A 404 from the router is the correct rejection; nothing dangerous makes
+    // it past routing into our resource.
     int status =
         given().when().get(baseUrl + "/hangar/planes/" + "../secret").then().extract().statusCode();
 
-    assertThat(status).isIn(400, 404);
+    assertThat(status).isEqualTo(404);
   }
 
   @Test
-  @DisplayName("GET /hangar/planes/{id} with special characters returns 400 or 404")
+  @DisplayName("GET /hangar/planes/{id} with special characters returns 400")
   void get_WhenIdContainsSpecialCharacters_ShouldReject() {
     int status =
         given()
@@ -248,6 +251,6 @@ class HangarResourceFunctionalTest {
             .extract()
             .statusCode();
 
-    assertThat(status).isIn(400, 404);
+    assertThat(status).isEqualTo(400);
   }
 }
