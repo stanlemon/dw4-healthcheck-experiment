@@ -81,6 +81,8 @@ Both applications expose equivalent functionality. The table shows the default p
 
 **Error bodies.** Both apps emit the same shape for error responses — `{"code": <int>, "message": <string>}` — with identical HTTP status codes. Bean Validation failures return `400 Bad Request` in both runtimes; Dropwizard's default `422` is overridden by `ConstraintViolationExceptionMapper` to match Spring's behavior.
 
+**Jackson 2 vs 3.** Dropwizard 5 serializes with Jackson 2 (`com.fasterxml.jackson`); Spring Boot 4 has migrated to Jackson 3 (`tools.jackson`). The shared DTOs don't have to pick a side: Jackson 3's databind jar still depends on `jackson-annotations` 2.x, so `@JsonProperty`, `@JsonCreator`, and `@JsonFormat` are honored by both runtimes. A full groupId move to `tools.jackson` is blocked until Dropwizard ships a Jackson-3 release.
+
 ## Metrics and Health Monitoring
 
 ### What Gets Tracked

@@ -27,8 +27,22 @@
     <dependencyManagement>
         <dependencies>
             <!--
-                Note: jackson-annotations trails jackson-core on patch cadence (jackson-annotations 2.21
-                is the 2.21.x release — there is no 2.21.2 artifact).
+                Jackson split-lineage state:
+                  - Shared DTOs (healthy-metrics, healthy-hangar) carry @JsonProperty,
+                    @JsonCreator, @JsonFormat from com.fasterxml.jackson.annotation.
+                    Jackson 3 intentionally still ships these annotations under the 2.x
+                    groupId — jackson-databind 3.1.2 depends on jackson-annotations 2.21.
+                  - dw5-app runs Dropwizard 5's Jackson 2 databind (com.fasterxml).
+                  - spring4-app runs Spring Boot 4's Jackson 3 databind (tools.jackson).
+                  - Both runtimes read the same annotations, so no DTO migration is needed.
+
+                A full groupId move to tools.jackson for databind/core is blocked until
+                Dropwizard publishes a version that ships Jackson 3 (expected in DW 6.x).
+                Until then, these pins lock the shared Jackson 2 version so dw5-app and
+                the shared modules stay in sync.
+
+                Note: jackson-annotations trails jackson-core on patch cadence
+                (jackson-annotations 2.21 is the 2.21.x release — there is no 2.21.2).
             -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
