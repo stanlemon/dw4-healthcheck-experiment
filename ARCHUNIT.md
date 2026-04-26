@@ -2,6 +2,12 @@
 
 This guide explains the ArchUnit architecture tests implemented in this project for enforcing coding standards and architectural constraints.
 
+> **Note on JUnit 6 compatibility:** ArchUnit 1.4.2 was compiled against JUnit Platform 1.14.x.
+> This project runs JUnit Platform 6.0.3; the TestEngine API classes ArchUnit calls still
+> exist in Platform 6, so the architecture tests pass today, but the combination is not
+> officially supported. Upgrade to a GA ArchUnit release that explicitly targets JUnit 6
+> when one is available (track: <https://github.com/TNG/ArchUnit/issues>).
+
 ## What is ArchUnit?
 
 ArchUnit is a Java library for testing architecture and coding rules. It allows you to express architectural assertions as readable and testable rules directly in your test code.

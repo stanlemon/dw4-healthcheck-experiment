@@ -164,7 +164,19 @@
                 <version>${byte-buddy.version}</version>
                 <scope>test</scope>
             </dependency>
-            <!-- ArchUnit dependency for architecture testing -->
+            <!--
+              ArchUnit dependency for architecture testing.
+
+              TODO: Upgrade to a release that declares JUnit Platform 6 compatibility.
+              ArchUnit 1.4.2 was compiled against junit-platform-engine 1.14.x; we override
+              junit-platform-engine to 6.0.3 via the test-dep pins above. The TestEngine APIs
+              ArchUnit calls still exist in Platform 6, so the 7 architecture tests pass
+              today, but this combination is not officially supported.
+              Track: https://github.com/TNG/ArchUnit/issues (search "JUnit 6").
+              Re-evaluate when ArchUnit publishes a GA release that declares
+              junit-platform:6.x as a compile dependency — the archunit-junit5 artifact
+              will likely be renamed or superseded by archunit-junit6.
+            -->
             <dependency>
                 <groupId>com.tngtech.archunit</groupId>
                 <artifactId>archunit-junit5</artifactId>
