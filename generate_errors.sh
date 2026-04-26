@@ -44,9 +44,9 @@ echo "Checking if server is running..."
 if ! curl -s --connect-timeout 5 http://localhost:8097/health/live > /dev/null 2>&1; then
     echo "Error: Server is not running on localhost:8097"
     echo "Please start the server first:"
-    echo "  mvn clean compile exec:java"
+    echo "  mvn -pl dw5-app exec:java"
     echo "  OR"
-    echo "  java -jar target/dw-test2-1.0-SNAPSHOT.jar server config.yml"
+    echo "  cd dw5-app && java -jar target/dw5-app-1.0-SNAPSHOT.jar server config.yml"
     exit 1
 fi
 echo "Server is running ✓"
