@@ -2,8 +2,8 @@ package com.stanlemon.healthy.spring3app.health;
 
 import com.stanlemon.healthy.metrics.HealthEvaluator;
 import com.stanlemon.healthy.metrics.HealthResponse;
-import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.health.contributor.Health;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.stereotype.Component;
 
 /** Health indicator that delegates to HealthEvaluator for threshold evaluation. */

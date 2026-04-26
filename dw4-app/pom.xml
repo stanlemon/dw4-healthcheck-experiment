@@ -13,7 +13,7 @@
     <artifactId>dw4-app</artifactId>
 
     <properties>
-        <dropwizard.version>4.0.17</dropwizard.version>
+        <dropwizard.version>5.0.1</dropwizard.version>
         <mainClass>com.stanlemon.healthy.dw4app.DwApplication</mainClass>
     </properties>
 

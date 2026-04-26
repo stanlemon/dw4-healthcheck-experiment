@@ -32,19 +32,22 @@ class ResourceIntegrationTest {
 
   @BeforeAll
   static void waitForAppToStart() {
-    // Wait for the application to fully start and be ready to accept requests
+    // Wait for the application to fully start and be ready to accept requests. Dropwizard 5
+    // tightens the default client connection pool, so each Response must be closed to avoid
+    // exhausting the pool across the suite — use try-with-resources throughout.
     await()
         .atMost(Duration.ofSeconds(30))
         .pollInterval(Duration.ofMillis(500))
         .ignoreExceptions()
         .untilAsserted(
             () -> {
-              Response response =
+              try (Response response =
                   APP.client()
                       .target(String.format("http://localhost:%d/healthcheck", APP.getAdminPort()))
                       .request()
-                      .get();
-              assertThat(response.getStatus()).isEqualTo(200);
+                      .get()) {
+                assertThat(response.getStatus()).isEqualTo(200);
+              }
             });
   }
 
@@ -54,28 +57,29 @@ class ResourceIntegrationTest {
     Client client = APP.client();
 
     // Reset state so prior tests in the shared APP extension don't leak errors/latency in.
-    Response clearResponse =
+    try (Response clearResponse =
         client
             .target(String.format("http://localhost:%d/tasks/clear-metrics", APP.getAdminPort()))
             .request()
-            .post(Entity.text(""));
-    assertThat(clearResponse.getStatus()).isEqualTo(200);
+            .post(Entity.text(""))) {
+      assertThat(clearResponse.getStatus()).isEqualTo(200);
+    }
 
-    Response response =
+    try (Response response =
         client
             .target(String.format("http://localhost:%d/metrics", APP.getLocalPort()))
             .request()
-            .get();
+            .get()) {
+      assertThat(response.getStatus()).isEqualTo(200);
 
-    assertThat(response.getStatus()).isEqualTo(200);
-
-    MetricsResponse entity = response.readEntity(MetricsResponse.class);
-    assertThat(entity.getTotalErrors()).isZero();
-    assertThat(entity.getErrorsLastMinute()).isZero();
-    assertThat(entity.isErrorThresholdBreached()).isFalse();
-    assertThat(entity.isLatencyThresholdBreached()).isFalse();
-    assertThat(entity.isHealthy()).isTrue();
-    assertThat(entity.getAvgLatencyLast60Seconds()).isGreaterThanOrEqualTo(0.0);
+      MetricsResponse entity = response.readEntity(MetricsResponse.class);
+      assertThat(entity.getTotalErrors()).isZero();
+      assertThat(entity.getErrorsLastMinute()).isZero();
+      assertThat(entity.isErrorThresholdBreached()).isFalse();
+      assertThat(entity.isLatencyThresholdBreached()).isFalse();
+      assertThat(entity.isHealthy()).isTrue();
+      assertThat(entity.getAvgLatencyLast60Seconds()).isGreaterThanOrEqualTo(0.0);
+    }
   }
 
   @Test
@@ -85,12 +89,13 @@ class ResourceIntegrationTest {
 
     // Make a few requests to generate latency data
     for (int i = 0; i < 5; i++) {
-      Response response =
+      try (Response response =
           client
               .target(String.format("http://localhost:%d/slow/1", APP.getLocalPort()))
               .request()
-              .get();
-      assertThat(response.getStatus()).isEqualTo(200);
+              .get()) {
+        assertThat(response.getStatus()).isEqualTo(200);
+      }
     }
 
     // Use Awaitility to wait for latency metrics to be recorded and stabilize
@@ -100,76 +105,70 @@ class ResourceIntegrationTest {
         .ignoreExceptions()
         .untilAsserted(
             () -> {
-              Response metricsResponse =
+              try (Response metricsResponse =
                   client
                       .target(String.format("http://localhost:%d/metrics", APP.getLocalPort()))
                       .request()
-                      .get();
+                      .get()) {
+                assertThat(metricsResponse.getStatus()).isEqualTo(200);
 
-              assertThat(metricsResponse.getStatus()).isEqualTo(200);
+                MetricsResponse metrics = metricsResponse.readEntity(MetricsResponse.class);
 
-              MetricsResponse metrics = metricsResponse.readEntity(MetricsResponse.class);
-
-              // Latency should be recorded and greater than 0
-              assertThat(metrics.getAvgLatencyLast60Seconds()).isGreaterThan(0.0);
-              // Should be reasonable latency (less than 1 second for simple requests)
-              assertThat(metrics.getAvgLatencyLast60Seconds()).isLessThan(1000.0);
-              // Since latency is well below 500ms threshold, it should not be breached
-              assertThat(metrics.isLatencyThresholdBreached()).isFalse();
+                // Latency should be recorded and greater than 0
+                assertThat(metrics.getAvgLatencyLast60Seconds()).isGreaterThan(0.0);
+                // Should be reasonable latency (less than 1 second for simple requests)
+                assertThat(metrics.getAvgLatencyLast60Seconds()).isLessThan(1000.0);
+                // Since latency is well below 500ms threshold, it should not be breached
+                assertThat(metrics.isLatencyThresholdBreached()).isFalse();
+              }
             });
   }
 
   @Test
   @Timeout(30)
   void healthcheckEndpoint_WhenCalled_ShouldReturnOkStatus() {
-    Client client = APP.client();
-
-    Response response =
-        client
+    try (Response response =
+        APP.client()
             .target(String.format("http://localhost:%d/healthcheck", APP.getAdminPort()))
             .request()
-            .get();
-
-    assertThat(response.getStatus()).isEqualTo(200);
+            .get()) {
+      assertThat(response.getStatus()).isEqualTo(200);
+    }
   }
 
   @Test
   @Timeout(30)
   void readinessEndpoint_WhenCalled_ShouldReturnHealthResponse() {
-    Client client = APP.client();
-
-    Response response =
-        client
+    try (Response response =
+        APP.client()
             .target(String.format("http://localhost:%d/health/ready", APP.getLocalPort()))
             .request()
-            .get();
+            .get()) {
+      assertThat(response.getStatus()).isEqualTo(200);
 
-    assertThat(response.getStatus()).isEqualTo(200);
-
-    HealthResponse entity = response.readEntity(HealthResponse.class);
-    assertThat(entity.getStatus()).isEqualTo("healthy");
-    assertThat(entity.isHealthy()).isTrue();
-    assertThat(entity.getMessage()).contains("OK");
-    assertThat(entity.getErrorsLastMinute()).isZero();
-    assertThat(entity.isErrorThresholdBreached()).isFalse();
-    assertThat(entity.isLatencyThresholdBreached()).isFalse();
+      HealthResponse entity = response.readEntity(HealthResponse.class);
+      assertThat(entity.getStatus()).isEqualTo("healthy");
+      assertThat(entity.isHealthy()).isTrue();
+      assertThat(entity.getMessage()).contains("OK");
+      assertThat(entity.getErrorsLastMinute()).isZero();
+      assertThat(entity.isErrorThresholdBreached()).isFalse();
+      assertThat(entity.isLatencyThresholdBreached()).isFalse();
+    }
   }
 
   @Test
   @Timeout(30)
   void livenessEndpoint_WhenCalled_ShouldReturnAliveResponse() {
-    Client client = APP.client();
-
-    Response response =
-        client
+    try (Response response =
+        APP.client()
             .target(String.format("http://localhost:%d/health/live", APP.getLocalPort()))
             .request()
-            .get();
+            .get()) {
+      assertThat(response.getStatus()).isEqualTo(200);
 
-    assertThat(response.getStatus()).isEqualTo(200);
-
-    LivenessResponse entity = response.readEntity(LivenessResponse.class);
-    assertThat(entity.getStatus()).isEqualTo("alive");
-    assertThat(entity.isAlive()).isTrue();
+      LivenessResponse entity = response.readEntity(LivenessResponse.class);
+      assertThat(entity.getStatus()).isEqualTo("alive");
+      assertThat(entity.isAlive()).isTrue();
+    }
   }
 }
