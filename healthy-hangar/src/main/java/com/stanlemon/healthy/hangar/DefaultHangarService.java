@@ -24,8 +24,11 @@ public class DefaultHangarService implements HangarService {
   private static final Comparator<PaperPlane> NEWEST_FIRST =
       Comparator.comparing(PaperPlane::getStowedAt).thenComparing(PaperPlane::getId).reversed();
 
+  // Size the backing map for MAX_PLANES + default load factor (0.75) so we don't resize as the
+  // hangar fills. (MAX_PLANES / 0.75) + 1 is the smallest bucket array that holds MAX_PLANES
+  // without triggering a rehash.
   private final Map<String, PaperPlane> planes =
-      new LinkedHashMap<>(16, 0.75f, false) {
+      new LinkedHashMap<>((int) (MAX_PLANES / 0.75f) + 1, 0.75f, false) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, PaperPlane> eldest) {
           return size() > MAX_PLANES;

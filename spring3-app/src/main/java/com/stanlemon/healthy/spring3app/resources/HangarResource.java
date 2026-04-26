@@ -6,6 +6,7 @@ import com.stanlemon.healthy.hangar.PaperPlane;
 import com.stanlemon.healthy.hangar.PaperPlaneRequest;
 import com.stanlemon.healthy.hangar.PaperPlaneResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
@@ -39,7 +40,8 @@ public class HangarResource {
   }
 
   @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<PaperPlaneResponse> stow(@Valid @RequestBody PaperPlaneRequest request) {
+  public ResponseEntity<PaperPlaneResponse> stow(
+      @NotNull @Valid @RequestBody PaperPlaneRequest request) {
     PaperPlane plane = hangarService.stow(request);
     PaperPlaneResponse body = new PaperPlaneResponse(plane, predictor.predictDistance(plane));
     var location =

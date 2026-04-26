@@ -107,14 +107,13 @@ class SlowResourceTest {
     }
 
     @Test
-    @DisplayName("Should accept delay of exactly 10000ms (at limit)")
-    void slowWithDelay_WhenExactlyAtLimit_ShouldReturn200() {
-      // We don't want to actually wait 10 seconds, so just verify it's accepted
-      // by checking the status is 200 (not 400)
-      // Note: This will actually sleep for 10s, so we test the validation only
-      // by verifying the response entity shows the correct delay was accepted
-      Response response = resource.slowWithDelay(10000);
-      assertThat(response.getStatus()).isEqualTo(200);
+    @DisplayName("Should reject delay one above the 10000ms limit")
+    void slowWithDelay_WhenOneAboveLimit_ShouldReturn400() {
+      // Verify the 10000ms cap is enforced from the other side — 10001 is rejected with a 400.
+      // We don't assert on the happy-path boundary (slowWithDelay(10000)) because it would
+      // actually Thread.sleep for 10 seconds in the test suite.
+      Response response = resource.slowWithDelay(10001);
+      assertThat(response.getStatus()).isEqualTo(400);
     }
   }
 

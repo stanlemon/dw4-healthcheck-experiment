@@ -69,8 +69,11 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ConstraintViolationException.class)
   public ResponseEntity<ErrorResponse> handleConstraintViolation(
       ConstraintViolationException exception) {
+    // Bean Validation messages can include field names, parameter paths, and occasionally the
+    // user-supplied value, so return a stable generic message to clients. Detail is in the log.
+    log.debug("Constraint violation", exception);
     return new ResponseEntity<>(
-        new ErrorResponse(HttpStatus.BAD_REQUEST.value(), exception.getMessage()),
+        new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Validation failed"),
         HttpStatus.BAD_REQUEST);
   }
 
