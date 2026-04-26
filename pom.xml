@@ -13,8 +13,8 @@
         <module>architecture-rules</module>
         <module>healthy-metrics</module>
         <module>healthy-hangar</module>
-        <module>dw4-app</module>
-        <module>spring3-app</module>
+        <module>dw5-app</module>
+        <module>spring4-app</module>
     </modules>
 
     <properties>

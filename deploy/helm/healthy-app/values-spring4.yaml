@@ -1,0 +1,14 @@
+appName: spring4-app
+
+image:
+  repository: spring4-app
+  tag: latest
+
+service:
+  port: 8080
+
+probes:
+  readiness:
+    port: 8080
+  liveness:
+    port: 8080

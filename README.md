@@ -27,8 +27,8 @@ healthy-parent/
 ├── architecture-rules/   # Shared ArchUnit rules for coding standards
 ├── healthy-metrics/      # Framework-agnostic metrics library
 ├── healthy-hangar/       # Framework-agnostic paper-airplane domain module
-├── dw4-app/              # Dropwizard 5.x application
-└── spring3-app/          # Spring Boot 4.x application
+├── dw5-app/              # Dropwizard 5.x application
+└── spring4-app/          # Spring Boot 4.x application
 ```
 
 - **healthy-metrics** has zero framework dependencies (only Jackson annotations). Both apps consume it through the `MetricsService` interface.
@@ -47,16 +47,16 @@ healthy-parent/
 mvn clean install -DskipTests -Dspotbugs.skip=true
 
 # Run the Dropwizard app (port 8097, admin on 8098)
-mvn exec:java -pl dw4-app
+mvn exec:java -pl dw5-app
 
 # Run the Spring Boot app (port 8080)
-mvn spring-boot:run -pl spring3-app
+mvn spring-boot:run -pl spring4-app
 ```
 
 To run both apps simultaneously, override the Spring Boot port:
 
 ```bash
-mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8081" -pl spring3-app
+mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8081" -pl spring4-app
 ```
 
 ## Endpoints
@@ -216,7 +216,7 @@ curl http://localhost:8097/health/ready
 
 ```bash
 mvn test                                          # All modules
-mvn test -pl dw4-app                              # Single module
+mvn test -pl dw5-app                              # Single module
 mvn test -Dtest=MetricsServiceTest -pl healthy-metrics  # Single class
 mvn clean test jacoco:report                      # With coverage
 ```

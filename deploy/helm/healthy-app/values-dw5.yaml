@@ -1,0 +1,16 @@
+appName: dw5-app
+
+image:
+  repository: dw5-app
+  tag: latest
+
+service:
+  port: 8097
+
+adminPort: 8098
+
+probes:
+  readiness:
+    port: 8097
+  liveness:
+    port: 8097
