@@ -11,8 +11,8 @@
     </parent>
 
     <artifactId>spring3-app</artifactId>
-    <name>Spring Boot 3 Application</name>
-    <description>Spring Boot 3 implementation for health metrics</description>
+    <name>Spring Boot 4 Application</name>
+    <description>Spring Boot 4 implementation for health metrics</description>
 
     <properties>
         <spring-boot.version>4.0.6</spring-boot.version>

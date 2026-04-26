@@ -1,6 +1,6 @@
 # Multi-App Metrics Project
 
-A multi-module project demonstrating real-time metrics collection and health monitoring in both Dropwizard 4 and Spring Boot 3 applications. The same framework-agnostic metrics library drives health checks in both frameworks.
+A multi-module project demonstrating real-time metrics collection and health monitoring in both Dropwizard 5 and Spring Boot 4 applications. The same framework-agnostic metrics library drives health checks in both frameworks.
 
 The goal is to prove that core metrics and health logic can live in a shared library with zero framework dependencies, while two different web frameworks consume it and produce identical API behavior. This makes framework choice a deployment decision rather than an architectural one.
 
@@ -27,8 +27,8 @@ healthy-parent/
 ├── architecture-rules/   # Shared ArchUnit rules for coding standards
 ├── healthy-metrics/      # Framework-agnostic metrics library
 ├── healthy-hangar/       # Framework-agnostic paper-airplane domain module
-├── dw4-app/              # Dropwizard 4.x application
-└── spring3-app/          # Spring Boot 3.x application
+├── dw4-app/              # Dropwizard 5.x application
+└── spring3-app/          # Spring Boot 4.x application
 ```
 
 - **healthy-metrics** has zero framework dependencies (only Jackson annotations). Both apps consume it through the `MetricsService` interface.
