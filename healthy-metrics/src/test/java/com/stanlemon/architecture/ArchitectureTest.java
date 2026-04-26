@@ -47,9 +47,10 @@ class ArchitectureTest {
   }
 
   @Test
-  @DisplayName("Shared module must not depend on any framework-specific packages")
-  void sharedModuleShouldNotDependOnFrameworks() {
-    ArchRule rule = ArchitectureRules.noFrameworkDependencies("com.stanlemon.healthy.metrics");
+  @DisplayName("Shared module must not depend on any container-framework packages")
+  void sharedModuleShouldNotDependOnContainerFrameworks() {
+    ArchRule rule =
+        ArchitectureRules.noContainerFrameworkDependencies("com.stanlemon.healthy.metrics");
     rule.check(importedClasses);
   }
 }

@@ -1,179 +1,103 @@
 # ArchUnit Integration Guide
 
-This guide explains the ArchUnit architecture tests implemented in this project for enforcing coding standards and architectural constraints.
+Architecture and coding-standard rules are enforced as executable tests via [ArchUnit](https://www.archunit.org/).
 
-> **Note on JUnit 6 compatibility:** ArchUnit 1.4.2 was compiled against JUnit Platform 1.14.x.
-> This project runs JUnit Platform 6.0.3; the TestEngine API classes ArchUnit calls still
-> exist in Platform 6, so the architecture tests pass today, but the combination is not
-> officially supported. Upgrade to a GA ArchUnit release that explicitly targets JUnit 6
-> when one is available (track: <https://github.com/TNG/ArchUnit/issues>).
+> **Note on JUnit 6 compatibility:** ArchUnit 1.4.2 was compiled against JUnit Platform
+> 1.14.x. This project runs JUnit Platform 6.0.3; the TestEngine API classes ArchUnit calls
+> still exist in Platform 6, so the architecture tests pass today, but the combination is
+> not officially supported. Upgrade when a GA ArchUnit release that targets JUnit 6 is
+> available (track: <https://github.com/TNG/ArchUnit/issues>).
 
-## What is ArchUnit?
+## Project layout
 
-ArchUnit is a Java library for testing architecture and coding rules. It allows you to express architectural assertions as readable and testable rules directly in your test code.
+The rules themselves live in the `architecture-rules/` module:
 
-## Current ArchUnit Tests
+- `ArchitectureRules.java` — factory methods returning reusable `ArchRule`s
+  (e.g. `noContainerFrameworkDependencies`, `noCircularDependencies`, `servicesEndWithService`).
+- `CodingRules.java` — factory methods for the coding-standard rules.
+- `CodingRulesRunner.java` — a helper that applies the full coding-rules suite to a given
+  package in one call.
 
-This project has six comprehensive ArchUnit test classes:
+Each module then has its own test class or two that imports those factories and applies
+them to its own classes:
 
-### CodingRulesTest
-Enforces general coding standards and best practices:
+| Module | Architecture tests | Coding-rules tests |
+| --- | --- | --- |
+| `healthy-metrics` | `ArchitectureTest` | `CodingRulesTest` |
+| `healthy-hangar` | `ArchitectureTest` | `CodingRulesTest` |
+| `dw5-app` | `ArchitectureTest` | (inherits via `CodingRulesRunner` call in `ArchitectureTest`) |
+| `spring4-app` | `ArchitectureTest` | `CodingRulesTest` |
 
-- **No java.util.Date usage** - Enforces use of modern `java.time` API
-- **No generic exceptions** - Prevents throwing `Exception`, `RuntimeException`, etc.
-- **No java.util.logging** - Enforces use of SLF4J/Logback logging
-- **No System.out/System.err** - Prevents console output in production code
-- **No Thread.sleep()** - Prevents flaky tests (except in SlowResource for demonstration)
-- **No public fields** - Enforces encapsulation (excludes enums and constants)
-- **No JUnit assertions** - Enforces use of AssertJ for better readability
+All test classes live under `com.stanlemon.architecture` in their module's test sources.
 
-### ArchitectureTest
-Enforces architectural patterns and package structure:
+## Rules enforced
 
-- **Resource dependency isolation** - Resources should only depend on service interfaces, not implementations
-- **Implementation hiding** - Resources cannot depend on classes with "Default" in the name
-- **Package organization** - Exception mappers must reside in the exceptions package
-- **Naming conventions** - Resources end with "Resource", services end with "Service"
-- **REST controller patterns** - Resources must be annotated with `@Path`
-- **Circular dependency prevention** - No circular dependencies between packages
-- **Layer dependency enforcement** - Proper dependency flow between architectural layers
-- **Service interface patterns** - Service interfaces follow naming conventions
+### Coding standards (`CodingRules`)
 
-### SecurityRulesTest
-Enforces security best practices:
+Applied via `CodingRulesRunner.checkAllCodingStandards(importedClasses, /* exceptions */ ...)`:
 
-- **No hardcoded secrets** - Prevents hardcoded passwords, API keys, tokens, or secrets
-- **SQL injection prevention** - Prevents dangerous string concatenation with SQL keywords
-- **Safe reflection usage** - Prevents unsafe reflection methods like `setAccessible`
-- **Database credential externalization** - Ensures database credentials are not hardcoded
+- No `java.util.Date` — use `java.time`.
+- No generic exceptions — no `throw new Exception(...)` / `RuntimeException(...)`.
+- No `java.util.logging` — use SLF4J.
+- No `System.out` / `System.err` — use the logger.
+- No `Thread.sleep(...)` in tests (`SlowResource` is the documented demo exception).
+- No public fields — enforce encapsulation via accessors.
+- No direct JUnit assertions (`assertEquals`, etc.) — use AssertJ.
 
-### DropwizardRulesTest
-Enforces Dropwizard-specific patterns:
+### Architectural patterns (`ArchitectureRules`)
 
-- **HealthCheck extension** - Health checks must extend Dropwizard's HealthCheck
-- **Provider annotation** - Exception mappers must be annotated with `@Provider`
-- **HTTP method annotations** - Resources must use proper JAX-RS annotations
-- **Configuration inheritance** - Configuration classes must extend Dropwizard's Configuration
-- **Application structure** - Application classes must extend Dropwizard's Application
-- **Managed lifecycle** - Managed objects must implement Managed interface
+- **`noContainerFrameworkDependencies(basePackage)`** — the shared domain modules
+  (`healthy-metrics`, `healthy-hangar`) must not depend on `org.springframework`,
+  `io.dropwizard`, `jakarta.ws.rs`, or `org.glassfish`. This guards the
+  framework-agnostic invariant of those modules. Note: Jackson annotations and
+  `jakarta.validation` annotations are *not* banned — they are deliberately allowed so
+  DTOs can remain cross-framework compatible.
+- **`noCircularDependencies(packagePattern)`** — no cycles between packages.
+- **`servicesEndWithService(servicePackage)`** — implementation classes that implement
+  a `*Service` interface must themselves end with `Service` (so `DefaultMetricsService`
+  and `DefaultHangarService` are checked, but plain value types aren't).
 
-### LombokRulesTest
-Enforces proper Lombok usage patterns:
+App-specific architecture tests also enforce:
 
-- **Data class annotations** - Prevents manual getter/setter implementations when Lombok is available
-- **Builder pattern** - Enforces use of `@Builder` for builder patterns
-- **No manual boilerplate** - Prevents manual `equals`, `hashCode`, `toString` when using Lombok
-- **Immutability patterns** - Enforces `@Value` for immutable classes
-- **Response DTO immutability** - Response DTOs should use `@Value` for immutability
+- **`@Path` present** on every Dropwizard resource (JAX-RS), or `@RestController`
+  present on every Spring controller.
+- **No dependency on `Default*` implementations** from production code — callers
+  use interfaces so the default can be swapped.
+- **Exception mappers live in the `exceptions` package**.
 
-### TestQualityRulesTest
-Enforces test quality and organization:
+## Running
 
-- **Test naming conventions** - `methodName_WhenCondition_ShouldExpectedResult` pattern
-- **DisplayName annotations** - All test classes and methods must have descriptive names
-- **Nested organization** - Complex test classes should use `@Nested` for organization
-- **Mock usage limits** - Prevents over-mocking (max 3 mocks per test class)
-- **Test package organization** - Integration tests in separate packages
-- **Proper test setup** - Test classes should use `@BeforeEach` or `@BeforeAll`
-
-### PerformanceRulesTest
-Enforces performance best practices:
-
-- **No reflection in hot paths** - Prevents reflection in performance-critical code
-- **Concurrent collections** - Enforces thread-safe collections in multi-threaded code
-- **Atomic operations** - Thread-safe counters should use `AtomicLong`
-- **String concatenation** - Prevents inefficient string operations
-- **Collection interfaces** - Use specific collection interfaces over general ones
-- **Primitive types** - Avoid autoboxing in performance-critical code
-- **Efficient data structures** - Use appropriate concurrent data structures
-
-## Running ArchUnit Tests
-
-### Running All Tests
 ```bash
-# Run all tests including ArchUnit tests
+# Full reactor test run (includes architecture tests)
 mvn test
+
+# Just the architecture package, one module
+mvn test -pl healthy-hangar -Dtest='com.stanlemon.architecture.*'
 ```
 
-### Running Only Architecture Tests
-```bash
-# Run just the architecture tests
-mvn test -Dtest=*Architecture*
+## Adding a new rule
 
-# Or run specific test classes
-mvn test -Dtest=CodingRulesTest
-mvn test -Dtest=ArchitectureTest
-```
+1. Add a factory method to `architecture-rules/.../ArchitectureRules.java` or
+   `CodingRules.java`. Keep the rule package-agnostic so every module can reuse it.
+2. Call the factory from `com.stanlemon.architecture.ArchitectureTest` in whichever
+   module(s) the rule applies to. Use `rule.allowEmptyShould(true)` if the rule could
+   have zero matches in some modules.
+3. Run `mvn test -pl <module>` to confirm the rule fires correctly.
 
-### Convenience Script
-```bash
-# Use the provided script to run architecture tests specifically
-./run-archunit-tests.sh
-```
+Example:
 
-## Test Implementation Details
-
-Both test classes follow a common pattern:
-
-1. **Setup Phase**: Import all classes from `com.stanlemon.healthy.dw5app` package using `ClassFileImporter`
-2. **Rule Definition**: Define architectural rules using ArchUnit's fluent API
-3. **Rule Execution**: Apply rules to imported classes with descriptive failure messages
-
-Example rule structure:
 ```java
 @Test
-@DisplayName("Descriptive test name")
-void testMethodName() {
-    ArchRule rule = noClasses()
-        .that().meetSomeCondition()
-        .should().notDoSomething()
-        .because("Clear explanation of why this rule exists");
-    
-    rule.check(importedClasses);
+@DisplayName("Resources should not use static methods")
+void resourcesShouldNotUseStaticMethods() {
+  ArchRule rule =
+      noClasses()
+          .that()
+          .resideInAPackage("..resources..")
+          .should()
+          .haveMethodsThat()
+          .areStatic()
+          .because("Resources should use dependency injection");
+  rule.check(importedClasses);
 }
 ```
-
-## Key Architectural Constraints
-
-### Dependency Management
-- Resources only depend on service interfaces, not concrete implementations
-- No circular dependencies between packages
-- Implementation details are hidden from higher layers
-
-### Naming Standards
-- Resource classes: `*Resource`
-- Service implementations: `*Service`
-- Exception mappers: `*ExceptionMapper` (in exceptions package)
-
-### Coding Standards
-- Modern Java APIs (java.time instead of java.util.Date)
-- Proper logging (SLF4J instead of System.out or java.util.logging)
-- Strong typing (specific exceptions instead of generic ones)
-- AssertJ assertions instead of JUnit assertions
-
-## Adding New Rules
-
-To add custom architecture tests:
-
-1. Add new test methods to existing classes or create new test classes in `src/test/java/com/example/dw/architecture/`
-2. Use ArchUnit's fluent API to define rules
-3. Include clear `@DisplayName` annotations and descriptive `because()` clauses
-4. Follow the established pattern of importing classes in `@BeforeAll` setup
-
-Example new rule:
-```java
-@Test
-@DisplayName("Services should not use static methods")
-void servicesShouldNotUseStaticMethods() {
-    ArchRule rule = noClasses()
-        .that().resideInAPackage("..metrics..")
-        .should().haveMethodsThat().areStatic()
-        .because("Services should use dependency injection instead of static methods");
-    
-    rule.check(importedClasses);
-}
-```
-
-## Integration with CI/CD
-
-These architecture tests run automatically as part of the test suite, ensuring architectural constraints are enforced consistently across all builds and deployments.

@@ -46,16 +46,17 @@ public class GlobalExceptionHandler {
     // HttpStatusCode accepts arbitrary integers; HttpStatus.valueOf throws for non-enum codes.
     HttpStatusCode status = HttpStatusCode.valueOf(exception.getStatusCode().value());
 
+    String message;
     if (status.is5xxServerError()) {
       log.error("Status exception", exception);
       metricsService.recordServerError();
+      message = "Internal server error";
+    } else {
+      // 4xx: the reason string is programmer-controlled (e.g. "Plane not found"), safe to echo.
+      message = exception.getReason() != null ? exception.getReason() : "Not found";
     }
 
-    ErrorResponse errorResponse =
-        new ErrorResponse(
-            status.value(), exception.getReason() != null ? exception.getReason() : "Server Error");
-
-    return new ResponseEntity<>(errorResponse, status);
+    return new ResponseEntity<>(new ErrorResponse(status.value(), message), status);
   }
 
   /**
@@ -92,12 +93,17 @@ public class GlobalExceptionHandler {
             ? HttpStatusCode.valueOf(springError.getStatusCode().value())
             : HttpStatus.INTERNAL_SERVER_ERROR;
 
+    String message;
     if (status.is5xxServerError()) {
       log.error("Unhandled exception", exception);
       metricsService.recordServerError();
+      // Do not echo raw exception messages on 5xx — they may leak SQL, file paths, or hostnames.
+      // The detail is in the log; the client only needs to know that the server failed.
+      message = "Internal server error";
+    } else {
+      // 4xx messages from Spring framework exceptions describe the request problem, safe to echo.
+      message = exception.getMessage() != null ? exception.getMessage() : "Bad request";
     }
-
-    String message = exception.getMessage() != null ? exception.getMessage() : "Server Error";
 
     return new ResponseEntity<>(new ErrorResponse(status.value(), message), status);
   }

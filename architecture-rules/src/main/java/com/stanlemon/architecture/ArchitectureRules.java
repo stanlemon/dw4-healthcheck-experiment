@@ -19,13 +19,20 @@ public final class ArchitectureRules {
   }
 
   /**
-   * Rule: Shared domain modules must not depend on any framework-specific packages.
+   * Rule: Shared domain modules must not depend on container-framework packages.
+   *
+   * <p>This bans Spring Framework, Dropwizard/Jersey, and the JAX-RS container packages so the same
+   * classes can ship in both runtimes. It deliberately does <em>not</em> ban all "framework"
+   * annotations: DTOs in shared modules are allowed to carry {@code jakarta.validation} and {@code
+   * com.fasterxml.jackson.annotation} annotations. Those are cross-framework and honored by both
+   * runtimes (validation is enforced by either Dropwizard or Spring at the resource boundary;
+   * Jackson 3 still uses the 2.x annotation artifact).
    *
    * @param basePackage Package pattern for the shared module (e.g.,
    *     "com.stanlemon.healthy.metrics")
-   * @return ArchRule that prevents framework coupling in shared modules
+   * @return ArchRule that prevents container-framework coupling in shared modules
    */
-  public static ArchRule noFrameworkDependencies(String basePackage) {
+  public static ArchRule noContainerFrameworkDependencies(String basePackage) {
     return noClasses()
         .that()
         .resideInAPackage(basePackage + "..")
@@ -34,7 +41,7 @@ public final class ArchitectureRules {
         .resideInAnyPackage(
             "org.springframework..", "io.dropwizard..", "jakarta.ws.rs..", "org.glassfish..")
         .because(
-            "Shared domain modules must remain framework-agnostic so the same "
+            "Shared domain modules must remain container-framework-agnostic so the same "
                 + "implementation can ship in both Dropwizard and Spring runtimes");
   }
 

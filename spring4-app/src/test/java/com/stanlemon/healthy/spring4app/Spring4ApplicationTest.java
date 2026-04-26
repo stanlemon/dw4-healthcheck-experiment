@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@DisplayName("Spring 3 Application Tests")
+@DisplayName("Spring 4 Application Tests")
 @SpringBootTest
 class Spring4ApplicationTest {
 

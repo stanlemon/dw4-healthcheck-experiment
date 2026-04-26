@@ -45,7 +45,7 @@ class GlobalExceptionMapperTest {
 
     assertThat(entityMap(response))
         .containsEntry("code", 500)
-        .containsEntry("message", "Test runtime exception");
+        .containsEntry("message", "Internal server error");
   }
 
   @Test
@@ -78,7 +78,7 @@ class GlobalExceptionMapperTest {
 
     assertThat(response.getStatus()).isEqualTo(500);
     assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(1);
-    assertThat(entityMap(response)).containsEntry("message", "Server Error");
+    assertThat(entityMap(response)).containsEntry("message", "Internal server error");
   }
 
   @Test
@@ -96,7 +96,7 @@ class GlobalExceptionMapperTest {
     assertThat(response.getStatus()).isEqualTo(500);
     assertThat(entityMap(response))
         .containsEntry("code", 500)
-        .containsEntry("message", "Test exception");
+        .containsEntry("message", "Internal server error");
     assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(1);
   }
 

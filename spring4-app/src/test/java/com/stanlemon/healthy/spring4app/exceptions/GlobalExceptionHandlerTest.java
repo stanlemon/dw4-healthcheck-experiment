@@ -54,7 +54,7 @@ class GlobalExceptionHandlerTest {
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
     assertThat(response.getBody()).isNotNull();
     assertThat(response.getBody().getCode()).isEqualTo(503);
-    assertThat(response.getBody().getMessage()).isEqualTo("Service down");
+    assertThat(response.getBody().getMessage()).isEqualTo("Internal server error");
     assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(1);
   }
 
@@ -74,7 +74,7 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
-  @DisplayName("Should fall back to 'Server Error' when ResponseStatusException reason is null")
+  @DisplayName("Should fall back to 'Not found' when ResponseStatusException reason is null")
   void handleResponseStatusException_WhenReasonNull_ShouldUseFallbackMessage() {
     ResponseStatusException exception = new ResponseStatusException(HttpStatus.NOT_FOUND);
 
@@ -83,7 +83,7 @@ class GlobalExceptionHandlerTest {
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     assertThat(response.getBody()).isNotNull();
-    assertThat(response.getBody().getMessage()).isEqualTo("Server Error");
+    assertThat(response.getBody().getMessage()).isEqualTo("Not found");
   }
 
   @Test
@@ -111,13 +111,13 @@ class GlobalExceptionHandlerTest {
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     assertThat(response.getBody()).isNotNull();
-    assertThat(response.getBody().getMessage()).isEqualTo("Test exception");
+    assertThat(response.getBody().getMessage()).isEqualTo("Internal server error");
     assertThat(response.getBody().getCode()).isEqualTo(500);
     assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(1);
   }
 
   @Test
-  @DisplayName("Should use fallback message when exception message is null")
+  @DisplayName("Should redact null message to generic internal server error")
   void handleException_WhenNullMessage_ShouldUseFallback() {
     Exception exception = new SomethingWentWrongException(null);
 
@@ -126,7 +126,7 @@ class GlobalExceptionHandlerTest {
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     assertThat(response.getBody()).isNotNull();
-    assertThat(response.getBody().getMessage()).isEqualTo("Server Error");
+    assertThat(response.getBody().getMessage()).isEqualTo("Internal server error");
     assertThat(response.getBody().getCode()).isEqualTo(500);
     assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(1);
   }

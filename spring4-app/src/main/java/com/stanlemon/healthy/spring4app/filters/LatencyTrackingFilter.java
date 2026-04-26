@@ -41,9 +41,19 @@ public class LatencyTrackingFilter extends OncePerRequestFilter {
       filterChain.doFilter(request, response);
     } finally {
       final long latencyMs = System.currentTimeMillis() - startTime;
-      metricsService.recordRequestLatency(latencyMs);
+      // Skip health-probe and actuator traffic. Kubernetes polls /health/* every few seconds
+      // with tiny response bodies; counting them in the 60-second average drags it toward zero
+      // and masks real latency regressions.
+      if (!isHealthProbe(request.getRequestURI())) {
+        metricsService.recordRequestLatency(latencyMs);
+      }
 
       log.debug("Request to {} took {}ms to process", request.getRequestURI(), latencyMs);
     }
+  }
+
+  private static boolean isHealthProbe(String uri) {
+    return uri != null
+        && (uri.startsWith("/health/") || uri.equals("/health") || uri.startsWith("/actuator/"));
   }
 }

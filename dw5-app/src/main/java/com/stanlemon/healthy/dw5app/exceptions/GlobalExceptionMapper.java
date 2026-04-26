@@ -41,19 +41,22 @@ public class GlobalExceptionMapper implements ExceptionMapper<Throwable> {
             ? webAppException.getResponse().getStatus()
             : Response.Status.INTERNAL_SERVER_ERROR.getStatusCode();
 
+    String message;
     if (status >= 500 && status < 600) {
       log.error("Unhandled exception", exception);
       metricsService.recordServerError();
+      // Do not echo raw exception messages on 5xx — they may leak SQL, file paths, or hostnames.
+      // The detail is in the log; the client only needs to know that the server failed.
+      message = "Internal server error";
+    } else {
+      // 4xx messages come from WebApplicationException("Plane not found") or similar — explicit,
+      // programmer-controlled, safe to return.
+      message = exception.getMessage() != null ? exception.getMessage() : "Bad request";
     }
 
     return Response.status(status)
         .type(MediaType.APPLICATION_JSON_TYPE)
-        .entity(
-            Map.of(
-                "code",
-                status,
-                "message",
-                exception.getMessage() != null ? exception.getMessage() : "Server Error"))
+        .entity(Map.of("code", status, "message", message))
         .build();
   }
 }

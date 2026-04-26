@@ -4,11 +4,17 @@ server:
     - type: http
       port: 8097
   adminConnectors:
+    # Bind the admin connector to loopback only. It exposes operational tasks
+    # (/tasks/clear-metrics, /tasks/gc, /tasks/log-level) with no authentication,
+    # so it must never be reachable from outside the host.
     - type: http
       port: 8098
+      bindHost: 127.0.0.1
+  # Finish in-flight requests before shutting down on SIGTERM.
+  shutdownGracePeriod: 30s
 
 # Logging settings
 logging:
   level: INFO
   loggers:
-    com.stanlemon.healthy.dw5app: DEBUG
+    com.stanlemon.healthy.dw5app: INFO
