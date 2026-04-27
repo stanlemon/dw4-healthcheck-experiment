@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -73,6 +74,24 @@ public class GlobalExceptionHandler {
     // Bean Validation messages can include field names, parameter paths, and occasionally the
     // user-supplied value, so return a stable generic message to clients. Detail is in the log.
     log.debug("Constraint violation", exception);
+    return new ResponseEntity<>(
+        new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Validation failed"),
+        HttpStatus.BAD_REQUEST);
+  }
+
+  /**
+   * Handles @Valid @RequestBody validation failures (MethodArgumentNotValidException). Without a
+   * dedicated handler these flow through handleException and get the framework-generated message,
+   * which embeds method signatures and field paths. Route them to the same "Validation failed"
+   * shape as handleConstraintViolation for a consistent 400 response across validation sources.
+   *
+   * @param exception the MethodArgumentNotValidException to handle
+   * @return 400 Bad Request with error details
+   */
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(
+      MethodArgumentNotValidException exception) {
+    log.debug("Request body validation failure", exception);
     return new ResponseEntity<>(
         new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Validation failed"),
         HttpStatus.BAD_REQUEST);
