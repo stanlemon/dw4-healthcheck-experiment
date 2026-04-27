@@ -1,7 +1,5 @@
 package com.stanlemon.healthy.metrics;
 
-import javax.annotation.concurrent.ThreadSafe;
-
 /**
  * Service interface to track application metrics, including error counts and request latency in
  * sliding windows. Implementations should provide high-performance collection and retrieval of
@@ -11,11 +9,10 @@ import javax.annotation.concurrent.ThreadSafe;
  * will occur from multiple concurrent threads. All methods should support concurrent invocation
  * without external synchronization.
  *
- * <p>The implementation is designed to be used as a singleton service injected by Dropwizard.
- * Classes using this interface are not required to create defensive copies when storing references
- * to implementations, as they are designed to be shared across components.
+ * <p>Intended to be wired as a singleton by the host framework (Dropwizard or Spring Boot in this
+ * project). Consumers may store references without defensive copying — the shared instance is the
+ * design.
  */
-@ThreadSafe
 public interface MetricsService {
 
   /**

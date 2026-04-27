@@ -398,8 +398,6 @@ class MetricsServiceTest {
       DefaultMetricsService instance1 = new DefaultMetricsService();
       DefaultMetricsService instance2 = new DefaultMetricsService();
 
-      assertThat(instance1).isNotSameAs(instance2);
-
       instance1.recordServerError();
       assertThat(instance1.getErrorCountLastMinute()).isEqualTo(1);
       assertThat(instance2.getErrorCountLastMinute()).isZero();
@@ -636,6 +634,32 @@ class MetricsServiceTest {
       advanceBy(Duration.ofSeconds(65));
 
       assertThat(svc.getErrorCountLastMinute()).isZero();
+    }
+
+    @Test
+    void errors_WhenClockMovesBackward_ShouldResetInsteadOfLingering() {
+      svc.recordServerError();
+      assertThat(svc.getErrorCountLastMinute()).isEqualTo(1);
+
+      // NTP step-back / VM resume: clock jumps into the past.
+      advanceBy(Duration.ofSeconds(-5));
+      assertThat(svc.getErrorCountLastMinute()).isZero();
+
+      // New writes continue to work against the realigned timestamp.
+      svc.recordServerError();
+      assertThat(svc.getErrorCountLastMinute()).isEqualTo(1);
+    }
+
+    @Test
+    void latency_WhenClockMovesBackward_ShouldResetInsteadOfLingering() {
+      svc.recordRequestLatency(100);
+      assertThat(svc.getTotalRequestCountLast60Seconds()).isEqualTo(1);
+
+      advanceBy(Duration.ofSeconds(-5));
+      assertThat(svc.getTotalRequestCountLast60Seconds()).isZero();
+
+      svc.recordRequestLatency(200);
+      assertThat(svc.getAverageLatencyLast60Seconds()).isEqualTo(200.0);
     }
 
     @Test
