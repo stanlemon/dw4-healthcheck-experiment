@@ -25,7 +25,7 @@ them to its own classes:
 | --- | --- | --- |
 | `healthy-metrics` | `ArchitectureTest` | `CodingRulesTest` |
 | `healthy-hangar` | `ArchitectureTest` | `CodingRulesTest` |
-| `dw5-app` | `ArchitectureTest` | (inherits via `CodingRulesRunner` call in `ArchitectureTest`) |
+| `dw5-app` | `ArchitectureTest` | `CodingRulesTest` |
 | `spring4-app` | `ArchitectureTest` | `CodingRulesTest` |
 
 All test classes live under `com.stanlemon.architecture` in their module's test sources.

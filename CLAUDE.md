@@ -252,7 +252,7 @@ This project uses Spotless with Google Java Format (version 1.28.0) with the fol
 ### Quality Tools
 - **SpotBugs**: Avoid security vulnerabilities and common bugs (use `maven-spotbugs-analyzer` agent)
 - **FindSecBugs**: Security-focused static analysis plugin for SpotBugs
-- **Test Coverage**: Maintain high test coverage (70%+ minimum)
+- **Test Coverage**: JaCoCo enforces 90% line / 80% branch minimums per module
 - **ArchUnit**: Architecture testing to enforce coding standards and design rules
 - **Maven Enforcer**: Enforce dependency rules and security constraints
 

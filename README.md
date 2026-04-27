@@ -236,7 +236,7 @@ mvn clean verify           # All checks
 
 - **Spotless**: Google Java Format 1.28.0
 - **SpotBugs + FindSecBugs**: Static analysis and security scanning
-- **JaCoCo**: 70% minimum line coverage
+- **JaCoCo**: 90% minimum line / 80% minimum branch coverage
 - **ArchUnit**: Architecture rules enforced via shared `architecture-rules` module
 - **Maven Enforcer**: Blocks known-vulnerable dependency versions (Log4j, Jackson, Commons Collections)
 
