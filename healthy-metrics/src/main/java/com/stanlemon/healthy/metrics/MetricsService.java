@@ -29,7 +29,7 @@ public interface MetricsService {
   long getErrorCountLastMinute();
 
   /**
-   * Get the total count of errors recorded since the service started or was last cleared.
+   * Get the total count of errors recorded since the service started.
    *
    * @return total error count
    */
@@ -105,7 +105,4 @@ public interface MetricsService {
    * @return the default latency threshold in milliseconds
    */
   double getDefaultLatencyThresholdMs();
-
-  /** Clear all metrics (useful for testing). */
-  void clearMetrics();
 }

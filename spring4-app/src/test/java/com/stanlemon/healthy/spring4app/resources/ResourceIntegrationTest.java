@@ -6,16 +6,15 @@ import static org.awaitility.Awaitility.await;
 import com.stanlemon.healthy.metrics.HealthResponse;
 import com.stanlemon.healthy.metrics.LivenessResponse;
 import com.stanlemon.healthy.metrics.MetricsResponse;
-import com.stanlemon.healthy.metrics.MetricsService;
 import java.time.Duration;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.Timeout;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestClient;
 
@@ -27,12 +26,12 @@ class ResourceIntegrationTest {
 
   @LocalServerPort private int port;
 
-  @Autowired private MetricsService metricsService;
-
   private RestClient restClient;
 
-  @BeforeAll
+  @BeforeEach
   void setUp() {
+    // Rebuild per-test: @DirtiesContext on one method restarts Tomcat on a new port, so we can't
+    // cache the RestClient across methods.
     restClient = RestClient.create("http://localhost:" + port);
 
     // Spring Boot 4 removed TestRestTemplate in favor of Spring Framework's RestClient.
@@ -56,10 +55,11 @@ class ResourceIntegrationTest {
 
   @Test
   @Timeout(30)
+  @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
   void metricsEndpoint_WhenCalledWithCleanMetrics_ShouldReturnHealthyState() {
-    // Reset state so prior tests in the shared Spring context don't leak errors/latency in.
-    metricsService.clearMetrics();
-
+    // @DirtiesContext rebuilds the Spring context (and the MetricsService singleton) before this
+    // method runs, so prior tests in the shared context can't leak errors/latency into the
+    // assertions below.
     MetricsResponse metrics =
         restClient.get().uri("/metrics").retrieve().body(MetricsResponse.class);
 

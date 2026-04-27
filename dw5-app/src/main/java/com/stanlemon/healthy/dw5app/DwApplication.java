@@ -10,7 +10,6 @@ import com.stanlemon.healthy.dw5app.resources.MetricsResource;
 import com.stanlemon.healthy.dw5app.resources.ReadinessResource;
 import com.stanlemon.healthy.dw5app.resources.SlowResource;
 import com.stanlemon.healthy.dw5app.resources.TestErrorsResource;
-import com.stanlemon.healthy.dw5app.tasks.ClearMetricsTask;
 import com.stanlemon.healthy.hangar.AerodynamicsPredictor;
 import com.stanlemon.healthy.hangar.DefaultAerodynamicsPredictor;
 import com.stanlemon.healthy.hangar.DefaultHangarService;
@@ -80,8 +79,6 @@ public class DwApplication extends Application<DwConfiguration> {
 
     environment.jersey().register(new ConstraintViolationExceptionMapper());
     environment.jersey().register(new GlobalExceptionMapper(metricsService));
-
-    environment.admin().addTask(new ClearMetricsTask(metricsService));
 
     environment.healthChecks().register("application", new ApplicationHealthCheck(healthEvaluator));
   }

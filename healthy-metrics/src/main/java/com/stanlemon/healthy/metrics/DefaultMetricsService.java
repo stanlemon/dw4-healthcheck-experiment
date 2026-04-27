@@ -278,21 +278,4 @@ public class DefaultMetricsService implements MetricsService {
       }
     }
   }
-
-  @Override
-  public synchronized void clearMetrics() {
-    for (AtomicLong bucket : errorBuckets) {
-      bucket.set(0);
-    }
-    totalErrorCount.set(0);
-    lastBucketTime.set(-1);
-
-    for (int i = 0; i < latencyBucketCount; i++) {
-      latencyTotalBuckets[i].set(0);
-      latencyCountBuckets[i].set(0);
-    }
-    lastLatencyBucketTime.set(-1);
-
-    totalRequestCount.set(0);
-  }
 }

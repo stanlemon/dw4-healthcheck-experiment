@@ -12,10 +12,9 @@ import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.Response;
 import java.time.Duration;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -27,11 +26,13 @@ class ResourceIntegrationTest {
 
   private static final String CONFIG_PATH = ResourceHelpers.resourceFilePath("test-config.yml");
 
-  static final DropwizardAppExtension<DwConfiguration> APP =
+  // Instance (non-static) extension → Dropwizard starts a fresh app per test method, giving each
+  // test clean metrics state without needing an admin-side reset task.
+  final DropwizardAppExtension<DwConfiguration> app =
       new DropwizardAppExtension<>(DwApplication.class, CONFIG_PATH);
 
-  @BeforeAll
-  static void waitForAppToStart() {
+  @BeforeEach
+  void waitForAppToStart() {
     // Wait for the application to fully start and be ready to accept requests. Dropwizard 5
     // tightens the default client connection pool, so each Response must be closed to avoid
     // exhausting the pool across the suite — use try-with-resources throughout.
@@ -42,8 +43,8 @@ class ResourceIntegrationTest {
         .untilAsserted(
             () -> {
               try (Response response =
-                  APP.client()
-                      .target(String.format("http://localhost:%d/healthcheck", APP.getAdminPort()))
+                  app.client()
+                      .target(String.format("http://localhost:%d/healthcheck", app.getAdminPort()))
                       .request()
                       .get()) {
                 assertThat(response.getStatus()).isEqualTo(200);
@@ -54,20 +55,11 @@ class ResourceIntegrationTest {
   @Test
   @Timeout(30)
   void metricsEndpoint_WhenCalledWithCleanMetrics_ShouldReturnHealthyState() {
-    Client client = APP.client();
-
-    // Reset state so prior tests in the shared APP extension don't leak errors/latency in.
-    try (Response clearResponse =
-        client
-            .target(String.format("http://localhost:%d/tasks/clear-metrics", APP.getAdminPort()))
-            .request()
-            .post(Entity.text(""))) {
-      assertThat(clearResponse.getStatus()).isEqualTo(200);
-    }
+    Client client = app.client();
 
     try (Response response =
         client
-            .target(String.format("http://localhost:%d/metrics", APP.getLocalPort()))
+            .target(String.format("http://localhost:%d/metrics", app.getLocalPort()))
             .request()
             .get()) {
       assertThat(response.getStatus()).isEqualTo(200);
@@ -85,13 +77,13 @@ class ResourceIntegrationTest {
   @Test
   @Timeout(30)
   void latencyTracking_WhenMultipleRequests_ShouldRecordReasonableLatency() {
-    Client client = APP.client();
+    Client client = app.client();
 
     // Make a few requests to generate latency data
     for (int i = 0; i < 5; i++) {
       try (Response response =
           client
-              .target(String.format("http://localhost:%d/slow/1", APP.getLocalPort()))
+              .target(String.format("http://localhost:%d/slow/1", app.getLocalPort()))
               .request()
               .get()) {
         assertThat(response.getStatus()).isEqualTo(200);
@@ -107,7 +99,7 @@ class ResourceIntegrationTest {
             () -> {
               try (Response metricsResponse =
                   client
-                      .target(String.format("http://localhost:%d/metrics", APP.getLocalPort()))
+                      .target(String.format("http://localhost:%d/metrics", app.getLocalPort()))
                       .request()
                       .get()) {
                 assertThat(metricsResponse.getStatus()).isEqualTo(200);
@@ -128,8 +120,8 @@ class ResourceIntegrationTest {
   @Timeout(30)
   void healthcheckEndpoint_WhenCalled_ShouldReturnOkStatus() {
     try (Response response =
-        APP.client()
-            .target(String.format("http://localhost:%d/healthcheck", APP.getAdminPort()))
+        app.client()
+            .target(String.format("http://localhost:%d/healthcheck", app.getAdminPort()))
             .request()
             .get()) {
       assertThat(response.getStatus()).isEqualTo(200);
@@ -140,8 +132,8 @@ class ResourceIntegrationTest {
   @Timeout(30)
   void readinessEndpoint_WhenCalled_ShouldReturnHealthResponse() {
     try (Response response =
-        APP.client()
-            .target(String.format("http://localhost:%d/health/ready", APP.getLocalPort()))
+        app.client()
+            .target(String.format("http://localhost:%d/health/ready", app.getLocalPort()))
             .request()
             .get()) {
       assertThat(response.getStatus()).isEqualTo(200);
@@ -160,8 +152,8 @@ class ResourceIntegrationTest {
   @Timeout(30)
   void livenessEndpoint_WhenCalled_ShouldReturnAliveResponse() {
     try (Response response =
-        APP.client()
-            .target(String.format("http://localhost:%d/health/live", APP.getLocalPort()))
+        app.client()
+            .target(String.format("http://localhost:%d/health/live", app.getLocalPort()))
             .request()
             .get()) {
       assertThat(response.getStatus()).isEqualTo(200);

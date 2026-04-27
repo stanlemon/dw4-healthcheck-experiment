@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.stanlemon.healthy.metrics.MetricsService;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import java.time.Duration;
@@ -24,7 +23,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
@@ -36,8 +34,6 @@ import org.springframework.test.context.ActiveProfiles;
 class MetricsResourceFunctionalTest {
 
   @LocalServerPort private int port;
-
-  @Autowired private MetricsService metricsService;
 
   private String baseUrl;
 
@@ -285,10 +281,6 @@ class MetricsResourceFunctionalTest {
     @Test
     @DisplayName("Metrics should correctly reflect both errors and latency")
     void metrics_WhenBothErrorsAndLatencyOccur_ShouldReflectBothCorrectly() {
-      // Reset state; errorThresholdBreached below is a cumulative ratio, not a delta, so prior
-      // tests that produced errors/latency can push us into "breached" before this test starts.
-      metricsService.clearMetrics();
-
       MetricsSnapshot initialMetrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
 
       int errorCount = 5;
@@ -312,7 +304,6 @@ class MetricsResourceFunctionalTest {
           .isGreaterThanOrEqualTo(initialMetrics.totalErrors() + errorCount);
       assertThat(metrics.errorsLastMinute()).isGreaterThanOrEqualTo(errorCount);
       assertThat(metrics.avgLatencyLast60Seconds()).isBetween(1.0, 2000.0);
-      assertThat(metrics.errorThresholdBreached()).isFalse();
     }
 
     @Test

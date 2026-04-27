@@ -194,22 +194,6 @@ class MetricsServiceTest {
       assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(latencyThreshold);
       assertThat(metricsService.isLatencyThresholdBreached()).isFalse();
     }
-
-    @Test
-    void isLatencyThresholdBreached_WhenMetricsCleared_ShouldReturnFalse() {
-      metricsService.recordRequestLatency(600);
-      metricsService.recordRequestLatency(700);
-      metricsService.recordRequestLatency(600);
-      metricsService.recordRequestLatency(700);
-      metricsService.recordRequestLatency(700);
-
-      assertThat(metricsService.isLatencyThresholdBreached()).isTrue();
-
-      metricsService.clearMetrics();
-
-      assertThat(metricsService.isLatencyThresholdBreached()).isFalse();
-      assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
-    }
   }
 
   @Nested
@@ -268,23 +252,25 @@ class MetricsServiceTest {
 
     @Test
     void isErrorThresholdBreached_WhenCustomThresholdWithHighTraffic_ShouldUseRateNotThreshold() {
-      for (int i = 0; i < 5; i++) {
-        metricsService.recordServerError();
-      }
-      for (int i = 0; i < 100; i++) {
-        metricsService.recordRequestLatency(100);
-      }
       // 5% error rate — below hardcoded 10%, so not breached regardless of low threshold
-      assertThat(metricsService.isErrorThresholdBreached(1)).isFalse();
-      // 15% error rate — above 10%, breached regardless of high threshold
-      metricsService.clearMetrics();
-      for (int i = 0; i < 15; i++) {
-        metricsService.recordServerError();
+      DefaultMetricsService belowRate = new DefaultMetricsService();
+      for (int i = 0; i < 5; i++) {
+        belowRate.recordServerError();
       }
       for (int i = 0; i < 100; i++) {
-        metricsService.recordRequestLatency(100);
+        belowRate.recordRequestLatency(100);
       }
-      assertThat(metricsService.isErrorThresholdBreached(Long.MAX_VALUE)).isTrue();
+      assertThat(belowRate.isErrorThresholdBreached(1)).isFalse();
+
+      // 15% error rate — above 10%, breached regardless of high threshold
+      DefaultMetricsService aboveRate = new DefaultMetricsService();
+      for (int i = 0; i < 15; i++) {
+        aboveRate.recordServerError();
+      }
+      for (int i = 0; i < 100; i++) {
+        aboveRate.recordRequestLatency(100);
+      }
+      assertThat(aboveRate.isErrorThresholdBreached(Long.MAX_VALUE)).isTrue();
     }
 
     @Test
@@ -298,48 +284,6 @@ class MetricsServiceTest {
         metricsService.recordRequestLatency(100);
       }
       assertThat(metricsService.isErrorThresholdBreached()).isFalse();
-    }
-
-    @Test
-    void isErrorThresholdBreached_WhenMetricsCleared_ShouldReturnFalse() {
-      for (int i = 0; i < 15; i++) {
-        metricsService.recordServerError();
-      }
-      for (int i = 0; i < 100; i++) {
-        metricsService.recordRequestLatency(100);
-      }
-
-      assertThat(metricsService.isErrorThresholdBreached()).isTrue();
-
-      metricsService.clearMetrics();
-
-      assertThat(metricsService.isErrorThresholdBreached()).isFalse();
-      assertThat(metricsService.getErrorCountLastMinute()).isZero();
-    }
-  }
-
-  @Nested
-  @DisplayName("Clear metrics")
-  class ClearMetrics {
-
-    @Test
-    void clearMetrics_WhenCalled_ShouldResetAllCounts() {
-      metricsService.recordServerError();
-      metricsService.recordServerError();
-      metricsService.recordRequestLatency(100);
-      metricsService.recordRequestLatency(200);
-
-      assertThat(metricsService.getTotalErrorCount()).isEqualTo(2);
-      assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(2);
-      assertThat(metricsService.getTotalRequestCountLast60Seconds()).isEqualTo(2);
-      assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(150.0);
-
-      metricsService.clearMetrics();
-
-      assertThat(metricsService.getTotalErrorCount()).isZero();
-      assertThat(metricsService.getErrorCountLastMinute()).isZero();
-      assertThat(metricsService.getTotalRequestCountLast60Seconds()).isZero();
-      assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
     }
   }
 
@@ -357,12 +301,6 @@ class MetricsServiceTest {
       assertThat(metricsService.getTotalErrorCount()).isEqualTo(2);
       assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(2);
       assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(200.0);
-
-      metricsService.clearMetrics();
-
-      assertThat(metricsService.getTotalErrorCount()).isZero();
-      assertThat(metricsService.getErrorCountLastMinute()).isZero();
-      assertThat(metricsService.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
     }
 
     @Test
@@ -380,11 +318,6 @@ class MetricsServiceTest {
       }
 
       assertThat(metricsService.isErrorThresholdBreached()).isTrue();
-      assertThat(metricsService.isLatencyThresholdBreached()).isFalse();
-
-      metricsService.clearMetrics();
-
-      assertThat(metricsService.isErrorThresholdBreached()).isFalse();
       assertThat(metricsService.isLatencyThresholdBreached()).isFalse();
     }
   }
