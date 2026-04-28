@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: spring4-app
+  # Finish in-flight requests before exiting on SIGTERM so rolling deploys don't kill traffic.
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+server:
+  port: 8080
+  shutdown: graceful
+
+# Spring Boot Actuator configuration for monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      # when-authorized is safer than always — hides indicator details from anonymous callers.
+      show-details: when-authorized

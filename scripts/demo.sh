@@ -2,7 +2,7 @@
 set -euo pipefail
 
 NAMESPACE="${1:-healthy-demo}"
-SERVICE="${2:-dw4-app}"
+SERVICE="${2:-dw5-app}"
 PORT="${3:-8097}"
 
 echo "=== Healthy Demo: Triggering failure on $SERVICE ==="

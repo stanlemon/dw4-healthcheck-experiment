@@ -4,13 +4,13 @@ resource "kubernetes_namespace" "demo" {
   }
 }
 
-resource "helm_release" "dw4_app" {
-  name      = "dw4-app"
+resource "helm_release" "dw5_app" {
+  name      = "dw5-app"
   namespace = kubernetes_namespace.demo.metadata[0].name
   chart     = "${path.module}/../helm/healthy-app"
 
   values = [
-    file("${path.module}/../helm/healthy-app/values-dw4.yaml")
+    file("${path.module}/../helm/healthy-app/values-dw5.yaml")
   ]
 
   set {
@@ -21,13 +21,13 @@ resource "helm_release" "dw4_app" {
   depends_on = [kubernetes_namespace.demo]
 }
 
-resource "helm_release" "spring3_app" {
-  name      = "spring3-app"
+resource "helm_release" "spring4_app" {
+  name      = "spring4-app"
   namespace = kubernetes_namespace.demo.metadata[0].name
   chart     = "${path.module}/../helm/healthy-app"
 
   values = [
-    file("${path.module}/../helm/healthy-app/values-spring3.yaml")
+    file("${path.module}/../helm/healthy-app/values-spring4.yaml")
   ]
 
   set {

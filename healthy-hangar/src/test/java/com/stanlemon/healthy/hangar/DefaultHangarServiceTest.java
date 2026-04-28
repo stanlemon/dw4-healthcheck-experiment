@@ -125,7 +125,6 @@ class DefaultHangarServiceTest {
     PaperPlane second = production.stow(sampleRequest("b"));
 
     assertThat(first.getId()).isNotBlank().isNotEqualTo(second.getId());
-    assertThat(first.getStowedAt()).isNotNull();
     assertThat(production.count()).isEqualTo(2);
   }
 

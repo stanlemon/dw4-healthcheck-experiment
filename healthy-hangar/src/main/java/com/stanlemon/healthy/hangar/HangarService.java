@@ -2,10 +2,8 @@ package com.stanlemon.healthy.hangar;
 
 import java.util.List;
 import java.util.Optional;
-import javax.annotation.concurrent.ThreadSafe;
 
 /** Stores and retrieves paper planes stowed in the hangar. Implementations must be thread-safe. */
-@ThreadSafe
 public interface HangarService {
 
   /**

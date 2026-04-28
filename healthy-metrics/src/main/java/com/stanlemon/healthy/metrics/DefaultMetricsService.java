@@ -24,6 +24,17 @@ import java.util.concurrent.atomic.AtomicLong;
  * error rates and latency measurements. Old data is automatically cleared as the window moves.
  */
 public class DefaultMetricsService implements MetricsService {
+
+  /**
+   * Once the 60-second request window holds at least this many requests, the error check switches
+   * from an absolute count to a percentage rate — below this traffic level a handful of errors
+   * doesn't mean much.
+   */
+  private static final long HIGH_TRAFFIC_THRESHOLD = 100;
+
+  /** Error rate (10%) used once traffic crosses {@link #HIGH_TRAFFIC_THRESHOLD}. */
+  private static final double HIGH_TRAFFIC_ERROR_RATE = 0.10;
+
   private final int errorBucketCount;
   private final int latencyBucketCount;
   private final long errorThreshold;
@@ -127,13 +138,15 @@ public class DefaultMetricsService implements MetricsService {
   private synchronized void clearOldBuckets(long currentSeconds) {
     long lastTime = lastBucketTime.get();
 
-    if (lastTime == -1 || currentSeconds - lastTime >= errorBucketCount) {
+    // Full-clear on initial state, clock reversal (NTP step-back, VM resume), or fully stale
+    // window.
+    if (lastTime == -1
+        || currentSeconds < lastTime
+        || currentSeconds - lastTime >= errorBucketCount) {
       for (AtomicLong bucket : errorBuckets) {
         bucket.set(0);
       }
     } else {
-      // The else branch guarantees currentSeconds - lastTime < errorBucketCount, so every
-      // timestamp in this loop is within the window; no inner guard needed.
       for (long time = lastTime + 1; time <= currentSeconds; time++) {
         int bucketIndex = (int) (time % errorBucketCount);
         errorBuckets[bucketIndex].set(0);
@@ -155,9 +168,9 @@ public class DefaultMetricsService implements MetricsService {
       return false;
     }
 
-    if (requestCount >= 100) {
+    if (requestCount >= HIGH_TRAFFIC_THRESHOLD) {
       double errorRate = (double) errorCount / requestCount;
-      return errorRate > 0.10;
+      return errorRate > HIGH_TRAFFIC_ERROR_RATE;
     }
 
     return errorCount > Math.min(threshold, requestCount / 2);
@@ -248,36 +261,21 @@ public class DefaultMetricsService implements MetricsService {
   private synchronized void clearOldLatencyBuckets(long currentSeconds) {
     long lastTime = lastLatencyBucketTime.get();
 
-    if (lastTime == -1 || currentSeconds - lastTime >= latencyBucketCount) {
+    // Full-clear on initial state, clock reversal (NTP step-back, VM resume), or fully stale
+    // window.
+    if (lastTime == -1
+        || currentSeconds < lastTime
+        || currentSeconds - lastTime >= latencyBucketCount) {
       for (int i = 0; i < latencyBucketCount; i++) {
         latencyTotalBuckets[i].set(0);
         latencyCountBuckets[i].set(0);
       }
     } else {
-      // The else branch guarantees currentSeconds - lastTime < latencyBucketCount, so every
-      // timestamp in this loop is within the window; no inner guard needed.
       for (long time = lastTime + 1; time <= currentSeconds; time++) {
         int bucketIndex = (int) (time % latencyBucketCount);
         latencyTotalBuckets[bucketIndex].set(0);
         latencyCountBuckets[bucketIndex].set(0);
       }
     }
-  }
-
-  @Override
-  public synchronized void clearMetrics() {
-    for (AtomicLong bucket : errorBuckets) {
-      bucket.set(0);
-    }
-    totalErrorCount.set(0);
-    lastBucketTime.set(-1);
-
-    for (int i = 0; i < latencyBucketCount; i++) {
-      latencyTotalBuckets[i].set(0);
-      latencyCountBuckets[i].set(0);
-    }
-    lastLatencyBucketTime.set(-1);
-
-    totalRequestCount.set(0);
   }
 }

@@ -9,17 +9,12 @@
 #   ./generate_errors.sh 25 50     # 25 errors, 50% latency
 #   ./generate_errors.sh 25 200    # 25 errors, 200% latency (2x latency requests)
 #   ./generate_errors.sh 10 500    # 10 errors, 500% latency (5x latency requests)
-#   ./generate_errors.sh 25 50 true   # 25 errors, 50% EGREGIOUS latency (high delays)
-#   ./generate_errors.sh 20 100 egregious # 20 errors, 100% egregious latency
 
 # Set default number of errors to 15, or use the first argument if provided
 NUM_ERRORS=${1:-15}
 
 # Set default latency percentage to 30%, or use the second argument if provided
 LATENCY_PERCENTAGE=${2:-30}
-
-# Set egregious latency mode - can be "true", "egregious", "yes", or any non-empty value
-EGREGIOUS_MODE=${3:-false}
 
 # Validate that the first parameter is a positive integer
 if ! [[ "$NUM_ERRORS" =~ ^[1-9][0-9]*$ ]]; then
@@ -44,9 +39,9 @@ echo "Checking if server is running..."
 if ! curl -s --connect-timeout 5 http://localhost:8097/health/live > /dev/null 2>&1; then
     echo "Error: Server is not running on localhost:8097"
     echo "Please start the server first:"
-    echo "  mvn clean compile exec:java"
+    echo "  mvn -pl dw5-app exec:java"
     echo "  OR"
-    echo "  java -jar target/dw-test2-1.0-SNAPSHOT.jar server config.yml"
+    echo "  cd dw5-app && java -jar target/dw5-app-1.0-SNAPSHOT.jar server config.yml"
     exit 1
 fi
 echo "Server is running ✓"

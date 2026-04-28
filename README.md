@@ -1,6 +1,6 @@
 # Multi-App Metrics Project
 
-A multi-module project demonstrating real-time metrics collection and health monitoring in both Dropwizard 4 and Spring Boot 3 applications. The same framework-agnostic metrics library drives health checks in both frameworks.
+A multi-module project demonstrating real-time metrics collection and health monitoring in both Dropwizard 5 and Spring Boot 4 applications. The same framework-agnostic metrics library drives health checks in both frameworks.
 
 The goal is to prove that core metrics and health logic can live in a shared library with zero framework dependencies, while two different web frameworks consume it and produce identical API behavior. This makes framework choice a deployment decision rather than an architectural one.
 
@@ -27,8 +27,8 @@ healthy-parent/
 ├── architecture-rules/   # Shared ArchUnit rules for coding standards
 ├── healthy-metrics/      # Framework-agnostic metrics library
 ├── healthy-hangar/       # Framework-agnostic paper-airplane domain module
-├── dw4-app/              # Dropwizard 4.x application
-└── spring3-app/          # Spring Boot 3.x application
+├── dw5-app/              # Dropwizard 5.x application
+└── spring4-app/          # Spring Boot 4.x application
 ```
 
 - **healthy-metrics** has zero framework dependencies (only Jackson annotations). Both apps consume it through the `MetricsService` interface.
@@ -47,16 +47,16 @@ healthy-parent/
 mvn clean install -DskipTests -Dspotbugs.skip=true
 
 # Run the Dropwizard app (port 8097, admin on 8098)
-mvn exec:java -pl dw4-app
+mvn exec:java -pl dw5-app
 
 # Run the Spring Boot app (port 8080)
-mvn spring-boot:run -pl spring3-app
+mvn spring-boot:run -pl spring4-app
 ```
 
 To run both apps simultaneously, override the Spring Boot port:
 
 ```bash
-mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8081" -pl spring3-app
+mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8081" -pl spring4-app
 ```
 
 ## Endpoints
@@ -80,6 +80,8 @@ Both applications expose equivalent functionality. The table shows the default p
 > **Note:** The `/test-errors` and `/slow` endpoints exist to exercise the health check. They would not be included in a production application. The `/hangar/planes` endpoints are a demo of the shared-domain pattern (see Project Structure).
 
 **Error bodies.** Both apps emit the same shape for error responses — `{"code": <int>, "message": <string>}` — with identical HTTP status codes. Bean Validation failures return `400 Bad Request` in both runtimes; Dropwizard's default `422` is overridden by `ConstraintViolationExceptionMapper` to match Spring's behavior.
+
+**Jackson 2 vs 3.** Dropwizard 5 serializes with Jackson 2 (`com.fasterxml.jackson`); Spring Boot 4 has migrated to Jackson 3 (`tools.jackson`). The shared DTOs don't have to pick a side: Jackson 3's databind jar still depends on `jackson-annotations` 2.x, so `@JsonProperty`, `@JsonCreator`, and `@JsonFormat` are honored by both runtimes. A full groupId move to `tools.jackson` is blocked until Dropwizard ships a Jackson-3 release.
 
 ## Metrics and Health Monitoring
 
@@ -216,7 +218,7 @@ curl http://localhost:8097/health/ready
 
 ```bash
 mvn test                                          # All modules
-mvn test -pl dw4-app                              # Single module
+mvn test -pl dw5-app                              # Single module
 mvn test -Dtest=MetricsServiceTest -pl healthy-metrics  # Single class
 mvn clean test jacoco:report                      # With coverage
 ```
@@ -234,7 +236,7 @@ mvn clean verify           # All checks
 
 - **Spotless**: Google Java Format 1.28.0
 - **SpotBugs + FindSecBugs**: Static analysis and security scanning
-- **JaCoCo**: 70% minimum line coverage
+- **JaCoCo**: 90% minimum line / 80% minimum branch coverage
 - **ArchUnit**: Architecture rules enforced via shared `architecture-rules` module
 - **Maven Enforcer**: Blocks known-vulnerable dependency versions (Log4j, Jackson, Commons Collections)
 

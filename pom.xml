@@ -13,22 +13,34 @@
         <module>architecture-rules</module>
         <module>healthy-metrics</module>
         <module>healthy-hangar</module>
-        <module>dw4-app</module>
-        <module>spring3-app</module>
+        <module>dw5-app</module>
+        <module>spring4-app</module>
     </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <byte-buddy.version>1.18.8-jdk5</byte-buddy.version>
+        <byte-buddy.version>1.18.8</byte-buddy.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <!--
-                Note: jackson-annotations trails jackson-core on patch cadence (jackson-annotations 2.21
-                is the 2.21.x release — there is no 2.21.2 artifact).
+                Jackson split-lineage state:
+                  - Shared DTOs (healthy-metrics, healthy-hangar) carry @JsonProperty,
+                    @JsonCreator, @JsonFormat from com.fasterxml.jackson.annotation.
+                    Jackson 3 intentionally still ships these annotations under the 2.x
+                    groupId — jackson-databind 3.1.2 depends on jackson-annotations 2.21.
+                  - dw5-app runs Dropwizard 5's Jackson 2 databind (com.fasterxml).
+                  - spring4-app runs Spring Boot 4's Jackson 3 databind (tools.jackson).
+                  - Both runtimes read the same annotations, so no DTO migration is needed.
+
+                A full groupId move to tools.jackson for databind/core is blocked until
+                Dropwizard publishes a version that ships Jackson 3 (expected in DW 6.x).
+                Until then, these pins lock the shared Jackson 2 version so dw5-app and
+                the shared modules stay in sync.
+
+                Note: jackson-annotations trails jackson-core on patch cadence
+                (jackson-annotations 2.21 is the 2.21.x release — there is no 2.21.2).
             -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -65,13 +77,31 @@
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-api</artifactId>
-                <version>5.14.4</version>
+                <version>6.0.3</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-engine</artifactId>
-                <version>5.14.4</version>
+                <version>6.0.3</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>6.0.3</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.platform</groupId>
+                <artifactId>junit-platform-commons</artifactId>
+                <version>6.0.3</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.platform</groupId>
+                <artifactId>junit-platform-engine</artifactId>
+                <version>6.0.3</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -130,11 +160,29 @@
             </dependency>
             <dependency>
                 <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>${byte-buddy.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy-agent</artifactId>
                 <version>${byte-buddy.version}</version>
                 <scope>test</scope>
             </dependency>
-            <!-- ArchUnit dependency for architecture testing -->
+            <!--
+              ArchUnit dependency for architecture testing.
+
+              TODO: Upgrade to a release that declares JUnit Platform 6 compatibility.
+              ArchUnit 1.4.2 was compiled against junit-platform-engine 1.14.x; we override
+              junit-platform-engine to 6.0.3 via the test-dep pins above. The TestEngine APIs
+              ArchUnit calls still exist in Platform 6, so the 7 architecture tests pass
+              today, but this combination is not officially supported.
+              Track: https://github.com/TNG/ArchUnit/issues (search "JUnit 6").
+              Re-evaluate when ArchUnit publishes a GA release that declares
+              junit-platform:6.x as a compile dependency — the archunit-junit5 artifact
+              will likely be renamed or superseded by archunit-junit6.
+            -->
             <dependency>
                 <groupId>com.tngtech.archunit</groupId>
                 <artifactId>archunit-junit5</artifactId>
@@ -270,12 +318,12 @@
                                             <limit>
                                                 <counter>LINE</counter>
                                                 <value>COVEREDRATIO</value>
-                                                <minimum>0.70</minimum>
+                                                <minimum>0.90</minimum>
                                             </limit>
                                             <limit>
                                                 <counter>BRANCH</counter>
                                                 <value>COVEREDRATIO</value>
-                                                <minimum>0.50</minimum>
+                                                <minimum>0.80</minimum>
                                             </limit>
                                         </limits>
                                     </rule>
