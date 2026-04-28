@@ -19,6 +19,26 @@ public final class ArchitectureRules {
   }
 
   /**
+   * Rule: Shared domain modules must not depend on any framework-specific packages.
+   *
+   * @param basePackage Package pattern for the shared module (e.g.,
+   *     "com.stanlemon.healthy.metrics")
+   * @return ArchRule that prevents framework coupling in shared modules
+   */
+  public static ArchRule noFrameworkDependencies(String basePackage) {
+    return noClasses()
+        .that()
+        .resideInAPackage(basePackage + "..")
+        .should()
+        .dependOnClassesThat()
+        .resideInAnyPackage(
+            "org.springframework..", "io.dropwizard..", "jakarta.ws.rs..", "org.glassfish..")
+        .because(
+            "Shared domain modules must remain framework-agnostic so the same "
+                + "implementation can ship in both Dropwizard and Spring runtimes");
+  }
+
+  /**
    * Rule: No circular dependencies between packages.
    *
    * <p>Circular dependencies make code harder to maintain and test.

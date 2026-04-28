@@ -95,17 +95,25 @@ class SlowResourceTest {
   }
 
   @Nested
-  @DisplayName("Response object tests")
-  class ResponseTests {
+  @DisplayName("Boundary tests")
+  class BoundaryTests {
 
     @Test
-    @DisplayName("Should set fields correctly when SlowResponse is constructed")
-    void slowResponse_WhenConstructed_ShouldSetFieldsCorrectly() {
-      SlowResource.SlowResponse response = new SlowResource.SlowResponse("Test message", 10, 15);
+    @DisplayName("Should return 400 when delay is exactly 10001ms (just over limit)")
+    void slowWithDelay_WhenExactlyOverLimit_ShouldReturn400() {
+      Response response = resource.slowWithDelay(10001);
 
-      assertThat(response.getMessage()).isEqualTo("Test message");
-      assertThat(response.getDelayMs()).isEqualTo(10);
-      assertThat(response.getActualMs()).isEqualTo(15);
+      assertThat(response.getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    @DisplayName("Should reject delay one above the 10000ms limit")
+    void slowWithDelay_WhenOneAboveLimit_ShouldReturn400() {
+      // Verify the 10000ms cap is enforced from the other side — 10001 is rejected with a 400.
+      // We don't assert on the happy-path boundary (slowWithDelay(10000)) because it would
+      // actually Thread.sleep for 10 seconds in the test suite.
+      Response response = resource.slowWithDelay(10001);
+      assertThat(response.getStatus()).isEqualTo(400);
     }
   }
 

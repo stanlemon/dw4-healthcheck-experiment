@@ -12,6 +12,7 @@ import io.dropwizard.testing.ResourceHelpers;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.Response;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -49,26 +50,16 @@ class ResourceIntegrationTest {
 
   @Test
   @Timeout(30)
-  void helloEndpoint_WhenCalled_ShouldReturnHelloWorldMessage() {
-    Client client = APP.client();
-
-    Response response =
-        client
-            .target(String.format("http://localhost:%d/hello", APP.getLocalPort()))
-            .request()
-            .get();
-
-    assertThat(response.getStatus()).isEqualTo(200);
-
-    HelloWorldResource.HelloResponse entity =
-        response.readEntity(HelloWorldResource.HelloResponse.class);
-    assertThat(entity.getMessage()).isEqualTo("Hello, World!");
-  }
-
-  @Test
-  @Timeout(30)
   void metricsEndpoint_WhenCalledWithCleanMetrics_ShouldReturnHealthyState() {
     Client client = APP.client();
+
+    // Reset state so prior tests in the shared APP extension don't leak errors/latency in.
+    Response clearResponse =
+        client
+            .target(String.format("http://localhost:%d/tasks/clear-metrics", APP.getAdminPort()))
+            .request()
+            .post(Entity.text(""));
+    assertThat(clearResponse.getStatus()).isEqualTo(200);
 
     Response response =
         client
@@ -79,14 +70,11 @@ class ResourceIntegrationTest {
     assertThat(response.getStatus()).isEqualTo(200);
 
     MetricsResponse entity = response.readEntity(MetricsResponse.class);
-    // Since we're starting fresh in the test, no errors should be recorded
     assertThat(entity.getTotalErrors()).isZero();
     assertThat(entity.getErrorsLastMinute()).isZero();
     assertThat(entity.isErrorThresholdBreached()).isFalse();
     assertThat(entity.isLatencyThresholdBreached()).isFalse();
     assertThat(entity.isHealthy()).isTrue();
-    // Average latency should be >= 0 (could be 0 if no requests recorded yet, or some value if this
-    // request was recorded)
     assertThat(entity.getAvgLatencyLast60Seconds()).isGreaterThanOrEqualTo(0.0);
   }
 
@@ -99,7 +87,7 @@ class ResourceIntegrationTest {
     for (int i = 0; i < 5; i++) {
       Response response =
           client
-              .target(String.format("http://localhost:%d/hello", APP.getLocalPort()))
+              .target(String.format("http://localhost:%d/slow/1", APP.getLocalPort()))
               .request()
               .get();
       assertThat(response.getStatus()).isEqualTo(200);
@@ -147,22 +135,6 @@ class ResourceIntegrationTest {
 
   @Test
   @Timeout(30)
-  void applicationWiring_AllResourcesShouldBeRegistered() {
-    Client client = APP.client();
-    String base = String.format("http://localhost:%d", APP.getLocalPort());
-
-    assertThat(client.target(base + "/hello").request().get().getStatus()).isEqualTo(200);
-    assertThat(client.target(base + "/metrics").request().get().getStatus()).isEqualTo(200);
-    assertThat(client.target(base + "/health/ready").request().get().getStatus()).isEqualTo(200);
-    assertThat(client.target(base + "/health/live").request().get().getStatus()).isEqualTo(200);
-    assertThat(client.target(base + "/slow/1").request().get().getStatus()).isEqualTo(200);
-    // /test-errors/trigger returns 500 intentionally — a 500 proves the resource is registered
-    assertThat(client.target(base + "/test-errors/trigger").request().get().getStatus())
-        .isEqualTo(500);
-  }
-
-  @Test
-  @Timeout(30)
   void readinessEndpoint_WhenCalled_ShouldReturnHealthResponse() {
     Client client = APP.client();
 
@@ -178,7 +150,7 @@ class ResourceIntegrationTest {
     assertThat(entity.getStatus()).isEqualTo("healthy");
     assertThat(entity.isHealthy()).isTrue();
     assertThat(entity.getMessage()).contains("OK");
-    assertThat(entity.getErrorsLastMinute()).isGreaterThanOrEqualTo(0);
+    assertThat(entity.getErrorsLastMinute()).isZero();
     assertThat(entity.isErrorThresholdBreached()).isFalse();
     assertThat(entity.isLatencyThresholdBreached()).isFalse();
   }

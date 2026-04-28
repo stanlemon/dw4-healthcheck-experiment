@@ -93,6 +93,10 @@ public final class CodingRules {
         .that(notExcepted)
         .should()
         .callMethod(Thread.class, "sleep", long.class)
+        .orShould()
+        .callMethod(Thread.class, "sleep", long.class, int.class)
+        .orShould()
+        .callMethod(Thread.class, "sleep", java.time.Duration.class)
         .because("Thread.sleep() should be avoided - use proper synchronization or Awaitility");
   }
 

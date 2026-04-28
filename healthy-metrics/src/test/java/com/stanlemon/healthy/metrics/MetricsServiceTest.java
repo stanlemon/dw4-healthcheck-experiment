@@ -262,6 +262,45 @@ class MetricsServiceTest {
     }
 
     @Test
+    void isErrorThresholdBreached_WhenExactly10PercentErrorRate_ShouldNotBreach() {
+      assertErrorThreshold(10, 100, false);
+    }
+
+    @Test
+    void isErrorThresholdBreached_WhenCustomThresholdWithHighTraffic_ShouldUseRateNotThreshold() {
+      for (int i = 0; i < 5; i++) {
+        metricsService.recordServerError();
+      }
+      for (int i = 0; i < 100; i++) {
+        metricsService.recordRequestLatency(100);
+      }
+      // 5% error rate — below hardcoded 10%, so not breached regardless of low threshold
+      assertThat(metricsService.isErrorThresholdBreached(1)).isFalse();
+      // 15% error rate — above 10%, breached regardless of high threshold
+      metricsService.clearMetrics();
+      for (int i = 0; i < 15; i++) {
+        metricsService.recordServerError();
+      }
+      for (int i = 0; i < 100; i++) {
+        metricsService.recordRequestLatency(100);
+      }
+      assertThat(metricsService.isErrorThresholdBreached(Long.MAX_VALUE)).isTrue();
+    }
+
+    @Test
+    void isErrorThresholdBreached_WhenErrorCountEqualsModerateTrafficThreshold_ShouldNotBreach() {
+      // requestCount=20, threshold=100 → Math.min(100, 20/2) = 10
+      // errorCount == 10, uses >, so NOT breached
+      for (int i = 0; i < 10; i++) {
+        metricsService.recordServerError();
+      }
+      for (int i = 0; i < 20; i++) {
+        metricsService.recordRequestLatency(100);
+      }
+      assertThat(metricsService.isErrorThresholdBreached()).isFalse();
+    }
+
+    @Test
     void isErrorThresholdBreached_WhenMetricsCleared_ShouldReturnFalse() {
       for (int i = 0; i < 15; i++) {
         metricsService.recordServerError();
@@ -538,6 +577,27 @@ class MetricsServiceTest {
     }
 
     @Test
+    void errors_WhenExactlyAtWindowBoundary_ShouldClearOldBuckets() {
+      svc.recordServerError();
+      assertThat(svc.getErrorCountLastMinute()).isEqualTo(1);
+
+      advanceBy(Duration.ofSeconds(60));
+
+      assertThat(svc.getErrorCountLastMinute()).isZero();
+    }
+
+    @Test
+    void latency_WhenExactlyAtWindowBoundary_ShouldClearOldBuckets() {
+      svc.recordRequestLatency(100);
+      assertThat(svc.getTotalRequestCountLast60Seconds()).isEqualTo(1);
+
+      advanceBy(Duration.ofSeconds(60));
+
+      assertThat(svc.getTotalRequestCountLast60Seconds()).isZero();
+      assertThat(svc.getAverageLatencyLast60Seconds()).isEqualTo(0.0);
+    }
+
+    @Test
     void errors_WhenWindowExpires_ShouldNotCountOldErrors() {
       svc.recordServerError();
       assertThat(svc.getErrorCountLastMinute()).isEqualTo(1);
@@ -637,6 +697,46 @@ class MetricsServiceTest {
   @Nested
   @DisplayName("Edge cases")
   class EdgeCases {
+
+    @Test
+    void customConstructor_WhenNonDefaultBucketCounts_ShouldRespectConfiguration() {
+      DefaultMetricsService custom =
+          new DefaultMetricsService(10, 10, 50, 200.0, 3, 5, Clock.systemUTC());
+      assertThat(custom.getDefaultErrorThreshold()).isEqualTo(50);
+      assertThat(custom.getDefaultLatencyThresholdMs()).isEqualTo(200.0);
+      // minimumLatencySampleSize=3: should evaluate after 3 requests
+      custom.recordRequestLatency(500);
+      custom.recordRequestLatency(500);
+      custom.recordRequestLatency(500);
+      assertThat(custom.isLatencyThresholdBreached()).isTrue();
+      // minimumErrorSampleSize=5: 4 requests not enough to evaluate
+      for (int i = 0; i < 4; i++) {
+        custom.recordServerError();
+        custom.recordRequestLatency(100);
+      }
+      // Still only 4+3=7 latency records but errors need 5 error samples with
+      // requestCount >= minimumErrorSampleSize
+      // Let's test a fresh one cleanly
+      DefaultMetricsService custom2 =
+          new DefaultMetricsService(10, 10, 50, 200.0, 3, 5, Clock.systemUTC());
+      for (int i = 0; i < 4; i++) {
+        custom2.recordServerError();
+        custom2.recordRequestLatency(100);
+      }
+      assertThat(custom2.isErrorThresholdBreached()).isFalse();
+      custom2.recordServerError();
+      custom2.recordRequestLatency(100);
+      assertThat(custom2.isErrorThresholdBreached()).isTrue();
+    }
+
+    @Test
+    void isErrorThresholdBreached_WhenErrorsRecordedWithoutLatency_ShouldNotBreach() {
+      for (int i = 0; i < 100; i++) {
+        metricsService.recordServerError();
+      }
+      // No latency records → requestCount is 0 → below minimumErrorSampleSize
+      assertThat(metricsService.isErrorThresholdBreached()).isFalse();
+    }
 
     @Test
     void recordRequestLatency_WhenExtremeValues_ShouldHandleCorrectly() {

@@ -74,6 +74,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Hangar module (shared business domain) -->
+        <dependency>
+            <groupId>com.stanlemon.healthy</groupId>
+            <artifactId>healthy-hangar</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Architecture rules for testing -->
         <dependency>
             <groupId>com.stanlemon.healthy</groupId>
@@ -104,6 +111,7 @@
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

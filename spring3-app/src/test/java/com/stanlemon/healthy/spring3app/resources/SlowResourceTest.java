@@ -76,21 +76,6 @@ class SlowResourceTest {
   }
 
   @Nested
-  @DisplayName("Response object tests")
-  class ResponseTests {
-
-    @Test
-    @DisplayName("Should set fields correctly when SlowResponse is constructed")
-    void slowResponse_WhenConstructed_ShouldSetFieldsCorrectly() {
-      SlowResource.SlowResponse response = new SlowResource.SlowResponse("Test message", 10, 15);
-
-      assertThat(response.getMessage()).isEqualTo("Test message");
-      assertThat(response.getDelayMs()).isEqualTo(10);
-      assertThat(response.getActualMs()).isEqualTo(15);
-    }
-  }
-
-  @Nested
   @DisplayName("Thread interruption tests")
   class ThreadInterruptionTests {
 

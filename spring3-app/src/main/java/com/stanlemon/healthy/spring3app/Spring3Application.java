@@ -1,7 +1,12 @@
 package com.stanlemon.healthy.spring3app;
 
+import com.stanlemon.healthy.hangar.AerodynamicsPredictor;
+import com.stanlemon.healthy.hangar.DefaultAerodynamicsPredictor;
+import com.stanlemon.healthy.hangar.DefaultHangarService;
+import com.stanlemon.healthy.hangar.HangarService;
 import com.stanlemon.healthy.metrics.DefaultMetricsService;
 import com.stanlemon.healthy.metrics.HealthEvaluator;
+import com.stanlemon.healthy.metrics.LivenessEvaluator;
 import com.stanlemon.healthy.metrics.MetricsService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -18,6 +23,10 @@ public class Spring3Application {
     SpringApplication.run(Spring3Application.class, args);
   }
 
+  // Shared-domain services (healthy-metrics, healthy-hangar) are framework-agnostic by design,
+  // so they are wired here with explicit @Bean factories rather than @Component scanning —
+  // adding Spring annotations to those modules would leak Spring into code that also runs under
+  // Dropwizard.
   @Bean
   public MetricsService metricsService() {
     return new DefaultMetricsService();
@@ -29,8 +38,17 @@ public class Spring3Application {
   }
 
   @Bean
-  public com.stanlemon.healthy.metrics.LivenessEvaluator livenessEvaluator(
-      MetricsService metricsService) {
-    return new com.stanlemon.healthy.metrics.LivenessEvaluator(metricsService);
+  public LivenessEvaluator livenessEvaluator(MetricsService metricsService) {
+    return new LivenessEvaluator(metricsService);
+  }
+
+  @Bean
+  public AerodynamicsPredictor aerodynamicsPredictor() {
+    return new DefaultAerodynamicsPredictor();
+  }
+
+  @Bean
+  public HangarService hangarService() {
+    return new DefaultHangarService();
   }
 }

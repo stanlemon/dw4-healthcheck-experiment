@@ -132,11 +132,11 @@ public class DefaultMetricsService implements MetricsService {
         bucket.set(0);
       }
     } else {
+      // The else branch guarantees currentSeconds - lastTime < errorBucketCount, so every
+      // timestamp in this loop is within the window; no inner guard needed.
       for (long time = lastTime + 1; time <= currentSeconds; time++) {
-        if (currentSeconds - time < errorBucketCount) {
-          int bucketIndex = (int) (time % errorBucketCount);
-          errorBuckets[bucketIndex].set(0);
-        }
+        int bucketIndex = (int) (time % errorBucketCount);
+        errorBuckets[bucketIndex].set(0);
       }
     }
   }
@@ -254,18 +254,18 @@ public class DefaultMetricsService implements MetricsService {
         latencyCountBuckets[i].set(0);
       }
     } else {
+      // The else branch guarantees currentSeconds - lastTime < latencyBucketCount, so every
+      // timestamp in this loop is within the window; no inner guard needed.
       for (long time = lastTime + 1; time <= currentSeconds; time++) {
-        if (currentSeconds - time < latencyBucketCount) {
-          int bucketIndex = (int) (time % latencyBucketCount);
-          latencyTotalBuckets[bucketIndex].set(0);
-          latencyCountBuckets[bucketIndex].set(0);
-        }
+        int bucketIndex = (int) (time % latencyBucketCount);
+        latencyTotalBuckets[bucketIndex].set(0);
+        latencyCountBuckets[bucketIndex].set(0);
       }
     }
   }
 
   @Override
-  public void clearMetrics() {
+  public synchronized void clearMetrics() {
     for (AtomicLong bucket : errorBuckets) {
       bucket.set(0);
     }

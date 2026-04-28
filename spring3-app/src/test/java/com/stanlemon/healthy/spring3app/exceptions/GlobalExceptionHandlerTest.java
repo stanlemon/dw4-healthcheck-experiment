@@ -74,6 +74,19 @@ class GlobalExceptionHandlerTest {
   }
 
   @Test
+  @DisplayName("Should fall back to 'Server Error' when ResponseStatusException reason is null")
+  void handleResponseStatusException_WhenReasonNull_ShouldUseFallbackMessage() {
+    ResponseStatusException exception = new ResponseStatusException(HttpStatus.NOT_FOUND);
+
+    ResponseEntity<GlobalExceptionHandler.ErrorResponse> response =
+        exceptionHandler.handleResponseStatusException(exception);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().getMessage()).isEqualTo("Server Error");
+  }
+
+  @Test
   @DisplayName("Should record metric for 502 Bad Gateway ResponseStatusException")
   void handleResponseStatusException_When502_ShouldRecordMetric() {
     ResponseStatusException exception =

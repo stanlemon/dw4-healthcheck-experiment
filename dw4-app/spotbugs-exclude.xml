@@ -8,7 +8,7 @@
 -->
 <FindBugsFilter>
   <Match>
-    <Class name="~.*\.(GlobalExceptionMapper|LatencyTrackingFilter|MetricsResource)"/>
+    <Class name="~.*\.(GlobalExceptionMapper|LatencyTrackingFilter|MetricsResource|ClearMetricsTask)"/>
     <Field name="metricsService"/>
     <Bug pattern="EI_EXPOSE_REP2"/>
   </Match>

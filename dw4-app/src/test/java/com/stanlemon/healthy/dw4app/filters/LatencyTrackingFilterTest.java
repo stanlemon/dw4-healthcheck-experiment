@@ -63,13 +63,17 @@ class LatencyTrackingFilterTest {
   }
 
   @Test
-  @DisplayName("Should calculate correct average for multiple requests")
-  void doFilter_WhenMultipleRequests_ShouldCalculateCorrectAverage()
+  @DisplayName("Should record a finite latency average for multiple requests")
+  void doFilter_WhenMultipleRequests_ShouldRecordFiniteAverage()
       throws ServletException, IOException {
     filter.doFilter(mockRequest, mockResponse, mockFilterChain);
     filter.doFilter(mockRequest, mockResponse, mockFilterChain);
     filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 
     assertThat(metricsService.getTotalRequestCountLast60Seconds()).isEqualTo(3);
+    // Mocked chain returns instantly, so each recorded latency should be under a second.
+    // A bug that dropped the recordRequestLatency() call would leave the average at 0.0;
+    // a unit-conversion bug (e.g. seconds instead of ms) would push it above the upper bound.
+    assertThat(metricsService.getAverageLatencyLast60Seconds()).isBetween(0.0, 1000.0).isNotNaN();
   }
 }

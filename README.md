@@ -26,11 +26,13 @@ Request ──> LatencyTrackingFilter ──> Resource ──> Response
 healthy-parent/
 ├── architecture-rules/   # Shared ArchUnit rules for coding standards
 ├── healthy-metrics/      # Framework-agnostic metrics library
+├── healthy-hangar/       # Framework-agnostic paper-airplane domain module
 ├── dw4-app/              # Dropwizard 4.x application
 └── spring3-app/          # Spring Boot 3.x application
 ```
 
 - **healthy-metrics** has zero framework dependencies (only Jackson annotations). Both apps consume it through the `MetricsService` interface.
+- **healthy-hangar** is a second framework-agnostic shared-domain module (paper-airplane storage + aerodynamic-prediction). It exists to demonstrate that the framework-neutral pattern generalizes beyond observability: any business domain can live in a shared library that both apps wire with their own DI glue.
 - **architecture-rules** provides reusable ArchUnit rules (no `java.util.Date`, no generic exceptions, no `System.out`, etc.) applied to all modules.
 
 ## Requirements
@@ -63,7 +65,6 @@ Both applications expose equivalent functionality. The table shows the default p
 
 | Endpoint | Dropwizard (8097) | Spring Boot (8080) |
 |----------|-------------------|--------------------|
-| Hello | `/hello` | `/hello` |
 | Metrics | `/metrics` | `/metrics` |
 | Readiness | `/health/ready` | `/health/ready` |
 | Liveness | `/health/live` | `/health/live` |
@@ -72,8 +73,13 @@ Both applications expose equivalent functionality. The table shows the default p
 | Runtime error | `/test-errors/runtime/{msg}` | `/test-errors/runtime/{msg}` |
 | Status error | `/test-errors/web-app/{code}` | `/test-errors/web-app/{code}` |
 | Slow request | `/slow` or `/slow/{ms}` | `/slow` or `/slow/{ms}` |
+| Stow plane | `POST /hangar/planes` | `POST /hangar/planes` |
+| Get plane | `GET /hangar/planes/{id}` | `GET /hangar/planes/{id}` |
+| List planes | `GET /hangar/planes` | `GET /hangar/planes` |
 
-> **Note:** The `/test-errors` and `/slow` endpoints exist to exercise the health check. They would not be included in a production application.
+> **Note:** The `/test-errors` and `/slow` endpoints exist to exercise the health check. They would not be included in a production application. The `/hangar/planes` endpoints are a demo of the shared-domain pattern (see Project Structure).
+
+**Error bodies.** Both apps emit the same shape for error responses — `{"code": <int>, "message": <string>}` — with identical HTTP status codes. Bean Validation failures return `400 Bad Request` in both runtimes; Dropwizard's default `422` is overridden by `ConstraintViolationExceptionMapper` to match Spring's behavior.
 
 ## Metrics and Health Monitoring
 
@@ -162,7 +168,7 @@ The examples below use the Dropwizard port (8097). For Spring Boot, replace `809
 
 ```bash
 # Generate some traffic
-for i in {1..10}; do curl -s http://localhost:8097/hello > /dev/null; done
+for i in {1..10}; do curl -s http://localhost:8097/metrics > /dev/null; done
 
 # Check metrics
 curl http://localhost:8097/metrics
@@ -175,7 +181,7 @@ curl http://localhost:8097/metrics
 for i in {1..20}; do curl -s http://localhost:8097/test-errors/trigger > /dev/null; done
 
 # Also generate some successful requests so total traffic >= 10
-for i in {1..5}; do curl -s http://localhost:8097/hello > /dev/null; done
+for i in {1..5}; do curl -s http://localhost:8097/metrics > /dev/null; done
 
 # Check readiness — should show errors breached
 curl http://localhost:8097/health/ready
@@ -226,7 +232,7 @@ mvn clean verify           # All checks
 
 ### Quality Enforcement
 
-- **Spotless**: Google Java Format 1.19.2
+- **Spotless**: Google Java Format 1.28.0
 - **SpotBugs + FindSecBugs**: Static analysis and security scanning
 - **JaCoCo**: 70% minimum line coverage
 - **ArchUnit**: Architecture rules enforced via shared `architecture-rules` module

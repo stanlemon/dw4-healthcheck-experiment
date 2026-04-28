@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import com.stanlemon.healthy.metrics.HealthResponse;
 import com.stanlemon.healthy.metrics.MetricsResponse;
+import com.stanlemon.healthy.metrics.MetricsService;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +29,8 @@ class ResourceIntegrationTest {
 
   @Autowired private TestRestTemplate restTemplate;
 
+  @Autowired private MetricsService metricsService;
+
   private String baseUrl;
 
   @BeforeAll
@@ -48,18 +51,10 @@ class ResourceIntegrationTest {
 
   @Test
   @Timeout(30)
-  void helloEndpoint_WhenCalled_ShouldReturnHelloWorldMessage() {
-    ResponseEntity<HelloWorldResource.HelloResponse> response =
-        restTemplate.getForEntity(baseUrl + "/hello", HelloWorldResource.HelloResponse.class);
-
-    assertThat(response.getStatusCode().value()).isEqualTo(200);
-    assertThat(response.getBody()).isNotNull();
-    assertThat(response.getBody().getMessage()).isEqualTo("Hello, World!");
-  }
-
-  @Test
-  @Timeout(30)
   void metricsEndpoint_WhenCalledWithCleanMetrics_ShouldReturnHealthyState() {
+    // Reset state so prior tests in the shared Spring context don't leak errors/latency in.
+    metricsService.clearMetrics();
+
     ResponseEntity<MetricsResponse> response =
         restTemplate.getForEntity(baseUrl + "/metrics", MetricsResponse.class);
 
@@ -78,8 +73,8 @@ class ResourceIntegrationTest {
   @Timeout(30)
   void latencyTracking_WhenMultipleRequests_ShouldRecordReasonableLatency() {
     for (int i = 0; i < 5; i++) {
-      ResponseEntity<HelloWorldResource.HelloResponse> response =
-          restTemplate.getForEntity(baseUrl + "/hello", HelloWorldResource.HelloResponse.class);
+      ResponseEntity<String> response =
+          restTemplate.getForEntity(baseUrl + "/slow/1", String.class);
       assertThat(response.getStatusCode().value()).isEqualTo(200);
     }
 
@@ -122,7 +117,7 @@ class ResourceIntegrationTest {
     assertThat(health.getStatus()).isEqualTo("healthy");
     assertThat(health.isHealthy()).isTrue();
     assertThat(health.getMessage()).contains("OK");
-    assertThat(health.getErrorsLastMinute()).isGreaterThanOrEqualTo(0);
+    assertThat(health.getErrorsLastMinute()).isZero();
     assertThat(health.isErrorThresholdBreached()).isFalse();
     assertThat(health.isLatencyThresholdBreached()).isFalse();
   }
