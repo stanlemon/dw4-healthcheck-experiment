@@ -19,7 +19,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <byte-buddy.version>1.18.8</byte-buddy.version>
+        <byte-buddy.version>1.18.8-jdk5</byte-buddy.version>
     </properties>
 
     <dependencyManagement>
