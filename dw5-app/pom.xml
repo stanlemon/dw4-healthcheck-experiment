@@ -13,7 +13,7 @@
     <artifactId>dw5-app</artifactId>
 
     <properties>
-        <dropwizard.version>5.0.1</dropwizard.version>
+        <dropwizard.version>5.0.2</dropwizard.version>
         <mainClass>com.stanlemon.healthy.dw5app.DwApplication</mainClass>
     </properties>
 
