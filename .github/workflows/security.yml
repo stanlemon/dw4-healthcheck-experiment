@@ -78,7 +78,7 @@ jobs:
     # Dependency vulnerability scanning using GitHub Security
     - name: Dependency Review
       if: github.event_name == 'pull_request'
-      uses: actions/dependency-review-action@3c4e3dcb1aa7874d2c16be7d79418e9b7efd6261 # v4
+      uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
       with:
         # Use config file for vulnerability exceptions
         config-file: '.github/dependency-review-config.yml'
