@@ -34,7 +34,7 @@ class ResourceIntegrationTest {
     // cache the RestClient across methods.
     restClient = RestClient.create("http://localhost:" + port);
 
-    // Spring Boot 4 removed TestRestTemplate in favor of Spring Framework's RestClient.
+    // Poll liveness: metrics from other tests can make readiness unhealthy while Tomcat is running.
     await()
         .atMost(Duration.ofSeconds(30))
         .pollInterval(Duration.ofMillis(500))
@@ -44,7 +44,7 @@ class ResourceIntegrationTest {
               int status =
                   restClient
                       .get()
-                      .uri("/actuator/health")
+                      .uri("/health/live")
                       .retrieve()
                       .toBodilessEntity()
                       .getStatusCode()
