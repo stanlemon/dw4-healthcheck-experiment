@@ -98,6 +98,7 @@ class ResourceIntegrationTest {
 
   @Test
   @Timeout(30)
+  @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
   void actuatorHealthEndpoint_WhenCalled_ShouldReturnOkStatus() {
     int status =
         restClient
@@ -113,6 +114,7 @@ class ResourceIntegrationTest {
 
   @Test
   @Timeout(30)
+  @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
   void readinessEndpoint_WhenCalled_ShouldReturnHealthResponse() {
     HealthResponse health =
         restClient.get().uri("/health/ready").retrieve().body(HealthResponse.class);

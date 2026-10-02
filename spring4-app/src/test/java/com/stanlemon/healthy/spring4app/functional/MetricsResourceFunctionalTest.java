@@ -112,8 +112,7 @@ class MetricsResourceFunctionalTest {
         .atMost(Duration.ofSeconds(30))
         .pollInterval(Duration.ofMillis(500))
         .ignoreExceptions()
-        .untilAsserted(
-            () -> given().when().get(baseUrl + "/actuator/health").then().statusCode(200));
+        .untilAsserted(() -> given().when().get(baseUrl + "/health/live").then().statusCode(200));
   }
 
   private void waitForMetricsToUpdate(Supplier<Boolean> condition) {
