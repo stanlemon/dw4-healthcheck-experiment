@@ -48,7 +48,8 @@ public class LatencyTrackingFilter extends OncePerRequestFilter {
         metricsService.recordRequestLatency(latencyMs);
       }
 
-      log.debug("Request to {} took {}ms to process", request.getRequestURI(), latencyMs);
+      // Request paths are untrusted, so omit them to keep each debug event on one line.
+      log.debug("Request took {}ms to process", latencyMs);
     }
   }
 
