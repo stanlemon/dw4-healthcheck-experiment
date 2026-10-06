@@ -1,5 +1,6 @@
 package com.stanlemon.healthy.spring4app.resources;
 
+import com.stanlemon.healthy.exceptions.SomethingWentWrongException;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -73,10 +74,9 @@ public class SlowResource {
       Thread.sleep(delayMs);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt(); // Restore interrupt status
-      return ResponseEntity.internalServerError()
-          .body(
-              new SlowResponse(
-                  "Request was interrupted", delayMs, System.currentTimeMillis() - startTime));
+      // Throw rather than build a 500 here, so the request flows through GlobalExceptionHandler
+      // and is counted as a server error like every other 5xx.
+      throw new SomethingWentWrongException("Request was interrupted", e);
     }
 
     long actualMs = System.currentTimeMillis() - startTime;
