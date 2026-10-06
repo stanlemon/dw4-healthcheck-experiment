@@ -122,8 +122,12 @@ public class DefaultMetricsService implements MetricsService {
 
   @Override
   public synchronized long getErrorCountLastMinute() {
-    long nowSeconds = clock.instant().getEpochSecond();
+    return errorCountAt(nowSeconds());
+  }
 
+  // The *At(nowSeconds) helpers below must only be called while holding this instance's monitor;
+  // taking the time as a parameter lets snapshot() evaluate everything against one clock reading.
+  private long errorCountAt(long nowSeconds) {
     clearOldBuckets(nowSeconds);
 
     long count = 0;
@@ -160,8 +164,12 @@ public class DefaultMetricsService implements MetricsService {
 
   @Override
   public synchronized boolean isErrorThresholdBreached(long threshold) {
-    long errorCount = getErrorCountLastMinute();
-    long requestCount = getTotalRequestCountLast60Seconds();
+    return errorThresholdBreachedAt(nowSeconds(), threshold);
+  }
+
+  private boolean errorThresholdBreachedAt(long nowSeconds, long threshold) {
+    long errorCount = errorCountAt(nowSeconds);
+    long requestCount = requestCountAt(nowSeconds);
 
     if (requestCount < minimumErrorSampleSize) {
       return false;
@@ -198,8 +206,10 @@ public class DefaultMetricsService implements MetricsService {
 
   @Override
   public synchronized double getAverageLatencyLast60Seconds() {
-    long nowSeconds = clock.instant().getEpochSecond();
+    return averageLatencyAt(nowSeconds());
+  }
 
+  private double averageLatencyAt(long nowSeconds) {
     clearOldLatencyBuckets(nowSeconds);
 
     long totalLatency = 0;
@@ -219,8 +229,10 @@ public class DefaultMetricsService implements MetricsService {
 
   @Override
   public synchronized long getTotalRequestCountLast60Seconds() {
-    long nowSeconds = clock.instant().getEpochSecond();
+    return requestCountAt(nowSeconds());
+  }
 
+  private long requestCountAt(long nowSeconds) {
     clearOldLatencyBuckets(nowSeconds);
 
     long totalCount = 0;
@@ -233,18 +245,34 @@ public class DefaultMetricsService implements MetricsService {
 
   @Override
   public synchronized boolean isLatencyThresholdBreached(double thresholdMs) {
-    long requestCount = getTotalRequestCountLast60Seconds();
+    return latencyThresholdBreachedAt(nowSeconds(), thresholdMs);
+  }
+
+  private boolean latencyThresholdBreachedAt(long nowSeconds, double thresholdMs) {
+    long requestCount = requestCountAt(nowSeconds);
 
     if (requestCount < minimumLatencySampleSize) {
       return false;
     }
 
-    return getAverageLatencyLast60Seconds() > thresholdMs;
+    return averageLatencyAt(nowSeconds) > thresholdMs;
   }
 
   @Override
   public boolean isLatencyThresholdBreached() {
     return isLatencyThresholdBreached(latencyThresholdMs);
+  }
+
+  @Override
+  public synchronized MetricsSnapshot snapshot() {
+    long nowSeconds = nowSeconds();
+    return new MetricsSnapshot(
+        errorCountAt(nowSeconds),
+        totalErrorCount.get(),
+        requestCountAt(nowSeconds),
+        averageLatencyAt(nowSeconds),
+        errorThresholdBreachedAt(nowSeconds, errorThreshold),
+        latencyThresholdBreachedAt(nowSeconds, latencyThresholdMs));
   }
 
   @Override
@@ -255,6 +283,10 @@ public class DefaultMetricsService implements MetricsService {
   @Override
   public double getDefaultLatencyThresholdMs() {
     return latencyThresholdMs;
+  }
+
+  private long nowSeconds() {
+    return clock.instant().getEpochSecond();
   }
 
   private synchronized void clearOldLatencyBuckets(long currentSeconds) {
