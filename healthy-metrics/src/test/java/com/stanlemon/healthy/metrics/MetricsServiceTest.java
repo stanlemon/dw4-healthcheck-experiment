@@ -784,6 +784,107 @@ class MetricsServiceTest {
       assertThat(breachedSeenByReader).isTrue();
       assertThat(svc.isLatencyThresholdBreached()).isTrue();
     }
+
+    @Test
+    void snapshot_WhenWriteLandsInNextSecondMidRead_ShouldDescribeOneMoment()
+        throws InterruptedException {
+      raceNextReadAgainst(
+          () -> {
+            svc.recordServerError();
+            svc.recordRequestLatency(5_000);
+          });
+
+      MetricsSnapshot seenByReader = svc.snapshot();
+      awaitWriter();
+
+      // Every field is from before the racing write, none from after it.
+      assertThat(seenByReader).isEqualTo(new MetricsSnapshot(50, 50, 50, 500.0, true, true));
+      assertThat(svc.snapshot().getErrorsLastMinute()).isEqualTo(51);
+      assertThat(svc.snapshot().getRequestsLast60Seconds()).isEqualTo(51);
+    }
+  }
+
+  @Nested
+  @DisplayName("Snapshot")
+  class Snapshot {
+
+    private static final Instant BASE_TIME = Instant.parse("2026-01-01T00:00:00Z");
+
+    private Instant currentTime = BASE_TIME;
+    private boolean jumpWindowAfterEachRead;
+
+    // When jumpWindowAfterEachRead is on, each clock read moves time forward a full window, so a
+    // second clock read during one snapshot would see every bucket as expired.
+    private final Clock steppingClock =
+        new Clock() {
+          @Override
+          public java.time.ZoneId getZone() {
+            return ZoneOffset.UTC;
+          }
+
+          @Override
+          public Clock withZone(java.time.ZoneId zone) {
+            return this;
+          }
+
+          @Override
+          public Instant instant() {
+            Instant now = currentTime;
+            if (jumpWindowAfterEachRead) {
+              currentTime = currentTime.plus(Duration.ofSeconds(60));
+            }
+            return now;
+          }
+        };
+
+    private DefaultMetricsService svc;
+
+    @BeforeEach
+    void setUpClock() {
+      currentTime = BASE_TIME;
+      jumpWindowAfterEachRead = false;
+      svc = new DefaultMetricsService(steppingClock);
+    }
+
+    @Test
+    void snapshot_WhenNoTraffic_ShouldReportZerosAndNoBreach() {
+      assertThat(svc.snapshot()).isEqualTo(new MetricsSnapshot(0, 0, 0, 0.0, false, false));
+    }
+
+    @Test
+    void snapshot_WhenMetricsRecorded_ShouldMatchIndividualGetters() {
+      for (int i = 0; i < 10; i++) {
+        svc.recordRequestLatency(150);
+      }
+      for (int i = 0; i < 6; i++) {
+        svc.recordServerError();
+      }
+
+      MetricsSnapshot snapshot = svc.snapshot();
+
+      assertThat(snapshot.getErrorsLastMinute()).isEqualTo(svc.getErrorCountLastMinute());
+      assertThat(snapshot.getTotalErrors()).isEqualTo(svc.getTotalErrorCount());
+      assertThat(snapshot.getRequestsLast60Seconds())
+          .isEqualTo(svc.getTotalRequestCountLast60Seconds());
+      assertThat(snapshot.getAverageLatencyLast60Seconds())
+          .isEqualTo(svc.getAverageLatencyLast60Seconds());
+      assertThat(snapshot.isErrorThresholdBreached()).isEqualTo(svc.isErrorThresholdBreached());
+      assertThat(snapshot.isLatencyThresholdBreached()).isEqualTo(svc.isLatencyThresholdBreached());
+      assertThat(snapshot).isEqualTo(new MetricsSnapshot(6, 6, 10, 150.0, true, true));
+    }
+
+    @Test
+    void snapshot_WhenClockAdvancesDuringSnapshot_ShouldUseSingleClockReading() {
+      for (int i = 0; i < 10; i++) {
+        svc.recordServerError();
+        svc.recordRequestLatency(200);
+      }
+      jumpWindowAfterEachRead = true;
+
+      MetricsSnapshot snapshot = svc.snapshot();
+
+      assertThat(snapshot).isEqualTo(new MetricsSnapshot(10, 10, 10, 200.0, true, true));
+    }
   }
 
   @Nested
