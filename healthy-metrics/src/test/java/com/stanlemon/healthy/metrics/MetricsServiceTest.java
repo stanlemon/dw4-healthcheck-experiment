@@ -1,6 +1,7 @@
 package com.stanlemon.healthy.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -9,6 +10,7 @@ import java.time.ZoneOffset;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -648,6 +650,139 @@ class MetricsServiceTest {
       // First latency was 65 seconds ago — outside window. Only second remains.
       assertThat(svc.getAverageLatencyLast60Seconds()).isEqualTo(200.0);
       assertThat(svc.getTotalRequestCountLast60Seconds()).isEqualTo(1);
+    }
+  }
+
+  /**
+   * A read takes a timestamp, then works on the buckets. If a write in the next second can slip in
+   * between those two steps, the reader's timestamp ends up older than the last write and looks
+   * like the clock moved backwards, which wipes the whole window. These tests force that
+   * interleaving: the reader's first clock call starts a writer at T+1 and waits until that writer
+   * has either finished (the race happened) or is blocked on the service's lock (the reader holds
+   * the lock, so the race cannot happen). Only then does the reader get its timestamp T back.
+   */
+  @Nested
+  @DisplayName("Reads racing with writes across a second boundary")
+  class ReadWriteRace {
+
+    private static final long START_SECONDS = 1_000;
+
+    private final AtomicLong currentSeconds = new AtomicLong(START_SECONDS);
+    private volatile Thread racingReader;
+    private volatile Runnable racingWrite;
+    private volatile Thread writerThread;
+
+    private final Clock racingClock =
+        new Clock() {
+          @Override
+          public java.time.ZoneId getZone() {
+            return ZoneOffset.UTC;
+          }
+
+          @Override
+          public Clock withZone(java.time.ZoneId zone) {
+            return this;
+          }
+
+          @Override
+          public Instant instant() {
+            if (Thread.currentThread() != racingReader) {
+              return Instant.ofEpochSecond(currentSeconds.get());
+            }
+            racingReader = null;
+            long staleSeconds = currentSeconds.getAndIncrement();
+            Thread writer = new Thread(racingWrite);
+            writerThread = writer;
+            writer.start();
+            await()
+                .atMost(Duration.ofSeconds(5))
+                .until(
+                    () ->
+                        writer.getState() == Thread.State.BLOCKED
+                            || writer.getState() == Thread.State.TERMINATED);
+            return Instant.ofEpochSecond(staleSeconds);
+          }
+        };
+
+    private DefaultMetricsService svc;
+
+    @BeforeEach
+    void setUpRacingClock() {
+      svc = new DefaultMetricsService(racingClock);
+      for (int i = 0; i < 50; i++) {
+        svc.recordServerError();
+        svc.recordRequestLatency(500);
+      }
+    }
+
+    private void raceNextReadAgainst(Runnable write) {
+      racingWrite = write;
+      racingReader = Thread.currentThread();
+    }
+
+    private void awaitWriter() throws InterruptedException {
+      writerThread.join(TimeUnit.SECONDS.toMillis(5));
+      assertThat(writerThread.isAlive()).as("racing writer finished").isFalse();
+    }
+
+    @Test
+    void getErrorCountLastMinute_WhenWriteLandsInNextSecondMidRead_ShouldKeepWindow()
+        throws InterruptedException {
+      raceNextReadAgainst(svc::recordServerError);
+
+      long countSeenByReader = svc.getErrorCountLastMinute();
+      awaitWriter();
+
+      assertThat(countSeenByReader).isEqualTo(50);
+      assertThat(svc.getErrorCountLastMinute()).isEqualTo(51);
+    }
+
+    @Test
+    void getTotalRequestCountLast60Seconds_WhenWriteLandsInNextSecondMidRead_ShouldKeepWindow()
+        throws InterruptedException {
+      raceNextReadAgainst(() -> svc.recordRequestLatency(500));
+
+      long countSeenByReader = svc.getTotalRequestCountLast60Seconds();
+      awaitWriter();
+
+      assertThat(countSeenByReader).isEqualTo(50);
+      assertThat(svc.getTotalRequestCountLast60Seconds()).isEqualTo(51);
+    }
+
+    @Test
+    void getAverageLatencyLast60Seconds_WhenWriteLandsInNextSecondMidRead_ShouldKeepWindow()
+        throws InterruptedException {
+      raceNextReadAgainst(() -> svc.recordRequestLatency(500));
+
+      double averageSeenByReader = svc.getAverageLatencyLast60Seconds();
+      awaitWriter();
+
+      assertThat(averageSeenByReader).isEqualTo(500.0);
+      assertThat(svc.getTotalRequestCountLast60Seconds()).isEqualTo(51);
+    }
+
+    @Test
+    void isErrorThresholdBreached_WhenWriteLandsInNextSecondMidRead_ShouldStillBreach()
+        throws InterruptedException {
+      raceNextReadAgainst(svc::recordServerError);
+
+      boolean breachedSeenByReader = svc.isErrorThresholdBreached();
+      awaitWriter();
+
+      assertThat(breachedSeenByReader).isTrue();
+      assertThat(svc.isErrorThresholdBreached()).isTrue();
+    }
+
+    @Test
+    void isLatencyThresholdBreached_WhenWriteLandsInNextSecondMidRead_ShouldStillBreach()
+        throws InterruptedException {
+      raceNextReadAgainst(() -> svc.recordRequestLatency(500));
+
+      boolean breachedSeenByReader = svc.isLatencyThresholdBreached();
+      awaitWriter();
+
+      assertThat(breachedSeenByReader).isTrue();
+      assertThat(svc.isLatencyThresholdBreached()).isTrue();
     }
   }
 
