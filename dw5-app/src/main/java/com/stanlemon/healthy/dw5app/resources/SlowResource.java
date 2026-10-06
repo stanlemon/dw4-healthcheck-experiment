@@ -1,5 +1,6 @@
 package com.stanlemon.healthy.dw5app.resources;
 
+import com.stanlemon.healthy.exceptions.SomethingWentWrongException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -72,11 +73,9 @@ public class SlowResource {
       Thread.sleep(delayMs);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-          .entity(
-              new SlowResponse(
-                  "Request was interrupted", delayMs, System.currentTimeMillis() - startTime))
-          .build();
+      // Throw rather than build a 500 here, so the request flows through GlobalExceptionMapper
+      // and is counted as a server error like every other 5xx.
+      throw new SomethingWentWrongException("Request was interrupted", e);
     }
 
     long actualMs = System.currentTimeMillis() - startTime;
