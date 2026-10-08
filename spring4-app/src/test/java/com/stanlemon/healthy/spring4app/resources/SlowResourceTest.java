@@ -3,9 +3,11 @@ package com.stanlemon.healthy.spring4app.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import com.stanlemon.healthy.exceptions.SomethingWentWrongException;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -80,10 +82,13 @@ class SlowResourceTest {
   class ThreadInterruptionTests {
 
     @Test
-    @DisplayName("Should handle interruption gracefully when thread is interrupted")
-    void slowWithDelay_WhenThreadInterrupted_ShouldHandleGracefully() throws InterruptedException {
+    @DisplayName("Should throw so the global handler records a server error when interrupted")
+    void slowWithDelay_WhenThreadInterrupted_ShouldThrowAndRestoreInterruptStatus()
+        throws InterruptedException {
       SlowResource testResource = new SlowResource();
       AtomicReference<ResponseEntity<SlowResource.SlowResponse>> result = new AtomicReference<>();
+      AtomicReference<RuntimeException> thrown = new AtomicReference<>();
+      AtomicBoolean interruptStatusAfterCall = new AtomicBoolean();
 
       CountDownLatch threadStarted = new CountDownLatch(1);
       CountDownLatch threadCompleted = new CountDownLatch(1);
@@ -94,7 +99,11 @@ class SlowResourceTest {
                 try {
                   threadStarted.countDown();
                   result.set(testResource.slowWithDelay(100));
+                } catch (RuntimeException e) {
+                  thrown.set(e);
                 } finally {
+                  // Read on the thread itself, before it terminates
+                  interruptStatusAfterCall.set(Thread.currentThread().isInterrupted());
                   threadCompleted.countDown();
                 }
               });
@@ -110,12 +119,13 @@ class SlowResourceTest {
       testThread.interrupt();
       assertThat(threadCompleted.await(2, TimeUnit.SECONDS)).isTrue();
 
-      assertThat(result.get()).isNotNull();
-      assertThat(result.get().getStatusCode().value()).isEqualTo(500);
-      assertThat(result.get().getBody()).isNotNull();
-      assertThat(result.get().getBody().getMessage()).isEqualTo("Request was interrupted");
-      assertThat(result.get().getBody().getActualMs()).isLessThan(100);
-      assertThat(testThread.isInterrupted()).isTrue();
+      // No hand-built 500: the exception goes to GlobalExceptionHandler, which counts the error
+      assertThat(result.get()).isNull();
+      assertThat(thrown.get())
+          .isInstanceOf(SomethingWentWrongException.class)
+          .hasMessage("Request was interrupted")
+          .hasCauseInstanceOf(InterruptedException.class);
+      assertThat(interruptStatusAfterCall).isTrue();
     }
   }
 }
