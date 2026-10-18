@@ -14,10 +14,12 @@ public class HealthEvaluator {
 
   /** Evaluates current health based on error and latency thresholds. */
   public HealthResponse evaluate() {
-    long errorCount = metricsService.getErrorCountLastMinute();
-    double avgLatency = metricsService.getAverageLatencyLast60Seconds();
-    boolean errorBreached = metricsService.isErrorThresholdBreached();
-    boolean latencyBreached = metricsService.isLatencyThresholdBreached();
+    // One snapshot, so the breach flags always match the numbers reported next to them.
+    MetricsSnapshot snapshot = metricsService.snapshot();
+    long errorCount = snapshot.getErrorsLastMinute();
+    double avgLatency = snapshot.getAverageLatencyLast60Seconds();
+    boolean errorBreached = snapshot.isErrorThresholdBreached();
+    boolean latencyBreached = snapshot.isLatencyThresholdBreached();
     long errorThreshold = metricsService.getDefaultErrorThreshold();
     double latencyThreshold = metricsService.getDefaultLatencyThresholdMs();
 

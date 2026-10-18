@@ -93,6 +93,15 @@ public interface MetricsService {
   boolean isLatencyThresholdBreached();
 
   /**
+   * Read all windowed metrics and both default-threshold checks at once, as one consistent view.
+   * Use this instead of several separate getter calls whenever the values are compared or reported
+   * together.
+   *
+   * @return a snapshot whose fields all describe the same moment
+   */
+  MetricsSnapshot snapshot();
+
+  /**
    * Get the default error threshold.
    *
    * @return the default error threshold
