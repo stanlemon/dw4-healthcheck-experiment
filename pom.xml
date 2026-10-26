@@ -19,7 +19,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <byte-buddy.version>1.18.15-jdk5</byte-buddy.version>
+        <byte-buddy.version>1.18.16-jdk5</byte-buddy.version>
     </properties>
 
     <dependencyManagement>
@@ -131,25 +131,25 @@
             <dependency>
                 <groupId>io.rest-assured</groupId>
                 <artifactId>rest-assured</artifactId>
-                <version>6.2.0</version>
+                <version>6.3.0</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>io.rest-assured</groupId>
                 <artifactId>rest-assured-common</artifactId>
-                <version>6.2.0</version>
+                <version>6.3.0</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>io.rest-assured</groupId>
                 <artifactId>json-path</artifactId>
-                <version>6.2.0</version>
+                <version>6.3.0</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>io.rest-assured</groupId>
                 <artifactId>xml-path</artifactId>
-                <version>6.2.0</version>
+                <version>6.3.0</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
