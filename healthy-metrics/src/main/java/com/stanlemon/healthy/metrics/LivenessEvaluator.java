@@ -17,8 +17,10 @@ public class LivenessEvaluator {
 
   /** Evaluates whether the process is alive based on total error rate. */
   public LivenessResponse evaluate() {
-    long errorCount = metricsService.getErrorCountLastMinute();
-    long totalRequests = metricsService.getTotalRequestCountLast60Seconds();
+    // One snapshot, so requests that finish between two separate reads can't skew the ratio.
+    MetricsSnapshot snapshot = metricsService.snapshot();
+    long errorCount = snapshot.getErrorsLastMinute();
+    long totalRequests = snapshot.getRequestsLast60Seconds();
 
     if (totalRequests < MINIMUM_SAMPLE_SIZE) {
       return new LivenessResponse(
