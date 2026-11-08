@@ -65,10 +65,12 @@ public class DwApplication extends Application<DwConfiguration> {
     final AerodynamicsPredictor aerodynamicsPredictor = new DefaultAerodynamicsPredictor();
     final HangarService hangarService = new DefaultHangarService();
 
+    // REQUEST only: the filter records one latency sample per pass, so also running it on
+    // ERROR/FORWARD/INCLUDE/ASYNC re-dispatches would count a single request more than once.
     environment
         .servlets()
         .addFilter("latency-tracking", new LatencyTrackingFilter(metricsService))
-        .addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, "/*");
+        .addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), true, "/*");
 
     environment.jersey().register(new MetricsResource(metricsService));
     environment.jersey().register(new ReadinessResource(healthEvaluator));

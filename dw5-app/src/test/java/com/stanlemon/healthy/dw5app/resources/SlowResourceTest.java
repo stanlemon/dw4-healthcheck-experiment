@@ -3,10 +3,13 @@ package com.stanlemon.healthy.dw5app.resources;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import com.stanlemon.healthy.exceptions.SomethingWentWrongException;
 import jakarta.ws.rs.core.Response;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -122,13 +125,14 @@ class SlowResourceTest {
   class ThreadInterruptionTests {
 
     @Test
-    @DisplayName("Should handle interruption gracefully when thread is interrupted")
-    void slowWithDelay_WhenThreadInterrupted_ShouldHandleInterruptionGracefully()
+    @DisplayName("Should throw so the global mapper records a server error when interrupted")
+    void slowWithDelay_WhenThreadInterrupted_ShouldThrowAndRestoreInterruptStatus()
         throws InterruptedException {
       // Create a separate thread to test interruption
       SlowResource testResource = new SlowResource();
-      final Response[] result = new Response[1];
-      final Exception[] exception = new Exception[1];
+      AtomicReference<Response> result = new AtomicReference<>();
+      AtomicReference<RuntimeException> thrown = new AtomicReference<>();
+      AtomicBoolean interruptStatusAfterCall = new AtomicBoolean();
 
       // Use CountDownLatch to ensure proper synchronization
       CountDownLatch threadStarted = new CountDownLatch(1);
@@ -139,11 +143,12 @@ class SlowResourceTest {
               () -> {
                 try {
                   threadStarted.countDown(); // Signal that thread has started
-                  result[0] =
-                      testResource.slowWithDelay(100); // Use a longer delay to ensure interruption
-                } catch (Exception e) {
-                  exception[0] = e;
+                  result.set(testResource.slowWithDelay(100));
+                } catch (RuntimeException e) {
+                  thrown.set(e);
                 } finally {
+                  // Read on the thread itself, before it terminates
+                  interruptStatusAfterCall.set(Thread.currentThread().isInterrupted());
                   threadCompleted.countDown(); // Signal that thread has completed
                 }
               });
@@ -163,21 +168,15 @@ class SlowResourceTest {
       // Wait for the thread to complete (more reliable than thread.join with timeout)
       assertThat(threadCompleted.await(2, TimeUnit.SECONDS)).isTrue();
 
-      // Verify that the interruption was handled correctly
-      assertThat(result[0]).isNotNull();
-      assertThat(result[0].getStatus()).isEqualTo(500);
-
-      SlowResource.SlowResponse slowResponse = (SlowResource.SlowResponse) result[0].getEntity();
-      assertThat(slowResponse.getMessage()).isEqualTo("Request was interrupted");
-      assertThat(slowResponse.getDelayMs()).isEqualTo(100);
-      assertThat(slowResponse.getActualMs())
-          .isLessThan(100); // Should be interrupted before full delay
-
-      // Verify that no exception was thrown (it was handled internally)
-      assertThat(exception[0]).isNull();
+      // No hand-built 500: the exception goes to GlobalExceptionMapper, which counts the error
+      assertThat(result.get()).isNull();
+      assertThat(thrown.get())
+          .isInstanceOf(SomethingWentWrongException.class)
+          .hasMessage("Request was interrupted")
+          .hasCauseInstanceOf(InterruptedException.class);
 
       // Verify that the thread's interrupt status was properly restored
-      assertThat(testThread.isInterrupted()).isTrue();
+      assertThat(interruptStatusAfterCall).isTrue();
     }
   }
 }

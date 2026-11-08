@@ -9,16 +9,15 @@ import java.util.concurrent.atomic.AtomicLong;
  * configurable buckets for error tracking (one per second) and latency tracking (one per second).
  *
  * <p>This implementation is thread-safe. All methods can be called concurrently from multiple
- * threads without external synchronization. Thread-safety is guaranteed through:
+ * threads without external synchronization. Every method that reads the clock or touches the
+ * sliding-window buckets — writers and windowed readers alike — holds this instance's monitor for
+ * its whole body.
  *
- * <ol>
- *   <li>Synchronized methods for critical sections ({@code recordServerError}, {@code
- *       recordRequestLatency})
- *   <li>Synchronized bucket clearing logic ({@code clearOldBuckets}, {@code
- *       clearOldLatencyBuckets})
- *   <li>Atomic operations for counter increments using AtomicLong
- *   <li>Proper memory visibility using final fields and AtomicLong references
- * </ol>
+ * <p>Readers must hold the lock while they read the clock, not just while they clear buckets. A
+ * reader that reads the clock first and then waits for the lock can come back with a timestamp
+ * older than the last write; the bucket-clearing logic would read that as the clock moving
+ * backwards and wipe the whole window. Holding the lock across both steps keeps timestamps in order
+ * and also makes each read a consistent view of the buckets.
  *
  * <p>This class uses a sliding window approach for metrics tracking, with separate windows for
  * error rates and latency measurements. Old data is automatically cleared as the window moves.
@@ -122,9 +121,13 @@ public class DefaultMetricsService implements MetricsService {
   }
 
   @Override
-  public long getErrorCountLastMinute() {
-    long nowSeconds = clock.instant().getEpochSecond();
+  public synchronized long getErrorCountLastMinute() {
+    return errorCountAt(nowSeconds());
+  }
 
+  // The *At(nowSeconds) helpers below must only be called while holding this instance's monitor;
+  // taking the time as a parameter lets snapshot() evaluate everything against one clock reading.
+  private long errorCountAt(long nowSeconds) {
     clearOldBuckets(nowSeconds);
 
     long count = 0;
@@ -160,9 +163,13 @@ public class DefaultMetricsService implements MetricsService {
   }
 
   @Override
-  public boolean isErrorThresholdBreached(long threshold) {
-    long errorCount = getErrorCountLastMinute();
-    long requestCount = getTotalRequestCountLast60Seconds();
+  public synchronized boolean isErrorThresholdBreached(long threshold) {
+    return errorThresholdBreachedAt(nowSeconds(), threshold);
+  }
+
+  private boolean errorThresholdBreachedAt(long nowSeconds, long threshold) {
+    long errorCount = errorCountAt(nowSeconds);
+    long requestCount = requestCountAt(nowSeconds);
 
     if (requestCount < minimumErrorSampleSize) {
       return false;
@@ -198,9 +205,11 @@ public class DefaultMetricsService implements MetricsService {
   }
 
   @Override
-  public double getAverageLatencyLast60Seconds() {
-    long nowSeconds = clock.instant().getEpochSecond();
+  public synchronized double getAverageLatencyLast60Seconds() {
+    return averageLatencyAt(nowSeconds());
+  }
 
+  private double averageLatencyAt(long nowSeconds) {
     clearOldLatencyBuckets(nowSeconds);
 
     long totalLatency = 0;
@@ -219,9 +228,11 @@ public class DefaultMetricsService implements MetricsService {
   }
 
   @Override
-  public long getTotalRequestCountLast60Seconds() {
-    long nowSeconds = clock.instant().getEpochSecond();
+  public synchronized long getTotalRequestCountLast60Seconds() {
+    return requestCountAt(nowSeconds());
+  }
 
+  private long requestCountAt(long nowSeconds) {
     clearOldLatencyBuckets(nowSeconds);
 
     long totalCount = 0;
@@ -233,19 +244,35 @@ public class DefaultMetricsService implements MetricsService {
   }
 
   @Override
-  public boolean isLatencyThresholdBreached(double thresholdMs) {
-    long requestCount = getTotalRequestCountLast60Seconds();
+  public synchronized boolean isLatencyThresholdBreached(double thresholdMs) {
+    return latencyThresholdBreachedAt(nowSeconds(), thresholdMs);
+  }
+
+  private boolean latencyThresholdBreachedAt(long nowSeconds, double thresholdMs) {
+    long requestCount = requestCountAt(nowSeconds);
 
     if (requestCount < minimumLatencySampleSize) {
       return false;
     }
 
-    return getAverageLatencyLast60Seconds() > thresholdMs;
+    return averageLatencyAt(nowSeconds) > thresholdMs;
   }
 
   @Override
   public boolean isLatencyThresholdBreached() {
     return isLatencyThresholdBreached(latencyThresholdMs);
+  }
+
+  @Override
+  public synchronized MetricsSnapshot snapshot() {
+    long nowSeconds = nowSeconds();
+    return new MetricsSnapshot(
+        errorCountAt(nowSeconds),
+        totalErrorCount.get(),
+        requestCountAt(nowSeconds),
+        averageLatencyAt(nowSeconds),
+        errorThresholdBreachedAt(nowSeconds, errorThreshold),
+        latencyThresholdBreachedAt(nowSeconds, latencyThresholdMs));
   }
 
   @Override
@@ -256,6 +283,10 @@ public class DefaultMetricsService implements MetricsService {
   @Override
   public double getDefaultLatencyThresholdMs() {
     return latencyThresholdMs;
+  }
+
+  private long nowSeconds() {
+    return clock.instant().getEpochSecond();
   }
 
   private synchronized void clearOldLatencyBuckets(long currentSeconds) {
