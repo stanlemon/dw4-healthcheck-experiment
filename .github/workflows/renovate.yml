@@ -1,0 +1,27 @@
+name: Validate Renovate Updates
+
+on:
+  push:
+    branches:
+      - 'renovate/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/renovate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          java-version: '21'
+          distribution: temurin
+      - name: Run tests and SpotBugs
+        run: mvn -B clean test spotbugs:check -Dsurefire.printSummary=true
