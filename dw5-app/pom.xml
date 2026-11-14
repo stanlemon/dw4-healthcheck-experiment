@@ -19,6 +19,12 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Use a patched Guava release until Dropwizard manages it. -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>33.7.2-jre</version>
+            </dependency>
             <!-- Align Jetty modules with patched releases until Dropwizard manages them. -->
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
