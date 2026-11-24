@@ -3,12 +3,8 @@ name: Security Scan
 on:
   pull_request:
     branches: [ main ]
-    paths:
-      - '**/pom.xml'
-      - '**/src/**'
-      - '.github/workflows/security.yml'
-      - '.github/dependency-review-config.yml'
-      - 'scripts/check-hardcoded-secrets*'
+  push:
+    branches: ['renovate/**']
   schedule:
     # Run weekly on Sunday at 2 AM UTC
     - cron: '0 2 * * 0'
@@ -63,6 +59,13 @@ jobs:
     - name: Analyze Maven dependencies
       id: dependencies
       run: mvn -B dependency:analyze
+
+    - name: Upload SpotBugs reports
+      if: failure() && steps.spotbugs.outcome == 'failure'
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+      with:
+        name: spotbugs-report
+        path: "**/target/spotbugsXml.xml"
 
     # Dependency vulnerability scanning using GitHub Security
     - name: Dependency Review

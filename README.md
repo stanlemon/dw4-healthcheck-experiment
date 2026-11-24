@@ -240,6 +240,15 @@ mvn clean verify           # All checks
 - **ArchUnit**: Architecture rules enforced via shared `architecture-rules` module
 - **Maven Enforcer**: Blocks known-vulnerable dependency versions (Log4j, Jackson, Commons Collections)
 
+## Continuous integration
+
+Pull requests and Renovate branches run two required jobs: `test` and `security`.
+The test job runs every module's tests and enforces the JaCoCo coverage minimums.
+The security job runs SpotBugs, the credential scanner, dependency analysis, and pull-request dependency review.
+Scheduled and manually requested full scans also run CodeQL.
+Reports and failure artifacts include every module's `target` directory.
+The security job replaces the former standalone SpotBugs job, and both required jobs replace the duplicate Renovate validation job.
+
 ## Architecture Notes
 
 ### Why `DwConfiguration` Is Empty
