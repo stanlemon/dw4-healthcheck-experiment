@@ -35,7 +35,9 @@ jobs:
       uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
       with:
         files: |
-          target/*.jar
+          dw5-app/target/dw5-app-*.jar
+          spring4-app/target/spring4-app-*.jar
+        fail_on_unmatched_files: true
         generate_release_notes: true
         draft: false
         prerelease: false
