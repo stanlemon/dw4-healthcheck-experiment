@@ -1,7 +1,6 @@
 package com.stanlemon.healthy.spring4app.exceptions;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.stanlemon.healthy.metrics.MetricsService;
 import jakarta.validation.ConstraintViolationException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,26 +13,15 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Global exception handler that provides consistent error responses and tracks error metrics.
+ * Global exception handler that provides consistent error responses.
  *
  * <p>This class intercepts exceptions thrown by controllers and maps them to appropriate HTTP
- * responses with consistent error message formatting. It also records server errors in the metrics
- * service for monitoring.
+ * responses with consistent error message formatting. Server errors are counted by {@code
+ * LatencyTrackingFilter} from the response status, not here.
  */
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
-
-  private final MetricsService metricsService;
-
-  /**
-   * Constructs a new GlobalExceptionHandler with the provided metrics service.
-   *
-   * @param metricsService the metrics service to record error events
-   */
-  public GlobalExceptionHandler(MetricsService metricsService) {
-    this.metricsService = metricsService;
-  }
 
   /**
    * Handles ResponseStatusException to preserve status codes from web exceptions.
@@ -50,7 +38,6 @@ public class GlobalExceptionHandler {
     String message;
     if (status.is5xxServerError()) {
       log.error("Status exception", exception);
-      metricsService.recordServerError();
       message = "Internal server error";
     } else {
       // 4xx: the reason string is programmer-controlled (e.g. "Plane not found"), safe to echo.
@@ -99,8 +86,7 @@ public class GlobalExceptionHandler {
 
   /**
    * Handles all exceptions that don't have more specific handlers. Preserves the status code from
-   * Spring framework exceptions (e.g. validation errors, method not allowed) and only records
-   * server error metrics for 5xx responses.
+   * Spring framework exceptions (e.g. validation errors, method not allowed).
    *
    * @param exception the exception to handle
    * @return response entity with error details and appropriate status
@@ -115,7 +101,6 @@ public class GlobalExceptionHandler {
     String message;
     if (status.is5xxServerError()) {
       log.error("Unhandled exception", exception);
-      metricsService.recordServerError();
       // Do not echo raw exception messages on 5xx — they may leak SQL, file paths, or hostnames.
       // The detail is in the log; the client only needs to know that the server failed.
       message = "Internal server error";

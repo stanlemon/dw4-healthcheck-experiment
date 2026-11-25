@@ -36,6 +36,21 @@ public class MetricsResponse {
     this.latencyThresholdBreached = latencyThresholdBreached;
   }
 
+  /**
+   * Builds the response from one snapshot, so every field describes the same moment.
+   *
+   * @param snapshot the metrics to report
+   * @return the response body for the metrics endpoint
+   */
+  public static MetricsResponse from(MetricsSnapshot snapshot) {
+    return new MetricsResponse(
+        snapshot.getErrorsLastMinute(),
+        snapshot.getTotalErrors(),
+        snapshot.getAverageLatencyLast60Seconds(),
+        snapshot.isErrorThresholdBreached(),
+        snapshot.isLatencyThresholdBreached());
+  }
+
   @JsonProperty
   public boolean isHealthy() {
     return !errorThresholdBreached && !latencyThresholdBreached;

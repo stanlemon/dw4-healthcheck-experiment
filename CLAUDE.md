@@ -352,15 +352,16 @@ The project uses Maven Enforcer Plugin to prevent vulnerable dependencies:
 ## Architecture Patterns
 
 ### Metrics Collection
-- Use atomic operations for thread-safe counters
+- Use atomic operations for a lone counter; when several values must agree (like the sliding-window buckets), guard them all with one lock and read the clock inside it
 - Implement circular buffers for time-series data
 - Clear stale data proactively to prevent memory leaks
 
 ### Error Handling
 All exceptions should flow through the global exception mapper to ensure:
 - Consistent error responses
-- Automatic metrics tracking
 - Proper logging
+
+Server-error metrics come from `LatencyTrackingFilter`, which records each request's latency and 5xx status in one `recordRequest` call. Exception mappers do not touch metrics.
 
 ### Health Checks
 Implement comprehensive health checks that:
@@ -393,7 +394,7 @@ public void run(DwConfiguration configuration, Environment environment) {
     environment.jersey().register(new MetricsResource(metricsService));
     
     // 4. Register exception mappers for global error handling
-    environment.jersey().register(new GlobalExceptionMapper(metricsService));
+    environment.jersey().register(new GlobalExceptionMapper());
     
     // 5. Register health checks
     environment.healthChecks().register("application", 
@@ -417,7 +418,7 @@ com.stanlemon.healthy.dw5app/
 - **Services**: Created as singletons in the application class
 - **Resources**: Receive service dependencies through constructor injection
 - **Shared State**: Managed through service interfaces (`MetricsService`)
-- **Global Components**: Exception mappers and filters receive service references
+- **Global Components**: Filters receive service references; exception mappers need none
 
 ### Service Interface Pattern
 All business logic is accessed through interfaces:
@@ -730,13 +731,14 @@ Only require explicit configuration when:
 ### JavaDoc Requirements
 ```java
 /**
- * Records a server error and updates error metrics.
+ * Records one finished request and whether it was a server error.
  * This method is thread-safe and can be called concurrently.
  *
- * @throws IllegalStateException if metrics service is not initialized
+ * @param latencyMs how long the request took, in milliseconds
+ * @param serverError true if the request ended in a 5xx response
  * @since 1.0
  */
-public void recordServerError() {
+public void recordRequest(long latencyMs, boolean serverError) {
     // Implementation
 }
 ```

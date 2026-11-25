@@ -11,10 +11,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Filter that measures and records request latency for all HTTP requests.
- *
- * <p>This filter tracks how long each request takes to process and records the latency in the
- * MetricsService. It captures timing data for all requests that pass through the filter chain.
+ * Filter that records every finished request in the {@link MetricsService}: its latency, and
+ * whether it ended in a 5xx response. This is the only place metrics are recorded, so a request and
+ * its error always land together.
  */
 @Component
 @Slf4j
@@ -37,15 +36,18 @@ public class LatencyTrackingFilter extends OncePerRequestFilter {
       throws ServletException, IOException {
 
     final long startTime = System.currentTimeMillis();
+    // Stays true if the chain throws, so an exception that escapes every handler still counts.
+    boolean threw = true;
     try {
       filterChain.doFilter(request, response);
+      threw = false;
     } finally {
       final long latencyMs = System.currentTimeMillis() - startTime;
       // Skip health-probe and actuator traffic. Kubernetes polls /health/* every few seconds
       // with tiny response bodies; counting them in the 60-second average drags it toward zero
       // and masks real latency regressions.
       if (!isHealthProbe(request.getRequestURI())) {
-        metricsService.recordRequestLatency(latencyMs);
+        metricsService.recordRequest(latencyMs, threw || response.getStatus() >= 500);
       }
 
       // Request paths are untrusted, so omit them to keep each debug event on one line.

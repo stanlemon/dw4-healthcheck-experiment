@@ -10,7 +10,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("Liveness Resource Tests")
+/**
+ * Liveness rules are covered by LivenessEvaluatorTest; this only checks the HTTP status mapping.
+ */
+@DisplayName("LivenessResource")
 class LivenessResourceTest {
 
   private DefaultMetricsService metricsService;
@@ -23,48 +26,22 @@ class LivenessResourceTest {
   }
 
   @Test
-  @DisplayName("Should return 200 when process is alive")
-  void getLiveness_WhenAlive_ShouldReturn200() {
-    for (int i = 0; i < 20; i++) {
-      metricsService.recordRequestLatency(10);
-    }
-
+  void getLiveness_WhenAlive_ShouldReturn200WithLivenessBody() {
     Response response = resource.getLiveness();
 
     assertThat(response.getStatus()).isEqualTo(200);
-
-    LivenessResponse liveness = (LivenessResponse) response.getEntity();
-    assertThat(liveness.getStatus()).isEqualTo("alive");
-    assertThat(liveness.isAlive()).isTrue();
+    assertThat(((LivenessResponse) response.getEntity()).getStatus()).isEqualTo("alive");
   }
 
   @Test
-  @DisplayName("Should return 200 when insufficient traffic to evaluate")
-  void getLiveness_WhenInsufficientTraffic_ShouldReturn200() {
-    Response response = resource.getLiveness();
-
-    assertThat(response.getStatus()).isEqualTo(200);
-
-    LivenessResponse liveness = (LivenessResponse) response.getEntity();
-    assertThat(liveness.getStatus()).isEqualTo("alive");
-    assertThat(liveness.isAlive()).isTrue();
-  }
-
-  @Test
-  @DisplayName("Should return 503 when all requests fail")
-  void getLiveness_WhenAllRequestsFail_ShouldReturn503() {
-    for (int i = 0; i < 15; i++) {
-      metricsService.recordServerError();
-      metricsService.recordRequestLatency(100);
+  void getLiveness_WhenEveryRequestFails_ShouldReturn503WithLivenessBody() {
+    for (int i = 0; i < 10; i++) {
+      metricsService.recordRequest(100, true);
     }
 
     Response response = resource.getLiveness();
 
     assertThat(response.getStatus()).isEqualTo(503);
-
-    LivenessResponse liveness = (LivenessResponse) response.getEntity();
-    assertThat(liveness.getStatus()).isEqualTo("dead");
-    assertThat(liveness.isAlive()).isFalse();
-    assertThat(liveness.getMessage()).contains("All requests failing");
+    assertThat(((LivenessResponse) response.getEntity()).getStatus()).isEqualTo("dead");
   }
 }

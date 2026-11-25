@@ -74,8 +74,8 @@ public class SlowResource {
       Thread.sleep(delayMs);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt(); // Restore interrupt status
-      // Throw rather than build a 500 here, so the request flows through GlobalExceptionHandler
-      // and is counted as a server error like every other 5xx.
+      // Throw rather than build a 500 here, so the client gets the standard error body from
+      // the global exception handler, like every other 5xx.
       throw new SomethingWentWrongException("Request was interrupted", e);
     }
 

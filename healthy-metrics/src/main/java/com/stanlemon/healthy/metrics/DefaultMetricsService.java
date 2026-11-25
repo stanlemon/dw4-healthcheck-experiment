@@ -1,312 +1,147 @@
 package com.stanlemon.healthy.metrics;
 
 import java.time.Clock;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Arrays;
 
 /**
- * Default implementation of MetricsService to track application metrics, including error counts and
- * request latency in sliding windows. Uses a high-performance circular buffer approach with
- * configurable buckets for error tracking (one per second) and latency tracking (one per second).
+ * Default {@link MetricsService}. Keeps a 60-second sliding window as a ring of one-second buckets:
+ * each bucket holds the request count, error count, and total latency for one second.
  *
- * <p>This implementation is thread-safe. All methods can be called concurrently from multiple
- * threads without external synchronization. Every method that reads the clock or touches the
- * sliding-window buckets — writers and windowed readers alike — holds this instance's monitor for
- * its whole body.
- *
- * <p>Readers must hold the lock while they read the clock, not just while they clear buckets. A
- * reader that reads the clock first and then waits for the lock can come back with a timestamp
- * older than the last write; the bucket-clearing logic would read that as the clock moving
- * backwards and wipe the whole window. Holding the lock across both steps keeps timestamps in order
- * and also makes each read a consistent view of the buckets.
- *
- * <p>This class uses a sliding window approach for metrics tracking, with separate windows for
- * error rates and latency measurements. Old data is automatically cleared as the window moves.
+ * <p>Every public method is {@code synchronized} and reads the clock inside the lock. That matters:
+ * a reader that read the clock first and then waited for the lock could come back with a timestamp
+ * older than the last write, and the window logic would treat that as the clock moving backwards
+ * and wipe every bucket. Holding the lock across both steps keeps timestamps in order. Because all
+ * state is guarded by the one lock, plain {@code long} fields are enough.
  */
 public class DefaultMetricsService implements MetricsService {
 
+  private static final int WINDOW_SECONDS = 60;
+
+  /** Low-traffic error threshold: more errors than this in the window is unhealthy. */
+  private static final long ERROR_THRESHOLD = 100;
+
+  /** Average latency, in milliseconds, above which the window is unhealthy. */
+  private static final double LATENCY_THRESHOLD_MS = 100.0;
+
+  /** Fewer requests than this and the latency average is too noisy to judge. */
+  private static final long MINIMUM_LATENCY_SAMPLE_SIZE = 5;
+
+  /** Fewer requests than this and the error count is too noisy to judge. */
+  private static final long MINIMUM_ERROR_SAMPLE_SIZE = 10;
+
   /**
-   * Once the 60-second request window holds at least this many requests, the error check switches
-   * from an absolute count to a percentage rate — below this traffic level a handful of errors
-   * doesn't mean much.
+   * Once the window holds at least this many requests, the error check switches from an absolute
+   * count to a percentage rate — below this traffic level a handful of errors doesn't mean much.
    */
   private static final long HIGH_TRAFFIC_THRESHOLD = 100;
 
   /** Error rate (10%) used once traffic crosses {@link #HIGH_TRAFFIC_THRESHOLD}. */
   private static final double HIGH_TRAFFIC_ERROR_RATE = 0.10;
 
-  private final int errorBucketCount;
-  private final int latencyBucketCount;
-  private final long errorThreshold;
-  private final double latencyThresholdMs;
-  private final long minimumLatencySampleSize;
-  private final long minimumErrorSampleSize;
   private final Clock clock;
 
-  private final AtomicLong[] errorBuckets;
-  private final AtomicLong lastBucketTime = new AtomicLong(-1);
-  private final AtomicLong totalErrorCount = new AtomicLong(0);
+  // All fields below are guarded by this instance's monitor.
+  private final long[] requestBuckets = new long[WINDOW_SECONDS];
+  private final long[] errorBuckets = new long[WINDOW_SECONDS];
+  private final long[] latencyTotalBuckets = new long[WINDOW_SECONDS];
 
-  private final AtomicLong[] latencyTotalBuckets;
-  private final AtomicLong[] latencyCountBuckets;
-  private final AtomicLong lastLatencyBucketTime = new AtomicLong(-1);
-  private final AtomicLong totalRequestCount = new AtomicLong(0);
+  /** The epoch second the window was last moved to; -1 before the first call. */
+  private long windowEndSecond = -1;
 
-  /** Creates a new DefaultMetricsService with the default configuration. */
+  private long totalErrors;
+
+  /** Creates a service that reads the system UTC clock. */
   public DefaultMetricsService() {
-    this(60, 60, 100, 100.0, 5, 10, Clock.systemUTC());
+    this(Clock.systemUTC());
   }
 
   /**
-   * Creates a new DefaultMetricsService with a custom clock. Primarily useful for testing
-   * time-dependent behavior without relying on real wall-clock time.
+   * Creates a service that reads the given clock, so tests can control time.
    *
    * @param clock the clock to use for time measurements
    */
   public DefaultMetricsService(Clock clock) {
-    this(60, 60, 100, 100.0, 5, 10, clock);
-  }
-
-  /**
-   * Creates a new DefaultMetricsService with custom configuration parameters.
-   *
-   * @param errorBucketCount number of buckets for error tracking (typically 60 for 1-minute window)
-   * @param latencyBucketCount number of buckets for latency tracking (typically 60 for 1-minute
-   *     window)
-   * @param errorThreshold default threshold for error count
-   * @param latencyThresholdMs default threshold for latency in milliseconds
-   * @param minimumLatencySampleSize minimum number of requests before applying latency thresholds
-   * @param minimumErrorSampleSize minimum number of requests before applying error rate thresholds
-   * @param clock the clock to use for time measurements
-   */
-  public DefaultMetricsService(
-      int errorBucketCount,
-      int latencyBucketCount,
-      long errorThreshold,
-      double latencyThresholdMs,
-      long minimumLatencySampleSize,
-      long minimumErrorSampleSize,
-      Clock clock) {
-    this.errorBucketCount = errorBucketCount;
-    this.latencyBucketCount = latencyBucketCount;
-    this.errorThreshold = errorThreshold;
-    this.latencyThresholdMs = latencyThresholdMs;
-    this.minimumLatencySampleSize = minimumLatencySampleSize;
-    this.minimumErrorSampleSize = minimumErrorSampleSize;
     this.clock = clock;
-
-    errorBuckets = new AtomicLong[errorBucketCount];
-    for (int i = 0; i < errorBucketCount; i++) {
-      errorBuckets[i] = new AtomicLong(0);
-    }
-
-    latencyTotalBuckets = new AtomicLong[latencyBucketCount];
-    latencyCountBuckets = new AtomicLong[latencyBucketCount];
-    for (int i = 0; i < latencyBucketCount; i++) {
-      latencyTotalBuckets[i] = new AtomicLong(0);
-      latencyCountBuckets[i] = new AtomicLong(0);
-    }
   }
 
   @Override
-  public synchronized void recordServerError() {
-    long nowSeconds = clock.instant().getEpochSecond();
-    int bucketIndex = (int) (nowSeconds % errorBucketCount);
-
-    clearOldBuckets(nowSeconds);
-
-    errorBuckets[bucketIndex].incrementAndGet();
-    totalErrorCount.incrementAndGet();
-
-    lastBucketTime.set(nowSeconds);
-  }
-
-  @Override
-  public synchronized long getErrorCountLastMinute() {
-    return errorCountAt(nowSeconds());
-  }
-
-  // The *At(nowSeconds) helpers below must only be called while holding this instance's monitor;
-  // taking the time as a parameter lets snapshot() evaluate everything against one clock reading.
-  private long errorCountAt(long nowSeconds) {
-    clearOldBuckets(nowSeconds);
-
-    long count = 0;
-    for (AtomicLong bucket : errorBuckets) {
-      count += bucket.get();
+  public synchronized void recordRequest(long latencyMs, boolean serverError) {
+    int bucket = advanceWindow();
+    requestBuckets[bucket]++;
+    latencyTotalBuckets[bucket] += Math.max(latencyMs, 0);
+    if (serverError) {
+      errorBuckets[bucket]++;
+      totalErrors++;
     }
-
-    return count;
-  }
-
-  private synchronized void clearOldBuckets(long currentSeconds) {
-    long lastTime = lastBucketTime.get();
-
-    // Full-clear on initial state, clock reversal (NTP step-back, VM resume), or fully stale
-    // window.
-    if (lastTime == -1
-        || currentSeconds < lastTime
-        || currentSeconds - lastTime >= errorBucketCount) {
-      for (AtomicLong bucket : errorBuckets) {
-        bucket.set(0);
-      }
-    } else {
-      for (long time = lastTime + 1; time <= currentSeconds; time++) {
-        int bucketIndex = (int) (time % errorBucketCount);
-        errorBuckets[bucketIndex].set(0);
-      }
-    }
-  }
-
-  @Override
-  public long getTotalErrorCount() {
-    return totalErrorCount.get();
-  }
-
-  @Override
-  public synchronized boolean isErrorThresholdBreached(long threshold) {
-    return errorThresholdBreachedAt(nowSeconds(), threshold);
-  }
-
-  private boolean errorThresholdBreachedAt(long nowSeconds, long threshold) {
-    long errorCount = errorCountAt(nowSeconds);
-    long requestCount = requestCountAt(nowSeconds);
-
-    if (requestCount < minimumErrorSampleSize) {
-      return false;
-    }
-
-    if (requestCount >= HIGH_TRAFFIC_THRESHOLD) {
-      double errorRate = (double) errorCount / requestCount;
-      return errorRate > HIGH_TRAFFIC_ERROR_RATE;
-    }
-
-    return errorCount > Math.min(threshold, requestCount / 2);
-  }
-
-  @Override
-  public boolean isErrorThresholdBreached() {
-    return isErrorThresholdBreached(errorThreshold);
-  }
-
-  @Override
-  public synchronized void recordRequestLatency(long latencyMs) {
-    long clamped = Math.max(latencyMs, 0);
-    long nowSeconds = clock.instant().getEpochSecond();
-    int bucketIndex = (int) (nowSeconds % latencyBucketCount);
-
-    clearOldLatencyBuckets(nowSeconds);
-
-    latencyTotalBuckets[bucketIndex].addAndGet(clamped);
-    latencyCountBuckets[bucketIndex].incrementAndGet();
-
-    totalRequestCount.incrementAndGet();
-
-    lastLatencyBucketTime.set(nowSeconds);
-  }
-
-  @Override
-  public synchronized double getAverageLatencyLast60Seconds() {
-    return averageLatencyAt(nowSeconds());
-  }
-
-  private double averageLatencyAt(long nowSeconds) {
-    clearOldLatencyBuckets(nowSeconds);
-
-    long totalLatency = 0;
-    long totalCount = 0;
-
-    for (int i = 0; i < latencyBucketCount; i++) {
-      totalLatency += latencyTotalBuckets[i].get();
-      totalCount += latencyCountBuckets[i].get();
-    }
-
-    if (totalCount == 0) {
-      return 0.0;
-    }
-
-    return (double) totalLatency / totalCount;
-  }
-
-  @Override
-  public synchronized long getTotalRequestCountLast60Seconds() {
-    return requestCountAt(nowSeconds());
-  }
-
-  private long requestCountAt(long nowSeconds) {
-    clearOldLatencyBuckets(nowSeconds);
-
-    long totalCount = 0;
-    for (int i = 0; i < latencyBucketCount; i++) {
-      totalCount += latencyCountBuckets[i].get();
-    }
-
-    return totalCount;
-  }
-
-  @Override
-  public synchronized boolean isLatencyThresholdBreached(double thresholdMs) {
-    return latencyThresholdBreachedAt(nowSeconds(), thresholdMs);
-  }
-
-  private boolean latencyThresholdBreachedAt(long nowSeconds, double thresholdMs) {
-    long requestCount = requestCountAt(nowSeconds);
-
-    if (requestCount < minimumLatencySampleSize) {
-      return false;
-    }
-
-    return averageLatencyAt(nowSeconds) > thresholdMs;
-  }
-
-  @Override
-  public boolean isLatencyThresholdBreached() {
-    return isLatencyThresholdBreached(latencyThresholdMs);
   }
 
   @Override
   public synchronized MetricsSnapshot snapshot() {
-    long nowSeconds = nowSeconds();
+    advanceWindow();
+    long requests = sum(requestBuckets);
+    long errors = sum(errorBuckets);
+    double averageLatency = requests == 0 ? 0.0 : (double) sum(latencyTotalBuckets) / requests;
+
     return new MetricsSnapshot(
-        errorCountAt(nowSeconds),
-        totalErrorCount.get(),
-        requestCountAt(nowSeconds),
-        averageLatencyAt(nowSeconds),
-        errorThresholdBreachedAt(nowSeconds, errorThreshold),
-        latencyThresholdBreachedAt(nowSeconds, latencyThresholdMs));
+        errors,
+        totalErrors,
+        requests,
+        averageLatency,
+        isErrorThresholdBreached(errors, requests),
+        requests >= MINIMUM_LATENCY_SAMPLE_SIZE && averageLatency > LATENCY_THRESHOLD_MS,
+        ERROR_THRESHOLD,
+        LATENCY_THRESHOLD_MS);
   }
 
-  @Override
-  public long getDefaultErrorThreshold() {
-    return errorThreshold;
+  private static boolean isErrorThresholdBreached(long errors, long requests) {
+    if (requests < MINIMUM_ERROR_SAMPLE_SIZE) {
+      return false;
+    }
+    if (requests >= HIGH_TRAFFIC_THRESHOLD) {
+      return (double) errors / requests > HIGH_TRAFFIC_ERROR_RATE;
+    }
+    // Moderate traffic: breach when more than half the requests failed (capped by the threshold).
+    return errors > Math.min(ERROR_THRESHOLD, requests / 2);
   }
 
-  @Override
-  public double getDefaultLatencyThresholdMs() {
-    return latencyThresholdMs;
-  }
+  /**
+   * Moves the window to the current second, zeroing every bucket for the seconds that passed since
+   * the last call. Must be called while holding this instance's monitor.
+   *
+   * @return the bucket index for the current second
+   */
+  private int advanceWindow() {
+    long now = clock.instant().getEpochSecond();
 
-  private long nowSeconds() {
-    return clock.instant().getEpochSecond();
-  }
-
-  private synchronized void clearOldLatencyBuckets(long currentSeconds) {
-    long lastTime = lastLatencyBucketTime.get();
-
-    // Full-clear on initial state, clock reversal (NTP step-back, VM resume), or fully stale
-    // window.
-    if (lastTime == -1
-        || currentSeconds < lastTime
-        || currentSeconds - lastTime >= latencyBucketCount) {
-      for (int i = 0; i < latencyBucketCount; i++) {
-        latencyTotalBuckets[i].set(0);
-        latencyCountBuckets[i].set(0);
-      }
+    // Clear everything if the clock went backwards (NTP step-back, VM resume) or the whole window
+    // went stale. The initial -1 lands in one of these cases, or in the loop below for a clock
+    // near the epoch; either way the buckets are already zero.
+    if (now < windowEndSecond || now - windowEndSecond >= WINDOW_SECONDS) {
+      Arrays.fill(requestBuckets, 0);
+      Arrays.fill(errorBuckets, 0);
+      Arrays.fill(latencyTotalBuckets, 0);
     } else {
-      for (long time = lastTime + 1; time <= currentSeconds; time++) {
-        int bucketIndex = (int) (time % latencyBucketCount);
-        latencyTotalBuckets[bucketIndex].set(0);
-        latencyCountBuckets[bucketIndex].set(0);
+      for (long second = windowEndSecond + 1; second <= now; second++) {
+        int bucket = bucketFor(second);
+        requestBuckets[bucket] = 0;
+        errorBuckets[bucket] = 0;
+        latencyTotalBuckets[bucket] = 0;
       }
     }
+
+    windowEndSecond = now;
+    return bucketFor(now);
+  }
+
+  private static int bucketFor(long epochSecond) {
+    return (int) (epochSecond % WINDOW_SECONDS);
+  }
+
+  private static long sum(long[] buckets) {
+    long total = 0;
+    for (long value : buckets) {
+      total += value;
+    }
+    return total;
   }
 }
