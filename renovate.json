@@ -1,6 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "github>stanlemon/javascript:renovate.json5"
+    "github>stanlemon/javascript:renovate.json5",
+    "github>stanlemon/javascript:aggressive.json5"
   ]
 }
