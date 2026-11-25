@@ -39,18 +39,17 @@ class ResourceIntegrationTest {
         .atMost(Duration.ofSeconds(30))
         .pollInterval(Duration.ofMillis(500))
         .ignoreExceptions()
-        .untilAsserted(
-            () -> {
-              int status =
-                  restClient
-                      .get()
-                      .uri("/health/live")
-                      .retrieve()
-                      .toBodilessEntity()
-                      .getStatusCode()
-                      .value();
-              assertThat(status).isEqualTo(200);
-            });
+        .untilAsserted(() -> {
+          int status =
+              restClient
+                  .get()
+                  .uri("/health/live")
+                  .retrieve()
+                  .toBodilessEntity()
+                  .getStatusCode()
+                  .value();
+          assertThat(status).isEqualTo(200);
+        });
   }
 
   @Test
@@ -85,15 +84,14 @@ class ResourceIntegrationTest {
         .atMost(Duration.ofSeconds(10))
         .pollInterval(Duration.ofMillis(200))
         .ignoreExceptions()
-        .untilAsserted(
-            () -> {
-              MetricsResponse metrics =
-                  restClient.get().uri("/metrics").retrieve().body(MetricsResponse.class);
-              assertThat(metrics).isNotNull();
-              assertThat(metrics.getAvgLatencyLast60Seconds()).isGreaterThan(0.0);
-              assertThat(metrics.getAvgLatencyLast60Seconds()).isLessThan(1000.0);
-              assertThat(metrics.isLatencyThresholdBreached()).isFalse();
-            });
+        .untilAsserted(() -> {
+          MetricsResponse metrics =
+              restClient.get().uri("/metrics").retrieve().body(MetricsResponse.class);
+          assertThat(metrics).isNotNull();
+          assertThat(metrics.getAvgLatencyLast60Seconds()).isGreaterThan(0.0);
+          assertThat(metrics.getAvgLatencyLast60Seconds()).isLessThan(1000.0);
+          assertThat(metrics.isLatencyThresholdBreached()).isFalse();
+        });
   }
 
   @Test

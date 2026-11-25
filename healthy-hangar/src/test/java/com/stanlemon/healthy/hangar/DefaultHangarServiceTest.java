@@ -188,20 +188,19 @@ class DefaultHangarServiceTest {
 
     try {
       for (int t = 0; t < threads; t++) {
-        pool.submit(
-            () -> {
-              try {
-                start.await();
-                for (int i = 0; i < perThread; i++) {
-                  now.updateAndGet(prev -> prev.plusMillis(1));
-                  bounded.stow(sampleRequest("p"));
-                }
-              } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-              } finally {
-                done.countDown();
-              }
-            });
+        pool.submit(() -> {
+          try {
+            start.await();
+            for (int i = 0; i < perThread; i++) {
+              now.updateAndGet(prev -> prev.plusMillis(1));
+              bounded.stow(sampleRequest("p"));
+            }
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+          } finally {
+            done.countDown();
+          }
+        });
       }
       start.countDown();
       assertThat(done.await(10, TimeUnit.SECONDS)).isTrue();

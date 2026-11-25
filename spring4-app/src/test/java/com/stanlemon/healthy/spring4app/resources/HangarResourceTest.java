@@ -86,13 +86,12 @@ class HangarResourceTest {
   void getById_ThrowsResponseStatus404WithoutEchoingId() {
     assertThatThrownBy(() -> resource.getById("does-not-exist"))
         .isInstanceOf(ResponseStatusException.class)
-        .satisfies(
-            ex -> {
-              ResponseStatusException rse = (ResponseStatusException) ex;
-              assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-              assertThat(rse.getReason()).isEqualTo("Plane not found");
-              assertThat(rse.getMessage()).doesNotContain("does-not-exist");
-            });
+        .satisfies(ex -> {
+          ResponseStatusException rse = (ResponseStatusException) ex;
+          assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+          assertThat(rse.getReason()).isEqualTo("Plane not found");
+          assertThat(rse.getMessage()).doesNotContain("does-not-exist");
+        });
   }
 
   @Test

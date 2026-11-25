@@ -55,11 +55,10 @@ class TestErrorsResourceTest {
     assertThatThrownBy(() -> resource.testWebAppException(code))
         .isInstanceOf(WebApplicationException.class)
         .hasMessageContaining("Web application exception with code " + code)
-        .satisfies(
-            exception -> {
-              WebApplicationException webAppEx = (WebApplicationException) exception;
-              assertThat(webAppEx.getResponse().getStatus()).isEqualTo(code);
-            });
+        .satisfies(exception -> {
+          WebApplicationException webAppEx = (WebApplicationException) exception;
+          assertThat(webAppEx.getResponse().getStatus()).isEqualTo(code);
+        });
   }
 
   @Test
@@ -68,12 +67,11 @@ class TestErrorsResourceTest {
 
     assertThatThrownBy(() -> resource.testWebAppException(testCode))
         .isInstanceOf(WebApplicationException.class)
-        .satisfies(
-            exception -> {
-              WebApplicationException webAppEx = (WebApplicationException) exception;
-              assertThat(webAppEx.getResponse().getStatus()).isEqualTo(testCode);
-              assertThat(webAppEx.getResponse().getStatusInfo())
-                  .isEqualTo(Response.Status.fromStatusCode(testCode));
-            });
+        .satisfies(exception -> {
+          WebApplicationException webAppEx = (WebApplicationException) exception;
+          assertThat(webAppEx.getResponse().getStatus()).isEqualTo(testCode);
+          assertThat(webAppEx.getResponse().getStatusInfo())
+              .isEqualTo(Response.Status.fromStatusCode(testCode));
+        });
   }
 }

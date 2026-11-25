@@ -40,13 +40,12 @@ class HangarResourceFunctionalTest {
         .atMost(Duration.ofSeconds(30))
         .pollInterval(Duration.ofMillis(500))
         .ignoreExceptions()
-        .untilAsserted(
-            () ->
-                given()
-                    .when()
-                    .get("http://localhost:" + APP.getAdminPort() + "/healthcheck")
-                    .then()
-                    .statusCode(200));
+        .untilAsserted(() ->
+            given()
+                .when()
+                .get("http://localhost:" + APP.getAdminPort() + "/healthcheck")
+                .then()
+                .statusCode(200));
   }
 
   @Test
@@ -165,11 +164,10 @@ class HangarResourceFunctionalTest {
 
     assertThat(planes).isNotEmpty();
     assertThat(planes)
-        .anySatisfy(
-            entry -> {
-              Map<String, Object> plane = (Map<String, Object>) entry.get("plane");
-              assertThat(plane.get("name")).isEqualTo(uniqueName);
-            });
+        .anySatisfy(entry -> {
+          Map<String, Object> plane = (Map<String, Object>) entry.get("plane");
+          assertThat(plane.get("name")).isEqualTo(uniqueName);
+        });
   }
 
   @Test

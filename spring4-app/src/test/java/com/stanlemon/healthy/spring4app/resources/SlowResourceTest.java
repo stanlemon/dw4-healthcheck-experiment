@@ -94,19 +94,18 @@ class SlowResourceTest {
       CountDownLatch threadCompleted = new CountDownLatch(1);
 
       Thread testThread =
-          new Thread(
-              () -> {
-                try {
-                  threadStarted.countDown();
-                  result.set(testResource.slowWithDelay(100));
-                } catch (RuntimeException e) {
-                  thrown.set(e);
-                } finally {
-                  // Read on the thread itself, before it terminates
-                  interruptStatusAfterCall.set(Thread.currentThread().isInterrupted());
-                  threadCompleted.countDown();
-                }
-              });
+          new Thread(() -> {
+            try {
+              threadStarted.countDown();
+              result.set(testResource.slowWithDelay(100));
+            } catch (RuntimeException e) {
+              thrown.set(e);
+            } finally {
+              // Read on the thread itself, before it terminates
+              interruptStatusAfterCall.set(Thread.currentThread().isInterrupted());
+              threadCompleted.countDown();
+            }
+          });
 
       testThread.start();
       assertThat(threadStarted.await(1, TimeUnit.SECONDS)).isTrue();

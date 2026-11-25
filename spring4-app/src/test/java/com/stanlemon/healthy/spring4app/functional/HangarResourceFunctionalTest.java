@@ -161,11 +161,10 @@ class HangarResourceFunctionalTest {
 
     assertThat(planes).isNotEmpty();
     assertThat(planes)
-        .anySatisfy(
-            entry -> {
-              Map<String, Object> plane = (Map<String, Object>) entry.get("plane");
-              assertThat(plane.get("name")).isEqualTo(uniqueName);
-            });
+        .anySatisfy(entry -> {
+          Map<String, Object> plane = (Map<String, Object>) entry.get("plane");
+          assertThat(plane.get("name")).isEqualTo(uniqueName);
+        });
   }
 
   @Test

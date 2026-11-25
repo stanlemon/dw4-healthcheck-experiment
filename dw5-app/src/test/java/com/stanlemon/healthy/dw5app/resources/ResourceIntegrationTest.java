@@ -40,16 +40,15 @@ class ResourceIntegrationTest {
         .atMost(Duration.ofSeconds(30))
         .pollInterval(Duration.ofMillis(500))
         .ignoreExceptions()
-        .untilAsserted(
-            () -> {
-              try (Response response =
-                  app.client()
-                      .target(String.format("http://localhost:%d/healthcheck", app.getAdminPort()))
-                      .request()
-                      .get()) {
-                assertThat(response.getStatus()).isEqualTo(200);
-              }
-            });
+        .untilAsserted(() -> {
+          try (Response response =
+              app.client()
+                  .target(String.format("http://localhost:%d/healthcheck", app.getAdminPort()))
+                  .request()
+                  .get()) {
+            assertThat(response.getStatus()).isEqualTo(200);
+          }
+        });
   }
 
   @Test
@@ -95,25 +94,24 @@ class ResourceIntegrationTest {
         .atMost(Duration.ofSeconds(10))
         .pollInterval(Duration.ofMillis(200))
         .ignoreExceptions()
-        .untilAsserted(
-            () -> {
-              try (Response metricsResponse =
-                  client
-                      .target(String.format("http://localhost:%d/metrics", app.getLocalPort()))
-                      .request()
-                      .get()) {
-                assertThat(metricsResponse.getStatus()).isEqualTo(200);
+        .untilAsserted(() -> {
+          try (Response metricsResponse =
+              client
+                  .target(String.format("http://localhost:%d/metrics", app.getLocalPort()))
+                  .request()
+                  .get()) {
+            assertThat(metricsResponse.getStatus()).isEqualTo(200);
 
-                MetricsResponse metrics = metricsResponse.readEntity(MetricsResponse.class);
+            MetricsResponse metrics = metricsResponse.readEntity(MetricsResponse.class);
 
-                // Latency should be recorded and greater than 0
-                assertThat(metrics.getAvgLatencyLast60Seconds()).isGreaterThan(0.0);
-                // Should be reasonable latency (less than 1 second for simple requests)
-                assertThat(metrics.getAvgLatencyLast60Seconds()).isLessThan(1000.0);
-                // Since latency is well below 500ms threshold, it should not be breached
-                assertThat(metrics.isLatencyThresholdBreached()).isFalse();
-              }
-            });
+            // Latency should be recorded and greater than 0
+            assertThat(metrics.getAvgLatencyLast60Seconds()).isGreaterThan(0.0);
+            // Should be reasonable latency (less than 1 second for simple requests)
+            assertThat(metrics.getAvgLatencyLast60Seconds()).isLessThan(1000.0);
+            // Since latency is well below 500ms threshold, it should not be breached
+            assertThat(metrics.isLatencyThresholdBreached()).isFalse();
+          }
+        });
   }
 
   @Test
