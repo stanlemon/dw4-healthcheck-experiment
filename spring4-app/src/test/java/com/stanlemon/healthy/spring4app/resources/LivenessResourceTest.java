@@ -8,10 +8,12 @@ import com.stanlemon.healthy.metrics.LivenessResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-@DisplayName("Liveness Resource Tests")
+/**
+ * Liveness rules are covered by LivenessEvaluatorTest; this only checks the HTTP status mapping.
+ */
+@DisplayName("LivenessResource")
 class LivenessResourceTest {
 
   private DefaultMetricsService metricsService;
@@ -24,51 +26,22 @@ class LivenessResourceTest {
   }
 
   @Test
-  @DisplayName("Should return 200 when process is alive")
-  void getLiveness_WhenAlive_ShouldReturn200() {
-    for (int i = 0; i < 20; i++) {
-      metricsService.recordRequestLatency(10);
+  void getLiveness_WhenAlive_ShouldReturn200WithLivenessBody() {
+    ResponseEntity<LivenessResponse> response = resource.getLiveness();
+
+    assertThat(response.getStatusCode().value()).isEqualTo(200);
+    assertThat(response.getBody().getStatus()).isEqualTo("alive");
+  }
+
+  @Test
+  void getLiveness_WhenEveryRequestFails_ShouldReturn503WithLivenessBody() {
+    for (int i = 0; i < 10; i++) {
+      metricsService.recordRequest(100, true);
     }
 
     ResponseEntity<LivenessResponse> response = resource.getLiveness();
 
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(response.getBody()).isNotNull();
-
-    LivenessResponse liveness = response.getBody();
-    assertThat(liveness.getStatus()).isEqualTo("alive");
-    assertThat(liveness.isAlive()).isTrue();
-  }
-
-  @Test
-  @DisplayName("Should return 200 when insufficient traffic to evaluate")
-  void getLiveness_WhenInsufficientTraffic_ShouldReturn200() {
-    ResponseEntity<LivenessResponse> response = resource.getLiveness();
-
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(response.getBody()).isNotNull();
-
-    LivenessResponse liveness = response.getBody();
-    assertThat(liveness.getStatus()).isEqualTo("alive");
-    assertThat(liveness.isAlive()).isTrue();
-  }
-
-  @Test
-  @DisplayName("Should return 503 when all requests fail")
-  void getLiveness_WhenAllRequestsFail_ShouldReturn503() {
-    for (int i = 0; i < 15; i++) {
-      metricsService.recordServerError();
-      metricsService.recordRequestLatency(100);
-    }
-
-    ResponseEntity<LivenessResponse> response = resource.getLiveness();
-
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
-    assertThat(response.getBody()).isNotNull();
-
-    LivenessResponse liveness = response.getBody();
-    assertThat(liveness.getStatus()).isEqualTo("dead");
-    assertThat(liveness.isAlive()).isFalse();
-    assertThat(liveness.getMessage()).contains("All requests failing");
+    assertThat(response.getStatusCode().value()).isEqualTo(503);
+    assertThat(response.getBody().getStatus()).isEqualTo("dead");
   }
 }

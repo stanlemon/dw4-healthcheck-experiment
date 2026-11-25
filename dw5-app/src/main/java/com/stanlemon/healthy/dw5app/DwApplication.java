@@ -80,7 +80,7 @@ public class DwApplication extends Application<DwConfiguration> {
     environment.jersey().register(new HangarResource(hangarService, aerodynamicsPredictor));
 
     environment.jersey().register(new ConstraintViolationExceptionMapper());
-    environment.jersey().register(new GlobalExceptionMapper(metricsService));
+    environment.jersey().register(new GlobalExceptionMapper());
 
     environment.healthChecks().register("application", new ApplicationHealthCheck(healthEvaluator));
   }

@@ -2,7 +2,6 @@ package com.stanlemon.healthy.dw5app.resources;
 
 import com.stanlemon.healthy.metrics.MetricsResponse;
 import com.stanlemon.healthy.metrics.MetricsService;
-import com.stanlemon.healthy.metrics.MetricsSnapshot;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -35,14 +34,6 @@ public class MetricsResource {
    */
   @GET
   public MetricsResponse getMetrics() {
-    // One snapshot, so every field in the response describes the same moment.
-    MetricsSnapshot snapshot = metricsService.snapshot();
-
-    return new MetricsResponse(
-        snapshot.getErrorsLastMinute(),
-        snapshot.getTotalErrors(),
-        snapshot.getAverageLatencyLast60Seconds(),
-        snapshot.isErrorThresholdBreached(),
-        snapshot.isLatencyThresholdBreached());
+    return MetricsResponse.from(metricsService.snapshot());
   }
 }

@@ -7,7 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.stanlemon.healthy.metrics.DefaultMetricsService;
-import com.stanlemon.healthy.metrics.MetricsService;
+import com.stanlemon.healthy.metrics.MetricsSnapshot;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,45 +20,79 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-@DisplayName("Latency Tracking Filter Tests")
 @ExtendWith(MockitoExtension.class)
+@DisplayName("LatencyTrackingFilter")
 class LatencyTrackingFilterTest {
 
   @Mock private HttpServletRequest request;
   @Mock private HttpServletResponse response;
-  @Mock private FilterChain filterChain;
+  @Mock private FilterChain chain;
 
-  private MetricsService metricsService;
+  private DefaultMetricsService metricsService;
   private LatencyTrackingFilter filter;
 
   @BeforeEach
   void setUp() {
     metricsService = new DefaultMetricsService();
     filter = new LatencyTrackingFilter(metricsService);
-    when(request.getRequestURI()).thenReturn("/test");
+  }
+
+  private void runFilter(String uri, int status) throws ServletException, IOException {
+    when(request.getRequestURI()).thenReturn(uri);
+    when(response.getStatus()).thenReturn(status);
+    filter.doFilterInternal(request, response, chain);
   }
 
   @Test
-  @DisplayName("Should record request latency for successful requests")
-  void doFilterInternal_WhenSuccessful_ShouldRecordLatency() throws ServletException, IOException {
-    assertThat(metricsService.getTotalRequestCountLast60Seconds()).isZero();
-
-    filter.doFilterInternal(request, response, filterChain);
-
-    verify(filterChain).doFilter(request, response);
-    assertThat(metricsService.getTotalRequestCountLast60Seconds()).isEqualTo(1);
-  }
-
-  @Test
-  @DisplayName("Should record request latency even when filter chain throws exception")
-  void doFilterInternal_WhenFilterChainThrowsException_ShouldStillRecordLatency()
+  void doFilterInternal_WhenResponseIsOk_ShouldRecordRequestWithoutError()
       throws ServletException, IOException {
-    doThrow(new ServletException("Test exception")).when(filterChain).doFilter(request, response);
+    runFilter("/hangar/planes", 200);
 
-    assertThatThrownBy(() -> filter.doFilterInternal(request, response, filterChain))
+    verify(chain).doFilter(request, response);
+    MetricsSnapshot snapshot = metricsService.snapshot();
+    assertThat(snapshot.getRequestsLast60Seconds()).isEqualTo(1);
+    assertThat(snapshot.getErrorsLastMinute()).isZero();
+    // The mocked chain returns at once; a seconds-vs-milliseconds bug would push this past 1000.
+    assertThat(snapshot.getAverageLatencyLast60Seconds()).isBetween(0.0, 1000.0);
+  }
+
+  @Test
+  void doFilterInternal_WhenResponseIsServerError_ShouldRecordError()
+      throws ServletException, IOException {
+    runFilter("/hangar/planes", 500);
+
+    MetricsSnapshot snapshot = metricsService.snapshot();
+    assertThat(snapshot.getRequestsLast60Seconds()).isEqualTo(1);
+    assertThat(snapshot.getErrorsLastMinute()).isEqualTo(1);
+  }
+
+  @Test
+  void doFilterInternal_WhenResponseIsClientError_ShouldNotRecordError()
+      throws ServletException, IOException {
+    runFilter("/hangar/planes", 404);
+
+    assertThat(metricsService.snapshot().getErrorsLastMinute()).isZero();
+  }
+
+  @Test
+  void doFilterInternal_WhenChainThrows_ShouldRecordErrorAndRethrow()
+      throws ServletException, IOException {
+    when(request.getRequestURI()).thenReturn("/hangar/planes");
+    doThrow(new ServletException("boom")).when(chain).doFilter(request, response);
+
+    assertThatThrownBy(() -> filter.doFilterInternal(request, response, chain))
         .isInstanceOf(ServletException.class)
-        .hasMessage("Test exception");
+        .hasMessage("boom");
 
-    assertThat(metricsService.getTotalRequestCountLast60Seconds()).isEqualTo(1);
+    assertThat(metricsService.snapshot().getErrorsLastMinute()).isEqualTo(1);
+  }
+
+  @Test
+  void doFilterInternal_WhenHealthProbe_ShouldRecordNothing() throws ServletException, IOException {
+    when(request.getRequestURI()).thenReturn("/health/ready");
+
+    filter.doFilterInternal(request, response, chain);
+
+    assertThat(metricsService.snapshot().getRequestsLast60Seconds()).isZero();
   }
 }

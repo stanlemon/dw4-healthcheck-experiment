@@ -6,14 +6,15 @@ The goal is to prove that core metrics and health logic can live in a shared lib
 
 ## How It Works
 
-Every HTTP request flows through a latency-tracking filter that records its duration. Every unhandled exception flows through a global exception handler that records 5xx errors. Both feed into a shared `MetricsService` that maintains sliding-window counters (one bucket per second, 60-second window). The health check reads from that same service and compares error rates and average latency against configurable thresholds.
+Every HTTP request flows through a latency-tracking filter. When the request finishes, the filter records its duration and whether the response was a 5xx error in one call to a shared `MetricsService`. The service keeps sliding-window counters (one bucket per second, 60-second window). The health check reads one consistent snapshot of that window and compares the error rate and average latency against fixed thresholds.
 
 ```
 Request ──> LatencyTrackingFilter ──> Resource ──> Response
                 │                         │
                 │ records latency         │ on exception
-                ▼                         ▼
-          MetricsService  <────── GlobalExceptionMapper
+                │ and 5xx status          ▼
+                ▼                  GlobalExceptionMapper (sets the 5xx status)
+          MetricsService
                 │
                 │ polled by
                 ▼
@@ -219,7 +220,7 @@ curl http://localhost:8097/health/ready
 ```bash
 mvn test                                          # All modules
 mvn test -pl dw5-app                              # Single module
-mvn test -Dtest=MetricsServiceTest -pl healthy-metrics  # Single class
+mvn test -Dtest=DefaultMetricsServiceTest -pl healthy-metrics  # Single class
 mvn clean test jacoco:report                      # With coverage
 ```
 

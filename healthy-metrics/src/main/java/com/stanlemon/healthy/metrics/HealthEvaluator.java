@@ -16,60 +16,35 @@ public class HealthEvaluator {
   public HealthResponse evaluate() {
     // One snapshot, so the breach flags always match the numbers reported next to them.
     MetricsSnapshot snapshot = metricsService.snapshot();
-    long errorCount = snapshot.getErrorsLastMinute();
-    double avgLatency = snapshot.getAverageLatencyLast60Seconds();
+    long errors = snapshot.getErrorsLastMinute();
+    double latency = snapshot.getAverageLatencyLast60Seconds();
     boolean errorBreached = snapshot.isErrorThresholdBreached();
     boolean latencyBreached = snapshot.isLatencyThresholdBreached();
-    long errorThreshold = metricsService.getDefaultErrorThreshold();
-    double latencyThreshold = metricsService.getDefaultLatencyThresholdMs();
 
-    if (errorBreached && latencyBreached) {
-      return new HealthResponse(
-          "unhealthy",
-          String.format(
-              "Critical: Both error and latency thresholds breached - "
-                  + "%d errors in last minute (threshold: %d), "
-                  + "%.1fms average latency in last 60 seconds (threshold: %.0fms)",
-              errorCount, errorThreshold, avgLatency, latencyThreshold),
-          errorCount,
-          avgLatency,
-          true,
-          true);
-    }
-
-    if (errorBreached) {
-      return new HealthResponse(
-          "unhealthy",
-          String.format(
-              "Too many errors: %d errors in last minute (threshold: %d)",
-              errorCount, errorThreshold),
-          errorCount,
-          avgLatency,
-          true,
-          false);
-    }
-
-    if (latencyBreached) {
-      return new HealthResponse(
-          "unhealthy",
-          String.format(
-              "High latency: %.1fms average latency in last 60 seconds (threshold: %.0fms)",
-              avgLatency, latencyThreshold),
-          errorCount,
-          avgLatency,
-          false,
-          true);
-    }
-
-    return new HealthResponse(
-        "healthy",
+    String errorDetail =
         String.format(
-            "OK - %d errors in last minute (threshold: %d), "
-                + "%.1fms average latency in last 60 seconds (threshold: %.0fms)",
-            errorCount, errorThreshold, avgLatency, latencyThreshold),
-        errorCount,
-        avgLatency,
-        false,
-        false);
+            "%d errors in last minute (threshold: %d)", errors, snapshot.getErrorThreshold());
+    String latencyDetail =
+        String.format(
+            "%.1fms average latency in last 60 seconds (threshold: %.0fms)",
+            latency, snapshot.getLatencyThresholdMs());
+
+    String message;
+    if (errorBreached && latencyBreached) {
+      message =
+          "Critical: Both error and latency thresholds breached - "
+              + errorDetail
+              + ", "
+              + latencyDetail;
+    } else if (errorBreached) {
+      message = "Too many errors: " + errorDetail;
+    } else if (latencyBreached) {
+      message = "High latency: " + latencyDetail;
+    } else {
+      message = "OK - " + errorDetail + ", " + latencyDetail;
+    }
+
+    String status = errorBreached || latencyBreached ? "unhealthy" : "healthy";
+    return new HealthResponse(status, message, errors, latency, errorBreached, latencyBreached);
   }
 }

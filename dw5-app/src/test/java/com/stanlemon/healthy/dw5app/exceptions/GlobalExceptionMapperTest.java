@@ -3,28 +3,18 @@ package com.stanlemon.healthy.dw5app.exceptions;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.stanlemon.healthy.exceptions.SomethingWentWrongException;
-import com.stanlemon.healthy.metrics.DefaultMetricsService;
-import com.stanlemon.healthy.metrics.MetricsService;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.Map;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @DisplayName("Global Exception Mapper Tests")
 class GlobalExceptionMapperTest {
 
-  private MetricsService metricsService;
-  private GlobalExceptionMapper exceptionMapper;
-
-  @BeforeEach
-  void setUp() {
-    metricsService = new DefaultMetricsService();
-    exceptionMapper = new GlobalExceptionMapper(metricsService);
-  }
+  private final GlobalExceptionMapper exceptionMapper = new GlobalExceptionMapper();
 
   @SuppressWarnings("unchecked")
   private Map<String, Object> entityMap(Response response) {
@@ -33,7 +23,7 @@ class GlobalExceptionMapperTest {
   }
 
   @Test
-  void toResponse_WhenRuntimeException_ShouldReturn500AndRecordMetric() {
+  void toResponse_WhenRuntimeException_ShouldReturnGeneric500() {
     SomethingWentWrongException exception =
         new SomethingWentWrongException("Test runtime exception");
 
@@ -41,7 +31,6 @@ class GlobalExceptionMapperTest {
 
     assertThat(response.getStatus()).isEqualTo(500);
     assertThat(response.getMediaType()).isEqualTo(MediaType.APPLICATION_JSON_TYPE);
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(1);
 
     assertThat(entityMap(response))
         .containsEntry("code", 500)
@@ -49,25 +38,25 @@ class GlobalExceptionMapperTest {
   }
 
   @Test
-  void toResponse_When400BadRequest_ShouldNotRecordMetric() {
+  void toResponse_When400BadRequest_ShouldEchoMessage() {
     WebApplicationException exception =
         new WebApplicationException("Bad request", Response.Status.BAD_REQUEST);
 
     Response response = exceptionMapper.toResponse(exception);
 
     assertThat(response.getStatus()).isEqualTo(400);
-    assertThat(metricsService.getErrorCountLastMinute()).isZero();
+    assertThat(entityMap(response)).containsEntry("message", "Bad request");
   }
 
   @Test
-  void toResponse_When503ServiceUnavailable_ShouldRecordMetric() {
+  void toResponse_When503ServiceUnavailable_ShouldHideMessage() {
     WebApplicationException exception =
         new WebApplicationException("Service unavailable", Response.Status.SERVICE_UNAVAILABLE);
 
     Response response = exceptionMapper.toResponse(exception);
 
     assertThat(response.getStatus()).isEqualTo(503);
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(1);
+    assertThat(entityMap(response)).containsEntry("message", "Internal server error");
   }
 
   @Test
@@ -77,12 +66,11 @@ class GlobalExceptionMapperTest {
     Response response = exceptionMapper.toResponse(exception);
 
     assertThat(response.getStatus()).isEqualTo(500);
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(1);
     assertThat(entityMap(response)).containsEntry("message", "Internal server error");
   }
 
   @Test
-  void toResponse_WhenWebApplicationExceptionHasNullResponse_ShouldReturn500AndRecordMetric() {
+  void toResponse_WhenWebApplicationExceptionHasNullResponse_ShouldReturn500() {
     WebApplicationException exception =
         new WebApplicationException("Test exception") {
           @Override
@@ -97,38 +85,23 @@ class GlobalExceptionMapperTest {
     assertThat(entityMap(response))
         .containsEntry("code", 500)
         .containsEntry("message", "Internal server error");
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(1);
   }
 
   @Test
-  void toResponse_WhenStatus599_ShouldRecordMetric() {
-    WebApplicationException exception =
-        new WebApplicationException("Status 599", Response.status(599).build());
+  void toResponse_WhenNotFoundException_ShouldReturn404() {
+    Response response = exceptionMapper.toResponse(new NotFoundException());
 
-    Response response = exceptionMapper.toResponse(exception);
-
-    assertThat(response.getStatus()).isEqualTo(599);
-    assertThat(metricsService.getErrorCountLastMinute()).isEqualTo(1);
+    assertThat(response.getStatus()).isEqualTo(404);
   }
 
   @Test
-  void toResponse_WhenStatus600_ShouldNotRecordMetric() {
+  void toResponse_WhenStatusAbove5xxRange_ShouldEchoMessage() {
     WebApplicationException exception =
         new WebApplicationException("Status 600", Response.status(600).build());
 
     Response response = exceptionMapper.toResponse(exception);
 
     assertThat(response.getStatus()).isEqualTo(600);
-    assertThat(metricsService.getErrorCountLastMinute()).isZero();
-  }
-
-  @Test
-  @DisplayName(
-      "Jakarta NotFoundException flows through the mapper as 404 without recording a 5xx metric")
-  void toResponse_WhenNotFoundException_ShouldReturn404AndNotRecordMetric() {
-    Response response = exceptionMapper.toResponse(new NotFoundException());
-
-    assertThat(response.getStatus()).isEqualTo(404);
-    assertThat(metricsService.getErrorCountLastMinute()).isZero();
+    assertThat(entityMap(response)).containsEntry("message", "Status 600");
   }
 }

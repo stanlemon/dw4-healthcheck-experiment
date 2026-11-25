@@ -4,9 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.stanlemon.healthy.metrics.DefaultMetricsService;
-import com.stanlemon.healthy.metrics.MetricsService;
+import com.stanlemon.healthy.metrics.MetricsSnapshot;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,11 +24,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("LatencyTrackingFilter")
 class LatencyTrackingFilterTest {
 
-  @Mock private HttpServletRequest mockRequest;
-  @Mock private HttpServletResponse mockResponse;
-  @Mock private FilterChain mockFilterChain;
+  @Mock private HttpServletRequest request;
+  @Mock private HttpServletResponse response;
+  @Mock private FilterChain chain;
 
-  private MetricsService metricsService;
+  private DefaultMetricsService metricsService;
   private LatencyTrackingFilter filter;
 
   @BeforeEach
@@ -36,44 +37,60 @@ class LatencyTrackingFilterTest {
     filter = new LatencyTrackingFilter(metricsService);
   }
 
-  @Test
-  @DisplayName("Should record request latency for successful requests")
-  void doFilter_WhenRequestSucceeds_ShouldRecordLatency() throws ServletException, IOException {
-    assertThat(metricsService.getAverageLatencyLast60Seconds()).isZero();
-
-    filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-
-    verify(mockFilterChain).doFilter(mockRequest, mockResponse);
-    assertThat(metricsService.getTotalRequestCountLast60Seconds()).isEqualTo(1);
+  private void runFilter(String uri, int status) throws ServletException, IOException {
+    when(request.getRequestURI()).thenReturn(uri);
+    when(response.getStatus()).thenReturn(status);
+    filter.doFilter(request, response, chain);
   }
 
   @Test
-  @DisplayName("Should record request latency even when filter chain throws exception")
-  void doFilter_WhenFilterChainThrowsException_ShouldStillRecordLatency()
+  void doFilter_WhenResponseIsOk_ShouldRecordRequestWithoutError()
       throws ServletException, IOException {
-    doThrow(new ServletException("Test exception"))
-        .when(mockFilterChain)
-        .doFilter(mockRequest, mockResponse);
+    runFilter("/hangar/planes", 200);
 
-    assertThatThrownBy(() -> filter.doFilter(mockRequest, mockResponse, mockFilterChain))
+    verify(chain).doFilter(request, response);
+    MetricsSnapshot snapshot = metricsService.snapshot();
+    assertThat(snapshot.getRequestsLast60Seconds()).isEqualTo(1);
+    assertThat(snapshot.getErrorsLastMinute()).isZero();
+    // The mocked chain returns at once; a seconds-vs-milliseconds bug would push this past 1000.
+    assertThat(snapshot.getAverageLatencyLast60Seconds()).isBetween(0.0, 1000.0);
+  }
+
+  @Test
+  void doFilter_WhenResponseIsServerError_ShouldRecordError() throws ServletException, IOException {
+    runFilter("/hangar/planes", 500);
+
+    MetricsSnapshot snapshot = metricsService.snapshot();
+    assertThat(snapshot.getRequestsLast60Seconds()).isEqualTo(1);
+    assertThat(snapshot.getErrorsLastMinute()).isEqualTo(1);
+  }
+
+  @Test
+  void doFilter_WhenResponseIsClientError_ShouldNotRecordError()
+      throws ServletException, IOException {
+    runFilter("/hangar/planes", 404);
+
+    assertThat(metricsService.snapshot().getErrorsLastMinute()).isZero();
+  }
+
+  @Test
+  void doFilter_WhenChainThrows_ShouldRecordErrorAndRethrow() throws ServletException, IOException {
+    when(request.getRequestURI()).thenReturn("/hangar/planes");
+    doThrow(new ServletException("boom")).when(chain).doFilter(request, response);
+
+    assertThatThrownBy(() -> filter.doFilter(request, response, chain))
         .isInstanceOf(ServletException.class)
-        .hasMessage("Test exception");
+        .hasMessage("boom");
 
-    assertThat(metricsService.getTotalRequestCountLast60Seconds()).isEqualTo(1);
+    assertThat(metricsService.snapshot().getErrorsLastMinute()).isEqualTo(1);
   }
 
   @Test
-  @DisplayName("Should record a finite latency average for multiple requests")
-  void doFilter_WhenMultipleRequests_ShouldRecordFiniteAverage()
-      throws ServletException, IOException {
-    filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-    filter.doFilter(mockRequest, mockResponse, mockFilterChain);
-    filter.doFilter(mockRequest, mockResponse, mockFilterChain);
+  void doFilter_WhenHealthProbe_ShouldRecordNothing() throws ServletException, IOException {
+    when(request.getRequestURI()).thenReturn("/health/ready");
 
-    assertThat(metricsService.getTotalRequestCountLast60Seconds()).isEqualTo(3);
-    // Mocked chain returns instantly, so each recorded latency should be under a second.
-    // A bug that dropped the recordRequestLatency() call would leave the average at 0.0;
-    // a unit-conversion bug (e.g. seconds instead of ms) would push it above the upper bound.
-    assertThat(metricsService.getAverageLatencyLast60Seconds()).isBetween(0.0, 1000.0).isNotNaN();
+    filter.doFilter(request, response, chain);
+
+    assertThat(metricsService.snapshot().getRequestsLast60Seconds()).isZero();
   }
 }
