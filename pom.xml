@@ -272,6 +272,9 @@
                     <version>3.16.0</version>
                     <configuration>
                         <release>21</release>
+                        <!-- JDK 23+ skips annotation processors unless asked, which silently
+                             disables Lombok. "full" keeps builds on newer JDKs working. -->
+                        <proc>full</proc>
                     </configuration>
                 </plugin>
                 <plugin>
