@@ -27,8 +27,11 @@ public class MetricsSnapshot {
   /** Whether the latency threshold is breached. */
   boolean latencyThresholdBreached;
 
-  /** Error count above which a low-traffic window counts as unhealthy. */
-  long errorThreshold;
+  /**
+   * Share of requests (0.5 means 50%) that may fail before the window counts as unhealthy. It
+   * depends on traffic, so it is reported with the numbers it was applied to.
+   */
+  double errorRateThreshold;
 
   /** Average latency, in milliseconds, above which the window counts as unhealthy. */
   double latencyThresholdMs;

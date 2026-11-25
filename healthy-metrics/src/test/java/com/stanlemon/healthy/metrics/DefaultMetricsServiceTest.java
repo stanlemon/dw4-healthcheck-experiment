@@ -63,12 +63,14 @@ class DefaultMetricsServiceTest {
   class Recording {
 
     @Test
+    @DisplayName("Should report zeros and default thresholds when no traffic")
     void snapshot_WhenNoTraffic_ShouldReportZerosAndDefaultThresholds() {
       assertThat(service.snapshot())
-          .isEqualTo(new MetricsSnapshot(0, 0, 0, 0.0, false, false, 100, 100.0));
+          .isEqualTo(new MetricsSnapshot(0, 0, 0, 0.0, false, false, 0.5, 100.0));
     }
 
     @Test
+    @DisplayName("Should count request without error when successful")
     void recordRequest_WhenSuccessful_ShouldCountRequestWithoutError() {
       service.recordRequest(40, false);
       service.recordRequest(60, false);
@@ -81,6 +83,7 @@ class DefaultMetricsServiceTest {
     }
 
     @Test
+    @DisplayName("Should count both error and request when server error")
     void recordRequest_WhenServerError_ShouldCountBothErrorAndRequest() {
       service.recordRequest(10, true);
 
@@ -91,6 +94,7 @@ class DefaultMetricsServiceTest {
     }
 
     @Test
+    @DisplayName("Should clamp to zero when negative latency")
     void recordRequest_WhenNegativeLatency_ShouldClampToZero() {
       service.recordRequest(-50, false);
       service.recordRequest(100, false);
@@ -112,23 +116,27 @@ class DefaultMetricsServiceTest {
     }
 
     @Test
+    @DisplayName("Should never breach when fewer than ten requests")
     void errorThreshold_WhenFewerThanTenRequests_ShouldNeverBreach() {
       assertThat(errorBreachFor(9, 9)).isFalse();
     }
 
     @Test
+    @DisplayName("Should breach above half of requests when moderate traffic")
     void errorThreshold_WhenModerateTraffic_ShouldBreachAboveHalfOfRequests() {
       assertThat(errorBreachFor(10, 20)).as("exactly half").isFalse();
       assertThat(errorBreachFor(11, 20)).as("more than half").isTrue();
     }
 
     @Test
+    @DisplayName("Should breach above ten percent when high traffic")
     void errorThreshold_WhenHighTraffic_ShouldBreachAboveTenPercent() {
       assertThat(errorBreachFor(10, 100)).as("exactly 10%").isFalse();
       assertThat(errorBreachFor(11, 100)).as("11%").isTrue();
     }
 
     @Test
+    @DisplayName("Should not breach when fewer than five requests")
     void latencyThreshold_WhenFewerThanFiveRequests_ShouldNotBreach() {
       record(4, 500, false);
 
@@ -136,6 +144,7 @@ class DefaultMetricsServiceTest {
     }
 
     @Test
+    @DisplayName("Should not breach when average exactly at threshold")
     void latencyThreshold_WhenAverageExactlyAtThreshold_ShouldNotBreach() {
       record(5, 100, false);
 
@@ -143,6 +152,7 @@ class DefaultMetricsServiceTest {
     }
 
     @Test
+    @DisplayName("Should breach when average above threshold")
     void latencyThreshold_WhenAverageAboveThreshold_ShouldBreach() {
       record(5, 101, false);
 
@@ -155,6 +165,7 @@ class DefaultMetricsServiceTest {
   class SlidingWindow {
 
     @Test
+    @DisplayName("Should still count requests when fifty nine seconds pass")
     void snapshot_WhenFiftyNineSecondsPass_ShouldStillCountRequests() {
       service.recordRequest(200, true);
       clock.advance(Duration.ofSeconds(59));
@@ -165,15 +176,17 @@ class DefaultMetricsServiceTest {
     }
 
     @Test
+    @DisplayName("Should drop old requests but keep total errors when sixty seconds pass")
     void snapshot_WhenSixtySecondsPass_ShouldDropOldRequestsButKeepTotalErrors() {
       service.recordRequest(200, true);
       clock.advance(Duration.ofSeconds(60));
 
       assertThat(service.snapshot())
-          .isEqualTo(new MetricsSnapshot(0, 1, 0, 0.0, false, false, 100, 100.0));
+          .isEqualTo(new MetricsSnapshot(0, 1, 0, 0.0, false, false, 0.5, 100.0));
     }
 
     @Test
+    @DisplayName("Should count only recent requests when part of window expires")
     void snapshot_WhenPartOfWindowExpires_ShouldCountOnlyRecentRequests() {
       service.recordRequest(300, true);
       clock.advance(Duration.ofSeconds(30));
@@ -187,6 +200,7 @@ class DefaultMetricsServiceTest {
     }
 
     @Test
+    @DisplayName("Should start from empty window when window went stale before write")
     void recordRequest_WhenWindowWentStaleBeforeWrite_ShouldStartFromEmptyWindow() {
       service.recordRequest(300, true);
       clock.advance(Duration.ofMinutes(5));
@@ -198,11 +212,51 @@ class DefaultMetricsServiceTest {
     }
 
     @Test
-    void snapshot_WhenClockMovesBackward_ShouldResetWindow() {
+    @DisplayName("Should keep window when clock steps back less than window")
+    void recordRequest_WhenClockStepsBackLessThanWindow_ShouldKeepWindow() {
+      service.recordRequest(300, true);
+      clock.advance(Duration.ofSeconds(-1));
+      service.recordRequest(100, false);
+
+      MetricsSnapshot snapshot = service.snapshot();
+      assertThat(snapshot.getRequestsLast60Seconds()).isEqualTo(2);
+      assertThat(snapshot.getErrorsLastMinute()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Should expire from newest second when clock steps back after small step")
+    void snapshot_WhenClockStepsBackAfterSmallStep_ShouldExpireFromNewestSecond() {
       service.recordRequest(300, true);
       clock.advance(Duration.ofSeconds(-30));
+      assertThat(service.snapshot().getRequestsLast60Seconds()).isEqualTo(1);
+
+      // The window still ends at the newest second seen, so the request expires 60s after it.
+      clock.advance(Duration.ofSeconds(89));
+      assertThat(service.snapshot().getRequestsLast60Seconds()).isEqualTo(1);
+
+      clock.advance(Duration.ofSeconds(1));
+      assertThat(service.snapshot().getRequestsLast60Seconds()).isZero();
+    }
+
+    @Test
+    @DisplayName("Should reset window when clock jumps back a whole window")
+    void snapshot_WhenClockJumpsBackAWholeWindow_ShouldResetWindow() {
+      service.recordRequest(300, true);
+      clock.advance(Duration.ofSeconds(-60));
 
       assertThat(service.snapshot().getRequestsLast60Seconds()).isZero();
+    }
+
+    @Test
+    @DisplayName("Should still record when clock is before epoch")
+    void recordRequest_WhenClockIsBeforeEpoch_ShouldStillRecord() {
+      // -125 % 60 is -5, which is not a valid bucket index.
+      DefaultMetricsService beforeEpoch =
+          new DefaultMetricsService(Clock.fixed(Instant.ofEpochSecond(-125), ZoneOffset.UTC));
+
+      beforeEpoch.recordRequest(10, true);
+
+      assertThat(beforeEpoch.snapshot().getRequestsLast60Seconds()).isEqualTo(1);
     }
   }
 
@@ -211,6 +265,7 @@ class DefaultMetricsServiceTest {
   class Concurrency {
 
     @Test
+    @DisplayName("Should count every request when called from many threads")
     void recordRequest_WhenCalledFromManyThreads_ShouldCountEveryRequest()
         throws InterruptedException {
       int threads = 20;
@@ -295,6 +350,7 @@ class DefaultMetricsServiceTest {
         };
 
     @Test
+    @DisplayName("Should keep window when write lands in next second mid read")
     void snapshot_WhenWriteLandsInNextSecondMidRead_ShouldKeepWindow() throws InterruptedException {
       racing = new DefaultMetricsService(racingClock);
       for (int i = 0; i < 50; i++) {
@@ -308,7 +364,7 @@ class DefaultMetricsServiceTest {
 
       // Every field is from before the racing write, none from after it.
       assertThat(seenByReader)
-          .isEqualTo(new MetricsSnapshot(50, 50, 50, 500.0, true, true, 100, 100.0));
+          .isEqualTo(new MetricsSnapshot(50, 50, 50, 500.0, true, true, 0.5, 100.0));
       assertThat(racing.snapshot().getRequestsLast60Seconds()).isEqualTo(51);
     }
   }

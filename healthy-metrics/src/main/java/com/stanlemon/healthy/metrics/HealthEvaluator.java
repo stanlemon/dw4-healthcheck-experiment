@@ -17,13 +17,15 @@ public class HealthEvaluator {
     // One snapshot, so the breach flags always match the numbers reported next to them.
     MetricsSnapshot snapshot = metricsService.snapshot();
     long errors = snapshot.getErrorsLastMinute();
+    long requests = snapshot.getRequestsLast60Seconds();
     double latency = snapshot.getAverageLatencyLast60Seconds();
     boolean errorBreached = snapshot.isErrorThresholdBreached();
     boolean latencyBreached = snapshot.isLatencyThresholdBreached();
 
     String errorDetail =
         String.format(
-            "%d errors in last minute (threshold: %d)", errors, snapshot.getErrorThreshold());
+            "%d errors out of %d requests in last minute (threshold: %.0f%% error rate)",
+            errors, requests, snapshot.getErrorRateThreshold() * 100);
     String latencyDetail =
         String.format(
             "%.1fms average latency in last 60 seconds (threshold: %.0fms)",
