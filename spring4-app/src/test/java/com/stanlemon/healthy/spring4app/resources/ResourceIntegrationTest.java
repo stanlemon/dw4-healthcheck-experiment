@@ -53,6 +53,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should return healthy state when called with clean metrics")
   @Timeout(30)
   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
   void metricsEndpoint_WhenCalledWithCleanMetrics_ShouldReturnHealthyState() {
@@ -72,6 +73,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should record reasonable latency when multiple requests")
   @Timeout(30)
   void latencyTracking_WhenMultipleRequests_ShouldRecordReasonableLatency() {
     for (int i = 0; i < 5; i++) {
@@ -95,6 +97,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should return ok status when called")
   @Timeout(30)
   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
   void actuatorHealthEndpoint_WhenCalled_ShouldReturnOkStatus() {
@@ -111,6 +114,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should return health response when called")
   @Timeout(30)
   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
   void readinessEndpoint_WhenCalled_ShouldReturnHealthResponse() {
@@ -127,6 +131,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should return alive response when called")
   @Timeout(30)
   void livenessEndpoint_WhenCalled_ShouldReturnAliveResponse() {
     LivenessResponse liveness =

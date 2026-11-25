@@ -26,6 +26,7 @@ class TestErrorsResourceTest {
   }
 
   @Test
+  @DisplayName("Should throw something went wrong exception with provided message when called")
   void runtimeException_WhenCalled_ShouldThrowSomethingWentWrongExceptionWithProvidedMessage() {
     String errorMessage = "Test error message";
     assertThatThrownBy(() -> resource.testRuntimeException(errorMessage))
@@ -34,6 +35,7 @@ class TestErrorsResourceTest {
   }
 
   @ParameterizedTest
+  @DisplayName("Should preserve message content when called with various messages")
   @ValueSource(strings = {"error1", "test message with spaces", "special@#$chars", ""})
   void runtimeException_WhenCalledWithVariousMessages_ShouldPreserveMessageContent(String message) {
     assertThatThrownBy(() -> resource.testRuntimeException(message))
@@ -42,6 +44,7 @@ class TestErrorsResourceTest {
   }
 
   @Test
+  @DisplayName("Should throw web application exception with provided code when called")
   void webAppException_WhenCalled_ShouldThrowWebApplicationExceptionWithProvidedCode() {
     int errorCode = 400;
     assertThatThrownBy(() -> resource.testWebAppException(errorCode))
@@ -50,6 +53,7 @@ class TestErrorsResourceTest {
   }
 
   @ParameterizedTest
+  @DisplayName("Should use correct status code when called with various status codes")
   @ValueSource(ints = {400, 401, 403, 404, 500, 502, 503})
   void webAppException_WhenCalledWithVariousStatusCodes_ShouldUseCorrectStatusCode(int code) {
     assertThatThrownBy(() -> resource.testWebAppException(code))
@@ -62,6 +66,7 @@ class TestErrorsResourceTest {
   }
 
   @Test
+  @DisplayName("Should set correct response status when called with specific code")
   void webAppException_WhenCalledWithSpecificCode_ShouldSetCorrectResponseStatus() {
     int testCode = 404;
 

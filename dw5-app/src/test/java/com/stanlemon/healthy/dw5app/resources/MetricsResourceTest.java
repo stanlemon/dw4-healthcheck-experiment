@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 class MetricsResourceTest {
 
   @Test
+  @DisplayName("Should report current snapshot when traffic recorded")
   void getMetrics_WhenTrafficRecorded_ShouldReportCurrentSnapshot() {
     DefaultMetricsService metricsService = new DefaultMetricsService();
     metricsService.recordRequest(300, true);

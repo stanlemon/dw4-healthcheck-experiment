@@ -23,6 +23,7 @@ class ApplicationHealthCheckTest {
   }
 
   @Test
+  @DisplayName("Should report healthy when no traffic")
   void check_WhenNoTraffic_ShouldReportHealthy() {
     Result result = healthCheck.check();
 
@@ -31,6 +32,7 @@ class ApplicationHealthCheckTest {
   }
 
   @Test
+  @DisplayName("Should report unhealthy with message when latency threshold breached")
   void check_WhenLatencyThresholdBreached_ShouldReportUnhealthyWithMessage() {
     for (int i = 0; i < 5; i++) {
       metricsService.recordRequest(200, false);

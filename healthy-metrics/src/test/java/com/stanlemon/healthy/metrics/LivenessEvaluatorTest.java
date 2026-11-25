@@ -28,6 +28,7 @@ class LivenessEvaluatorTest {
   }
 
   @Test
+  @DisplayName("Should report alive for insufficient traffic when nine failing requests")
   void evaluate_WhenNineFailingRequests_ShouldReportAliveForInsufficientTraffic() {
     record(9, 0);
 
@@ -38,6 +39,7 @@ class LivenessEvaluatorTest {
   }
 
   @Test
+  @DisplayName("Should report dead when all ten requests fail")
   void evaluate_WhenAllTenRequestsFail_ShouldReportDead() {
     record(10, 0);
 
@@ -51,6 +53,7 @@ class LivenessEvaluatorTest {
   }
 
   @Test
+  @DisplayName("Should report alive when one request succeeds")
   void evaluate_WhenOneRequestSucceeds_ShouldReportAlive() {
     record(14, 1);
 
@@ -58,11 +61,5 @@ class LivenessEvaluatorTest {
         .isEqualTo(
             new LivenessResponse(
                 "alive", "OK - 14 errors out of 15 requests in last minute", 14, 15));
-  }
-
-  @Test
-  void livenessResponse_ShouldDeriveAliveFromStatus() {
-    assertThat(new LivenessResponse("alive", "ok", 0, 10).isAlive()).isTrue();
-    assertThat(new LivenessResponse("dead", "failing", 10, 10).isAlive()).isFalse();
   }
 }

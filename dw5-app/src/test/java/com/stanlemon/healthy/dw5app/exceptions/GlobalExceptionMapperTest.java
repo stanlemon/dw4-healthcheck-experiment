@@ -23,6 +23,7 @@ class GlobalExceptionMapperTest {
   }
 
   @Test
+  @DisplayName("Should return generic 500 when runtime exception")
   void toResponse_WhenRuntimeException_ShouldReturnGeneric500() {
     SomethingWentWrongException exception =
         new SomethingWentWrongException("Test runtime exception");
@@ -38,6 +39,7 @@ class GlobalExceptionMapperTest {
   }
 
   @Test
+  @DisplayName("Should echo message when 400 bad request")
   void toResponse_When400BadRequest_ShouldEchoMessage() {
     WebApplicationException exception =
         new WebApplicationException("Bad request", Response.Status.BAD_REQUEST);
@@ -49,6 +51,7 @@ class GlobalExceptionMapperTest {
   }
 
   @Test
+  @DisplayName("Should hide message when 503 service unavailable")
   void toResponse_When503ServiceUnavailable_ShouldHideMessage() {
     WebApplicationException exception =
         new WebApplicationException("Service unavailable", Response.Status.SERVICE_UNAVAILABLE);
@@ -60,6 +63,7 @@ class GlobalExceptionMapperTest {
   }
 
   @Test
+  @DisplayName("Should use default message when exception has null message")
   void toResponse_WhenExceptionHasNullMessage_ShouldUseDefaultMessage() {
     NullPointerException exception = new NullPointerException();
 
@@ -70,6 +74,7 @@ class GlobalExceptionMapperTest {
   }
 
   @Test
+  @DisplayName("Should return 500 when web application exception has null response")
   void toResponse_WhenWebApplicationExceptionHasNullResponse_ShouldReturn500() {
     WebApplicationException exception =
         new WebApplicationException("Test exception") {
@@ -88,6 +93,7 @@ class GlobalExceptionMapperTest {
   }
 
   @Test
+  @DisplayName("Should return 404 when not found exception")
   void toResponse_WhenNotFoundException_ShouldReturn404() {
     Response response = exceptionMapper.toResponse(new NotFoundException());
 
@@ -95,6 +101,7 @@ class GlobalExceptionMapperTest {
   }
 
   @Test
+  @DisplayName("Should echo message when status is above the 5xx range")
   void toResponse_WhenStatusAbove5xxRange_ShouldEchoMessage() {
     WebApplicationException exception =
         new WebApplicationException("Status 600", Response.status(600).build());

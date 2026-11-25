@@ -26,6 +26,7 @@ class LivenessResourceTest {
   }
 
   @Test
+  @DisplayName("Should return 200 with liveness body when alive")
   void getLiveness_WhenAlive_ShouldReturn200WithLivenessBody() {
     Response response = resource.getLiveness();
 
@@ -34,6 +35,7 @@ class LivenessResourceTest {
   }
 
   @Test
+  @DisplayName("Should return 503 with liveness body when every request fails")
   void getLiveness_WhenEveryRequestFails_ShouldReturn503WithLivenessBody() {
     for (int i = 0; i < 10; i++) {
       metricsService.recordRequest(100, true);
