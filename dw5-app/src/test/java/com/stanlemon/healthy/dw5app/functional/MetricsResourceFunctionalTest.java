@@ -48,14 +48,13 @@ class MetricsResourceFunctionalTest {
         .atMost(Duration.ofSeconds(30))
         .pollInterval(Duration.ofMillis(500))
         .ignoreExceptions()
-        .untilAsserted(
-            () -> {
-              given()
-                  .when()
-                  .get("http://localhost:" + APP.getAdminPort() + "/healthcheck")
-                  .then()
-                  .statusCode(200);
-            });
+        .untilAsserted(() -> {
+          given()
+              .when()
+              .get("http://localhost:" + APP.getAdminPort() + "/healthcheck")
+              .then()
+              .statusCode(200);
+        });
   }
 
   @Data
@@ -142,11 +141,10 @@ class MetricsResourceFunctionalTest {
 
       given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500);
 
-      waitForMetricsToUpdate(
-          () -> {
-            MetricsSnapshot updatedMetrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return updatedMetrics.totalErrors() > initialMetrics.totalErrors();
-          });
+      waitForMetricsToUpdate(() -> {
+        MetricsSnapshot updatedMetrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
+        return updatedMetrics.totalErrors() > initialMetrics.totalErrors();
+      });
 
       MetricsSnapshot finalMetrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       assertThat(finalMetrics.totalErrors()).isGreaterThan(initialMetrics.totalErrors());
@@ -160,16 +158,14 @@ class MetricsResourceFunctionalTest {
       MetricsSnapshot initialMetrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
 
       IntStream.range(0, errorCount)
-          .forEach(
-              i -> {
-                given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500);
-              });
-
-      waitForMetricsToUpdate(
-          () -> {
-            MetricsSnapshot updatedMetrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return updatedMetrics.totalErrors() >= initialMetrics.totalErrors() + errorCount;
+          .forEach(i -> {
+            given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500);
           });
+
+      waitForMetricsToUpdate(() -> {
+        MetricsSnapshot updatedMetrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
+        return updatedMetrics.totalErrors() >= initialMetrics.totalErrors() + errorCount;
+      });
 
       MetricsSnapshot finalMetrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       assertThat(finalMetrics.totalErrors() - initialMetrics.totalErrors()).isEqualTo(errorCount);
@@ -197,11 +193,10 @@ class MetricsResourceFunctionalTest {
       assertThat(response.getDelayMs()).isEqualTo(1000);
       assertThat(response.getActualMs()).isBetween(900L, 1500L);
 
-      waitForMetricsToUpdate(
-          () -> {
-            MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return metrics.avgLatencyLast60Seconds() > 0;
-          });
+      waitForMetricsToUpdate(() -> {
+        MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
+        return metrics.avgLatencyLast60Seconds() > 0;
+      });
 
       MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       assertThat(metrics.avgLatencyLast60Seconds()).isBetween(1.0, 2000.0);
@@ -226,11 +221,10 @@ class MetricsResourceFunctionalTest {
       long expectedMaxDelay = (long) (delayMs * 1.5);
       assertThat(response.getActualMs()).isBetween(expectedMinDelay, expectedMaxDelay);
 
-      waitForMetricsToUpdate(
-          () -> {
-            MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return metrics.avgLatencyLast60Seconds() > 0;
-          });
+      waitForMetricsToUpdate(() -> {
+        MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
+        return metrics.avgLatencyLast60Seconds() > 0;
+      });
 
       MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       assertThat(metrics.avgLatencyLast60Seconds()).isBetween(1.0, 2000.0);
@@ -246,12 +240,11 @@ class MetricsResourceFunctionalTest {
         given().when().get(baseUrl + "/slow/" + delay).then().statusCode(200);
       }
 
-      waitForMetricsToUpdate(
-          () -> {
-            MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return metrics.avgLatencyLast60Seconds() > before.avgLatencyLast60Seconds()
-                || metrics.avgLatencyLast60Seconds() > 0;
-          });
+      waitForMetricsToUpdate(() -> {
+        MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
+        return metrics.avgLatencyLast60Seconds() > before.avgLatencyLast60Seconds()
+            || metrics.avgLatencyLast60Seconds() > 0;
+      });
 
       MetricsSnapshot after = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       assertThat(after.avgLatencyLast60Seconds()).isBetween(1.0, 2000.0);
@@ -309,22 +302,20 @@ class MetricsResourceFunctionalTest {
 
       int errorCount = 5;
       IntStream.range(0, errorCount)
-          .forEach(
-              i -> {
-                given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500);
-              });
+          .forEach(i -> {
+            given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500);
+          });
 
       List<Integer> delays = List.of(150, 250, 350);
       for (int delay : delays) {
         given().when().get(baseUrl + "/slow/" + delay).then().statusCode(200);
       }
 
-      waitForMetricsToUpdate(
-          () -> {
-            MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return metrics.totalErrors() >= initialMetrics.totalErrors() + errorCount
-                && metrics.avgLatencyLast60Seconds() > 0;
-          });
+      waitForMetricsToUpdate(() -> {
+        MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
+        return metrics.totalErrors() >= initialMetrics.totalErrors() + errorCount
+            && metrics.avgLatencyLast60Seconds() > 0;
+      });
 
       MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       assertThat(metrics.totalErrors())
@@ -339,16 +330,14 @@ class MetricsResourceFunctionalTest {
       MetricsSnapshot initialMetrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
 
       IntStream.range(0, 25)
-          .forEach(
-              i -> {
-                given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500);
-              });
-
-      waitForMetricsToUpdate(
-          () -> {
-            MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return metrics.totalErrors() >= initialMetrics.totalErrors() + 25;
+          .forEach(i -> {
+            given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500);
           });
+
+      waitForMetricsToUpdate(() -> {
+        MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
+        return metrics.totalErrors() >= initialMetrics.totalErrors() + 25;
+      });
 
       MetricsSnapshot afterErrors = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       assertThat(afterErrors.totalErrors())
@@ -403,10 +392,9 @@ class MetricsResourceFunctionalTest {
       // path (requestCount >= 100), regardless of prior request count.
       int errorCount = 200;
       IntStream.range(0, errorCount)
-          .forEach(
-              i -> {
-                given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500);
-              });
+          .forEach(i -> {
+            given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500);
+          });
 
       waitForMetricsToUpdate(
           () -> MetricsSnapshot.fromMetricsEndpoint(baseUrl).errorThresholdBreached());

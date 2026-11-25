@@ -58,11 +58,10 @@ public class HangarResource {
     PaperPlane plane =
         hangarService
             .find(id)
-            .orElseThrow(
-                () -> {
-                  log.debug("Plane not found - id: {}", id);
-                  return new ResponseStatusException(HttpStatus.NOT_FOUND, "Plane not found");
-                });
+            .orElseThrow(() -> {
+              log.debug("Plane not found - id: {}", id);
+              return new ResponseStatusException(HttpStatus.NOT_FOUND, "Plane not found");
+            });
     return new PaperPlaneResponse(plane, predictor.predictDistance(plane));
   }
 

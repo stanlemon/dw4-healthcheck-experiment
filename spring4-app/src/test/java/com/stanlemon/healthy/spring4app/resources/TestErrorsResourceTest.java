@@ -55,10 +55,9 @@ class TestErrorsResourceTest {
     assertThatThrownBy(() -> resource.testWebAppException(code))
         .isInstanceOf(ResponseStatusException.class)
         .hasMessageContaining("Web application exception with code " + code)
-        .satisfies(
-            exception -> {
-              ResponseStatusException rse = (ResponseStatusException) exception;
-              assertThat(rse.getStatusCode().value()).isEqualTo(code);
-            });
+        .satisfies(exception -> {
+          ResponseStatusException rse = (ResponseStatusException) exception;
+          assertThat(rse.getStatusCode().value()).isEqualTo(code);
+        });
   }
 }

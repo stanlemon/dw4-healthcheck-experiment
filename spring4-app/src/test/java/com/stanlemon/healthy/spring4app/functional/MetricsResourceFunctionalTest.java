@@ -133,10 +133,9 @@ class MetricsResourceFunctionalTest {
 
       given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500);
 
-      waitForMetricsToUpdate(
-          () ->
-              MetricsSnapshot.fromMetricsEndpoint(baseUrl).totalErrors()
-                  > initialMetrics.totalErrors());
+      waitForMetricsToUpdate(() ->
+          MetricsSnapshot.fromMetricsEndpoint(baseUrl).totalErrors()
+              > initialMetrics.totalErrors());
 
       MetricsSnapshot finalMetrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       assertThat(finalMetrics.totalErrors()).isGreaterThan(initialMetrics.totalErrors());
@@ -153,10 +152,9 @@ class MetricsResourceFunctionalTest {
           .forEach(
               i -> given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500));
 
-      waitForMetricsToUpdate(
-          () ->
-              MetricsSnapshot.fromMetricsEndpoint(baseUrl).totalErrors()
-                  >= initialMetrics.totalErrors() + errorCount);
+      waitForMetricsToUpdate(() ->
+          MetricsSnapshot.fromMetricsEndpoint(baseUrl).totalErrors()
+              >= initialMetrics.totalErrors() + errorCount);
 
       MetricsSnapshot finalMetrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       assertThat(finalMetrics.totalErrors() - initialMetrics.totalErrors()).isEqualTo(errorCount);
@@ -225,12 +223,11 @@ class MetricsResourceFunctionalTest {
         given().when().get(baseUrl + "/slow/" + delay).then().statusCode(200);
       }
 
-      waitForMetricsToUpdate(
-          () -> {
-            MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return metrics.avgLatencyLast60Seconds() > before.avgLatencyLast60Seconds()
-                || metrics.avgLatencyLast60Seconds() > 0;
-          });
+      waitForMetricsToUpdate(() -> {
+        MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
+        return metrics.avgLatencyLast60Seconds() > before.avgLatencyLast60Seconds()
+            || metrics.avgLatencyLast60Seconds() > 0;
+      });
 
       assertThat(MetricsSnapshot.fromMetricsEndpoint(baseUrl).avgLatencyLast60Seconds())
           .isBetween(1.0, 2000.0);
@@ -291,12 +288,11 @@ class MetricsResourceFunctionalTest {
         given().when().get(baseUrl + "/slow/" + delay).then().statusCode(200);
       }
 
-      waitForMetricsToUpdate(
-          () -> {
-            MetricsSnapshot m = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
-            return m.totalErrors() >= initialMetrics.totalErrors() + errorCount
-                && m.avgLatencyLast60Seconds() > 0;
-          });
+      waitForMetricsToUpdate(() -> {
+        MetricsSnapshot m = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
+        return m.totalErrors() >= initialMetrics.totalErrors() + errorCount
+            && m.avgLatencyLast60Seconds() > 0;
+      });
 
       MetricsSnapshot metrics = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       assertThat(metrics.totalErrors())
@@ -314,10 +310,9 @@ class MetricsResourceFunctionalTest {
           .forEach(
               i -> given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500));
 
-      waitForMetricsToUpdate(
-          () ->
-              MetricsSnapshot.fromMetricsEndpoint(baseUrl).totalErrors()
-                  >= initialMetrics.totalErrors() + 25);
+      waitForMetricsToUpdate(() ->
+          MetricsSnapshot.fromMetricsEndpoint(baseUrl).totalErrors()
+              >= initialMetrics.totalErrors() + 25);
 
       MetricsSnapshot afterErrors = MetricsSnapshot.fromMetricsEndpoint(baseUrl);
       assertThat(afterErrors.totalErrors())
@@ -372,10 +367,9 @@ class MetricsResourceFunctionalTest {
       // path (requestCount >= 100), regardless of prior request count.
       int errorCount = 200;
       IntStream.range(0, errorCount)
-          .forEach(
-              i -> {
-                given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500);
-              });
+          .forEach(i -> {
+            given().when().get(baseUrl + "/test-errors/trigger").then().statusCode(500);
+          });
 
       waitForMetricsToUpdate(
           () -> MetricsSnapshot.fromMetricsEndpoint(baseUrl).errorThresholdBreached());

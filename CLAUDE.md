@@ -243,7 +243,7 @@ mvn spotless:check    # Check formatting without modifying files
 mvn spotless:apply    # Apply formatting fixes automatically
 ```
 
-This project uses Spotless with Google Java Format (version 1.28.0) with the following rules:
+This project uses Spotless with Google Java Format (version 2.0.0) with the following rules:
 - Standard Google Java Style formatting
 - Removal of unused imports
 - Trimming of trailing whitespace
