@@ -44,6 +44,7 @@ class LatencyTrackingFilterTest {
   }
 
   @Test
+  @DisplayName("Should record request without error when response is ok")
   void doFilter_WhenResponseIsOk_ShouldRecordRequestWithoutError()
       throws ServletException, IOException {
     runFilter("/hangar/planes", 200);
@@ -57,6 +58,7 @@ class LatencyTrackingFilterTest {
   }
 
   @Test
+  @DisplayName("Should record error when response is server error")
   void doFilter_WhenResponseIsServerError_ShouldRecordError() throws ServletException, IOException {
     runFilter("/hangar/planes", 500);
 
@@ -66,6 +68,7 @@ class LatencyTrackingFilterTest {
   }
 
   @Test
+  @DisplayName("Should not record error when response is client error")
   void doFilter_WhenResponseIsClientError_ShouldNotRecordError()
       throws ServletException, IOException {
     runFilter("/hangar/planes", 404);
@@ -74,6 +77,35 @@ class LatencyTrackingFilterTest {
   }
 
   @Test
+  @DisplayName("Should not record error when status is above five hundred range")
+  void doFilter_WhenStatusIsAboveFiveHundredRange_ShouldNotRecordError()
+      throws ServletException, IOException {
+    // The exception handlers treat only 500-599 as server errors; the filter must agree.
+    runFilter("/hangar/planes", 600);
+
+    assertThat(metricsService.snapshot().getErrorsLastMinute()).isZero();
+  }
+
+  @Test
+  @DisplayName("Should not record error when chain throws after ok response committed")
+  void doFilter_WhenChainThrowsAfterOkResponseCommitted_ShouldNotRecordError()
+      throws ServletException, IOException {
+    // A client that hangs up mid-body makes the write throw after a 200 already went out.
+    when(request.getRequestURI()).thenReturn("/hangar/planes");
+    when(response.isCommitted()).thenReturn(true);
+    when(response.getStatus()).thenReturn(200);
+    IOException clientAbort = new IOException("Broken pipe");
+    doThrow(clientAbort).when(chain).doFilter(request, response);
+
+    assertThatThrownBy(() -> filter.doFilter(request, response, chain)).isSameAs(clientAbort);
+
+    MetricsSnapshot snapshot = metricsService.snapshot();
+    assertThat(snapshot.getRequestsLast60Seconds()).isEqualTo(1);
+    assertThat(snapshot.getErrorsLastMinute()).isZero();
+  }
+
+  @Test
+  @DisplayName("Should record error and rethrow when chain throws")
   void doFilter_WhenChainThrows_ShouldRecordErrorAndRethrow() throws ServletException, IOException {
     when(request.getRequestURI()).thenReturn("/hangar/planes");
     doThrow(new ServletException("boom")).when(chain).doFilter(request, response);
@@ -86,6 +118,7 @@ class LatencyTrackingFilterTest {
   }
 
   @Test
+  @DisplayName("Should record nothing when health probe")
   void doFilter_WhenHealthProbe_ShouldRecordNothing() throws ServletException, IOException {
     when(request.getRequestURI()).thenReturn("/health/ready");
 
