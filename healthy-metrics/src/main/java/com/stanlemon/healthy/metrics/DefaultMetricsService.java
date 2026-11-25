@@ -17,9 +17,6 @@ public class DefaultMetricsService implements MetricsService {
 
   private static final int WINDOW_SECONDS = 60;
 
-  /** Low-traffic error threshold: more errors than this in the window is unhealthy. */
-  private static final long ERROR_THRESHOLD = 100;
-
   /** Average latency, in milliseconds, above which the window is unhealthy. */
   private static final double LATENCY_THRESHOLD_MS = 100.0;
 
@@ -29,13 +26,16 @@ public class DefaultMetricsService implements MetricsService {
   /** Fewer requests than this and the error count is too noisy to judge. */
   private static final long MINIMUM_ERROR_SAMPLE_SIZE = 10;
 
+  /** Error rate (50%) allowed while traffic is below {@link #HIGH_TRAFFIC_THRESHOLD}. */
+  private static final double MODERATE_TRAFFIC_ERROR_RATE = 0.50;
+
   /**
-   * Once the window holds at least this many requests, the error check switches from an absolute
-   * count to a percentage rate — below this traffic level a handful of errors doesn't mean much.
+   * Once the window holds at least this many requests, the allowed error rate drops to {@link
+   * #HIGH_TRAFFIC_ERROR_RATE}. With fewer requests, a handful of errors is a large share.
    */
   private static final long HIGH_TRAFFIC_THRESHOLD = 100;
 
-  /** Error rate (10%) used once traffic crosses {@link #HIGH_TRAFFIC_THRESHOLD}. */
+  /** Error rate (10%) allowed once traffic reaches {@link #HIGH_TRAFFIC_THRESHOLD}. */
   private static final double HIGH_TRAFFIC_ERROR_RATE = 0.10;
 
   private final Clock clock;
@@ -81,27 +81,18 @@ public class DefaultMetricsService implements MetricsService {
     long requests = sum(requestBuckets);
     long errors = sum(errorBuckets);
     double averageLatency = requests == 0 ? 0.0 : (double) sum(latencyTotalBuckets) / requests;
+    double errorRateThreshold =
+        requests >= HIGH_TRAFFIC_THRESHOLD ? HIGH_TRAFFIC_ERROR_RATE : MODERATE_TRAFFIC_ERROR_RATE;
 
     return new MetricsSnapshot(
         errors,
         totalErrors,
         requests,
         averageLatency,
-        isErrorThresholdBreached(errors, requests),
+        requests >= MINIMUM_ERROR_SAMPLE_SIZE && (double) errors / requests > errorRateThreshold,
         requests >= MINIMUM_LATENCY_SAMPLE_SIZE && averageLatency > LATENCY_THRESHOLD_MS,
-        ERROR_THRESHOLD,
+        errorRateThreshold,
         LATENCY_THRESHOLD_MS);
-  }
-
-  private static boolean isErrorThresholdBreached(long errors, long requests) {
-    if (requests < MINIMUM_ERROR_SAMPLE_SIZE) {
-      return false;
-    }
-    if (requests >= HIGH_TRAFFIC_THRESHOLD) {
-      return (double) errors / requests > HIGH_TRAFFIC_ERROR_RATE;
-    }
-    // Moderate traffic: breach when more than half the requests failed (capped by the threshold).
-    return errors > Math.min(ERROR_THRESHOLD, requests / 2);
   }
 
   /**
@@ -113,7 +104,13 @@ public class DefaultMetricsService implements MetricsService {
   private int advanceWindow() {
     long now = clock.instant().getEpochSecond();
 
-    // Clear everything if the clock went backwards (NTP step-back, VM resume) or the whole window
+    // The wall clock can step back a little (an NTP correction). Treat that as still being the
+    // newest second we saw, so the window keeps its data instead of being wiped.
+    if (now < windowEndSecond && windowEndSecond - now < WINDOW_SECONDS) {
+      now = windowEndSecond;
+    }
+
+    // Clear everything if the clock jumped back by a whole window or more, or the whole window
     // went stale. The initial -1 lands in one of these cases, or in the loop below for a clock
     // near the epoch; either way the buckets are already zero.
     if (now < windowEndSecond || now - windowEndSecond >= WINDOW_SECONDS) {
@@ -134,7 +131,8 @@ public class DefaultMetricsService implements MetricsService {
   }
 
   private static int bucketFor(long epochSecond) {
-    return (int) (epochSecond % WINDOW_SECONDS);
+    // floorMod, not %, so a clock before 1970 (negative seconds) still maps to 0..59.
+    return (int) Math.floorMod(epochSecond, WINDOW_SECONDS);
   }
 
   private static long sum(long[] buckets) {

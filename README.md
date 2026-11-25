@@ -115,7 +115,7 @@ The health check evaluates two thresholds against the metrics data:
 | Traffic level | Condition | Breach rule |
 |---------------|-----------|-------------|
 | Very low | < 10 total requests in last 60s | Never breaches (insufficient data) |
-| Moderate | 10-99 total requests | Breaches if errors > min(100, requests/2) |
+| Moderate | 10-99 total requests | Breaches if error rate > 50% |
 | High | >= 100 total requests | Breaches if error rate > 10% |
 
 **Latency threshold**: Average latency > 100ms, but only evaluated when there are at least 5 requests in the window. With fewer than 5 requests, the threshold is not applied regardless of latency values.
@@ -136,7 +136,7 @@ Reports whether this instance can handle traffic. Checks error rates and latency
 ```json
 {
   "status": "healthy",
-  "message": "OK - 5 errors in last minute (threshold: 100), 45.5ms average latency in last 60 seconds (threshold: 100ms)",
+  "message": "OK - 5 errors out of 120 requests in last minute (threshold: 10% error rate), 45.5ms average latency in last 60 seconds (threshold: 100ms)",
   "errorsLastMinute": 5,
   "avgLatencyLast60Seconds": 45.5,
   "errorThresholdBreached": false,
