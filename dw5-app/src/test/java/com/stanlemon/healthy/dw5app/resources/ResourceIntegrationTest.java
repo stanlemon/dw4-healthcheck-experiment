@@ -52,6 +52,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should return healthy state when called with clean metrics")
   @Timeout(30)
   void metricsEndpoint_WhenCalledWithCleanMetrics_ShouldReturnHealthyState() {
     Client client = app.client();
@@ -74,6 +75,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should record reasonable latency when multiple requests")
   @Timeout(30)
   void latencyTracking_WhenMultipleRequests_ShouldRecordReasonableLatency() {
     Client client = app.client();
@@ -115,6 +117,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should return ok status when called")
   @Timeout(30)
   void healthcheckEndpoint_WhenCalled_ShouldReturnOkStatus() {
     try (Response response =
@@ -127,6 +130,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should return health response when called")
   @Timeout(30)
   void readinessEndpoint_WhenCalled_ShouldReturnHealthResponse() {
     try (Response response =
@@ -147,6 +151,7 @@ class ResourceIntegrationTest {
   }
 
   @Test
+  @DisplayName("Should return alive response when called")
   @Timeout(30)
   void livenessEndpoint_WhenCalled_ShouldReturnAliveResponse() {
     try (Response response =

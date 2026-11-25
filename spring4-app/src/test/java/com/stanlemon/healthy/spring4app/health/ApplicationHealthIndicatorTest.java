@@ -24,6 +24,7 @@ class ApplicationHealthIndicatorTest {
   }
 
   @Test
+  @DisplayName("Should report up without breach details when no traffic")
   void health_WhenNoTraffic_ShouldReportUpWithoutBreachDetails() {
     Health health = healthIndicator.health();
 
@@ -36,6 +37,7 @@ class ApplicationHealthIndicatorTest {
   }
 
   @Test
+  @DisplayName("Should report down with breach details when latency threshold breached")
   void health_WhenLatencyThresholdBreached_ShouldReportDownWithBreachDetails() {
     for (int i = 0; i < 5; i++) {
       metricsService.recordRequest(200, false);

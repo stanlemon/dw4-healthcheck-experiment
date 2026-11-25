@@ -24,6 +24,7 @@ class ReadinessResourceTest {
   }
 
   @Test
+  @DisplayName("Should return 200 with health body when healthy")
   void getReadiness_WhenHealthy_ShouldReturn200WithHealthBody() {
     Response response = resource.getReadiness();
 
@@ -32,6 +33,7 @@ class ReadinessResourceTest {
   }
 
   @Test
+  @DisplayName("Should return 503 with health body when unhealthy")
   void getReadiness_WhenUnhealthy_ShouldReturn503WithHealthBody() {
     for (int i = 0; i < 5; i++) {
       metricsService.recordRequest(200, false);
