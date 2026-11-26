@@ -552,7 +552,12 @@ To create a new Claude Code subagent, do these steps:
    <example>Context: User wants to... user: "..." assistant: "I'll use the maven-subagent-name..."</example>
    ```
 
-After you create the subagent, it is available only in Claude Code, through the slash command `/maven-subagent-name`. These subagents use Claude to do more than run a command.
+After you create the subagent, Claude can start it in three ways:
+- If a request matches the description of the subagent, Claude picks it.
+- You type `@agent-maven-subagent-name` in a prompt.
+- You run `claude --agent maven-subagent-name`.
+
+A subagent does not get a `/maven-subagent-name` slash command. A subagent keeps the long Maven output in its own context and returns only a short report. For this reason, use a subagent and not a skill for these Maven tasks.
 
 ## Dependencies and Libraries
 
