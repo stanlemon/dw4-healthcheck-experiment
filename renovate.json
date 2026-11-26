@@ -3,5 +3,12 @@
   "extends": [
     "github>stanlemon/javascript:renovate.json5",
     "github>stanlemon/javascript:aggressive.json5"
+  ],
+  "packageRules": [
+    {
+      "description": "Dropwizard 5.0.2's request log (logback-access 2.0.x) fails at startup on Logback 1.6. Lift this when Dropwizard supports Logback 1.6.",
+      "matchPackageNames": ["ch.qos.logback:logback-core", "ch.qos.logback:logback-classic"],
+      "allowedVersions": "<1.6.0"
+    }
   ]
 }

@@ -40,15 +40,21 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!--
+              Keep Logback on 1.5.x. Dropwizard 5.0.2's request log uses logback-access 2.0.x,
+              which reads PatternLayout.DEFAULT_CONVERTER_MAP. Logback 1.6 removed that field, so
+              the app fails at startup with NoSuchFieldError. renovate.json holds Logback below
+              1.6. DwApplicationTest starts the app with the real config.yml to catch this.
+            -->
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-core</artifactId>
-                <version>1.6.8</version>
+                <version>1.5.38</version>
             </dependency>
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.6.8</version>
+                <version>1.5.38</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents.client5</groupId>
