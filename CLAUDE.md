@@ -1,28 +1,29 @@
 # Development Guidelines
 
-This document provides essential information to help with development tasks in this repository.
+This document gives you the facts and the rules for development tasks in this repository.
 
 ## Key Information
-- **Language**: Java 21
-- **Frameworks**: Dropwizard 5.x and Spring Boot 4.x
-- **Architecture**: Two runtime modules exposing the same REST API over different frameworks
-- **Testing Framework**: JUnit 6 with Mockito, REST Assured for integration tests
-- **Code Quality**: Spotless for formatting, JaCoCo for coverage, SpotBugs with FindSecBugs for security analysis
-- **Architecture Testing**: ArchUnit for enforcing architectural constraints
-- **Libraries**: Lombok for reducing boilerplate code, AssertJ for fluent assertions, Awaitility for async testing
+- Language: Java 21
+- Frameworks: Dropwizard 5.x and Spring Boot 4.x
+- Architecture: Two runtime modules, `dw5-app` and `spring4-app`, expose the same REST API over different frameworks. Two shared domain modules, `healthy-metrics` and `healthy-hangar`, hold the business logic. The `architecture-rules` module holds the ArchUnit rules that all modules share.
+- Testing framework: JUnit 6 with Mockito, and REST Assured for integration tests
+- Code quality: Spotless for formatting, JaCoCo for coverage, and SpotBugs with FindSecBugs for security analysis
+- Architecture testing: ArchUnit for architectural constraints
+- Libraries: Lombok for less boilerplate code, AssertJ for fluent assertions, and Awaitility for async tests
 
-_For exact dependency versions, see [pom.xml](pom.xml)_
+For the exact dependency versions, see [pom.xml](pom.xml).
 
 ## Maven Test Execution
 
-**Important**: For all Maven test execution, use the `maven-test-runner` subagent instead of running Maven commands directly. The agent provides comprehensive test analysis, clear failure reporting, and actionable guidance.
+For all Maven test runs, you must use the `maven-test-runner` subagent. Do not run Maven commands directly. The agent analyzes the test results, reports each failure clearly, and tells you what to do next.
 
 ### When to Use the Maven Test Runner Agent
-- After making code changes to verify nothing is broken
-- When implementing new features that need test validation  
-- For debugging failing builds or CI issues
-- To run specific test suites or individual test classes
-- To generate and analyze code coverage reports
+Use the agent in these cases:
+- After you change code, to make sure that nothing is broken
+- When you add a new feature that needs tests
+- When you debug a failing build or a CI failure
+- When you run a specific test suite or a single test class
+- When you make and analyze code coverage reports
 
 ### Example Usage
 ```
@@ -43,19 +44,22 @@ mvn clean install
 mvn test
 
 # Run specific test class - USE MAVEN-TEST-RUNNER AGENT INSTEAD
-mvn test -Dtest=SpecificTest
+mvn test -Dtest=SpecificTest -pl healthy-metrics
 
 # Generate code coverage report - USE MAVEN-TEST-RUNNER AGENT INSTEAD
 mvn clean test jacoco:report
 
-# View coverage report (macOS)
-open target/site/jacoco/index.html
+# View coverage report for one module (macOS)
+open healthy-metrics/target/site/jacoco/index.html
 
 # Apply code formatting
 mvn spotless:apply
 
-# Run the application
-mvn exec:java
+# Run the Dropwizard application (run mvn clean install first)
+mvn exec:java -pl dw5-app
+
+# Run the Spring Boot application
+mvn spring-boot:run -pl spring4-app
 
 # Run architecture tests only - USE MAVEN-TEST-RUNNER AGENT INSTEAD
 mvn test -Dtest="com.stanlemon.architecture.*"
@@ -67,27 +71,27 @@ mvn test -Dtest="com.stanlemon.architecture.CodingRulesTest"
 mvn spotbugs:check
 ```
 
-**Note**: The Maven commands above are provided for reference. When you need to execute tests, request the `maven-test-runner` agent instead of running these commands directly.
+The Maven commands above are for reference only. When you must run tests, ask the `maven-test-runner` agent to run them. Do not run these commands directly.
 
 ## Testing Strategy
 
 ### Test Organization
-- **Unit Tests**: Located in `src/test/java` mirroring the main source structure
-- **Integration Tests**: Located in `src/test/java` alongside unit tests (e.g., `ResourceIntegrationTest`)
-- **Functional Tests**: End-to-end tests located in `src/test/java/.../functional` package
-- **Architecture Tests**: ArchUnit tests in `src/test/java/.../architecture` package
-- **Test Naming**: Descriptive method names with `@DisplayName` annotations
-- **Test Structure**: Nested test classes using `@Nested` for logical grouping
+- Unit tests: In `src/test/java` of each module, in the same package structure as the main source
+- Integration tests: In `src/test/java` next to the unit tests (for example, `ResourceIntegrationTest`)
+- Functional tests: End-to-end tests in the `src/test/java/.../functional` package
+- Architecture tests: ArchUnit tests in the `src/test/java/com/stanlemon/architecture` package of each module
+- Test naming: Method names that describe the behavior, with `@DisplayName` annotations
+- Test structure: Nested test classes with `@Nested` to group related tests
 
 ### Test Patterns
-- **Arrange-Act-Assert**: Follow this pattern for clarity
-- **Mocking**: Use Mockito judiciously and as a last resort. Avoid over-mocking.
-- **Assertions**: Use AssertJ for fluent assertions and readability
-- **Test Coverage**: Focus on edge cases and exception handling
-- **Naming**: `methodName_WhenCondition_ShouldExpectedResult`
+- Arrange-Act-Assert: Use this pattern for clarity.
+- Mocking: Use Mockito only as a last resort. Do not mock more than the test needs.
+- Assertions: Use AssertJ for fluent, readable assertions.
+- Test coverage: Test the edge cases and the exception handling.
+- Naming: Use the `methodName_WhenCondition_ShouldExpectedResult` pattern.
 
 ### Thread.sleep() Elimination
-**Never use `Thread.sleep()` in tests** - Use proper synchronization:
+Never use `Thread.sleep()` in tests. Use correct synchronization:
 
 ```java
 // Bad - Flaky and unreliable
@@ -107,7 +111,7 @@ await().atMost(Duration.ofSeconds(5))
 ```
 
 ### Test Assertions
-Use semantic assertions for better readability:
+Use semantic assertions. They are easier to read:
 
 ```java
 // Bad
@@ -120,55 +124,54 @@ assertThat(map).containsEntry("key", value);
 ```
 
 ### Test Coverage Requirements
-- Comprehensive edge case testing (null values, empty strings, invalid inputs)
-- Round-trip conversion testing for adapters/converters
-- Exception scenario testing with proper assertions
-- Mock verification for external dependencies
-- Do not use `any()` in Mockito; use specific matchers or argument captors
+- Test the edge cases: null values, empty strings, and invalid inputs.
+- For adapters and converters, test the round-trip conversion.
+- Test each exception scenario with specific assertions.
+- For external dependencies, assert the mock interactions with the Mockito `verify` method.
+- Do not use `any()` in Mockito. Use specific matchers or argument captors.
 
 ### Do not test Lombok-generated code
-Do not write tests that only exercise code Lombok synthesizes — getters, setters, `equals`,
-`hashCode`, `toString`, all-args constructors on `@Value`/`@Data`/`@Builder` classes. Those
-methods are Lombok's contract to uphold, not ours; testing them verifies the annotation
-processor, not our logic. Warning signs your test is doing this:
+Do not write tests that only exercise code that Lombok synthesizes. This code includes getters, setters, `equals`,
+`hashCode`, `toString`, and all-args constructors on `@Value`/`@Data`/`@Builder` classes. Lombok owns the contract for those
+methods, not this project. A test of them tests the annotation
+processor, not our logic. These signs show that a test does this:
 
 - The test constructs an object and immediately asserts `getFoo().equals(foo)` on every field.
-- The class under test has no hand-written method bodies — just Lombok annotations.
-- A rename would be caught by the compiler, not the test.
+- The class under test has no hand-written method bodies, only Lombok annotations.
+- The compiler, not the test, catches a rename.
 
-Delete such tests. Write tests for behavior the Lombok-free code produces (validation,
-derived fields, business rules, serialization edge cases that involve custom annotations).
+Delete such tests. Write tests for the behavior of the code that Lombok does not write. Examples are validation,
+derived fields, business rules, and serialization edge cases that involve custom annotations.
 
-The root `lombok.config` enables `lombok.addLombokGeneratedAnnotation = true` so Lombok
-stamps `@lombok.Generated` on synthesized members; JaCoCo (≥ 0.8.6) automatically excludes
-anything so annotated, meaning coverage reports already ignore these methods. Do not re-add
-them back by writing redundant tests.
+The root `lombok.config` enables `lombok.addLombokGeneratedAnnotation = true`. Thus Lombok
+stamps `@lombok.Generated` on synthesized members. JaCoCo (≥ 0.8.6) automatically excludes
+all code with this annotation, so coverage reports already ignore these methods. Do not add
+tests for them again.
 
 ### Test Coverage Exclusions
-The following classes have lower coverage in per-module JaCoCo reports due to cross-module measurement limitations (JaCoCo only measures coverage within the module under test, not transitive usage by app modules):
-- **Exception classes** (e.g., `SomethingWentWrongException`) — exercised transitively by dw5-app and spring4-app tests
-- **`MetricsResponse`** — exercised by dw5-app and spring4-app tests
-- **Spring `main()` method** (`Spring4Application.main`) — boot wiring covered by `@SpringBootTest` integration tests
+Some classes have lower coverage in the per-module JaCoCo reports. JaCoCo measures coverage only in the module under test. It does not count calls from the app modules. These classes have this problem:
+- Exception classes (for example, `SomethingWentWrongException`): The dw5-app and spring4-app tests exercise them.
+- The Spring `main()` method (`Spring4Application.main`): The `@SpringBootTest` integration tests cover the boot wiring.
 
-Note: These are not excluded via JaCoCo `<excludes>` in the POM. They are measured but may show lower coverage in the healthy-metrics module report.
+The POM does not exclude these classes with JaCoCo `<excludes>`. JaCoCo measures them, and they can show lower coverage in the module report.
 
 ### Test Performance
-- Keep test delays minimal (≤5ms for timing tests)
-- Use deterministic approaches over actual delays
-- Use real implementations instead of mocks when possible
+- Keep test delays small (≤5ms for timing tests).
+- Use deterministic approaches, not real delays.
+- If a real implementation is available, use it instead of a mock.
 
 ### Test Execution Best Practices
-**Always use the maven-test-runner agent for test execution** instead of running Maven commands directly. The agent provides:
-- Comprehensive test result analysis and reporting
-- Clear identification of failing tests with actionable guidance
-- Performance monitoring and optimization suggestions
-- Integration with quality tools (SpotBugs, Checkstyle, etc.)
-- Consistent test execution feedback across the development workflow
+Always use the maven-test-runner agent to run tests. Do not run Maven commands directly. The agent gives you:
+- An analysis of the test results
+- A list of the failing tests, with guidance on what to fix
+- Performance data and suggestions
+- The results of quality tools that run during the test phase, such as SpotBugs
+- The same test feedback format across the development workflow
 
 ## Code Quality
 
 ### Lombok Usage
-Lombok is used extensively to reduce boilerplate code. Follow these guidelines when using Lombok:
+This project uses Lombok in many classes to reduce boilerplate code. When you use Lombok, follow these guidelines:
 
 ```java
 // For immutable value classes
@@ -205,16 +208,16 @@ public class ApiResponse {
 }
 ```
 
-Key annotations to use:
-- `@Value` - Creates immutable classes with getters, toString, equals, and hashCode
-- `@Data` - Creates getters, setters, toString, equals, hashCode, and a required-args constructor
-- `@Builder` - Creates a builder pattern implementation for the class
-- `@NoArgsConstructor` - Creates a default constructor (required for Jackson deserialization)
-- `@AllArgsConstructor` - Creates a constructor with parameters for all fields
-- `@Slf4j` - Creates a logger field
+Use these annotations:
+- `@Value`: Makes an immutable class with getters, toString, equals, and hashCode.
+- `@Data`: Makes getters, setters, toString, equals, hashCode, and a required-args constructor.
+- `@Builder`: Makes a builder pattern implementation for the class.
+- `@NoArgsConstructor`: Makes a default constructor. Jackson deserialization needs it.
+- `@AllArgsConstructor`: Makes a constructor with a parameter for each field.
+- `@Slf4j`: Makes a logger field.
 
 ### Exception Handling
-Always preserve interrupt status:
+When you catch `InterruptedException`, always restore the interrupt status:
 
 ```java
 try {
@@ -226,16 +229,16 @@ try {
 ```
 
 ### Import Conventions
-- **Avoid star imports**: Import specific classes rather than using wildcards
-- **Use simple class names**: Import classes and use their simple names
-- **Handle name collisions**: When class name collisions occur and one is from auto-generated code:
-  - Import the auto-generated class
-  - Use fully qualified name for the other class
-- **Consistent import ordering**: Follow standard Java import ordering
+- No star imports: Import specific classes, not wildcards.
+- Simple class names: Import classes and use their simple names.
+- Name collisions: If two classes have the same name and one is from generated code, do these steps:
+  - Import the generated class.
+  - Use the fully qualified name for the other class.
+- Import order: Use the standard Java import order.
 
 ### Code Formatting
 
-**Important**: For code formatting, use the `maven-spotless-formatter` subagent instead of running Maven commands directly. The agent provides formatting verification, automatically applies fixes, and reports on style issues.
+For code formatting, you must use the `maven-spotless-formatter` subagent. Do not run Maven commands directly. The agent makes sure that the code is formatted, applies the fixes, and reports style issues.
 
 ```bash
 # Reference commands (use maven-spotless-formatter agent instead)
@@ -243,46 +246,53 @@ mvn spotless:check    # Check formatting without modifying files
 mvn spotless:apply    # Apply formatting fixes automatically
 ```
 
-This project uses Spotless with Google Java Format (version 2.0.0) with the following rules:
+This project uses Spotless with Google Java Format (version 2.0.0). Spotless applies these rules:
 - Standard Google Java Style formatting
 - Removal of unused imports
-- Trimming of trailing whitespace
-- Adding terminal newlines
+- Removal of trailing whitespace
+- A newline at the end of each file
 
 ### Quality Tools
-- **SpotBugs**: Avoid security vulnerabilities and common bugs (use `maven-spotbugs-analyzer` agent)
-- **FindSecBugs**: Security-focused static analysis plugin for SpotBugs
-- **Test Coverage**: JaCoCo enforces 90% line / 80% branch minimums per module
-- **ArchUnit**: Architecture testing to enforce coding standards and design rules
-- **Maven Enforcer**: Enforce dependency rules and security constraints
+- SpotBugs: Finds security vulnerabilities and common bugs. Run it with the `maven-spotbugs-analyzer` agent.
+- FindSecBugs: A SpotBugs plugin for security static analysis.
+- Test coverage: JaCoCo requires at least 90% line coverage and 80% branch coverage in each module.
+- ArchUnit: Architecture tests that enforce coding standards and design rules.
+- Maven Enforcer: Enforces dependency rules and security constraints.
 
 ## ArchUnit Integration
 
-ArchUnit is used to enforce architectural constraints and coding standards through executable tests.
+ArchUnit tests are executable tests that enforce architectural constraints and coding standards. The shared rules are in the `architecture-rules` module. Each module runs them from its own `ArchitectureTest` and `CodingRulesTest` classes.
 
 ### Architecture Test Categories
 
 #### CodingRulesTest
-Enforces general coding standards:
-- **No java.util.Date usage** - Enforces modern `java.time` API
-- **No generic exceptions** - Prevents `Exception`, `RuntimeException`, etc.
-- **No java.util.logging** - Enforces SLF4J/Logback logging
-- **No System.out/System.err** - Prevents console output in production
-- **No Thread.sleep()** - Prevents flaky tests (except SlowResource demo)
-- **No public fields** - Enforces encapsulation
-- **No JUnit assertions** - Enforces AssertJ for readability
+This test enforces general coding standards in every module:
+- No java.util.Date usage: Use the modern `java.time` API.
+- No generic exceptions: Do not throw `Exception`, `RuntimeException`, or other generic exception types.
+- No java.util.logging: Use SLF4J/Logback logging.
+- No System.out/System.err: Do not write console output in production code.
+- No Thread.sleep(): This rule prevents flaky tests. The SlowResource demo is the only exception.
+- No public fields: Keep fields encapsulated.
+- No JUnit assertions: Use AssertJ, because it is easier to read.
 
 #### ArchitectureTest
-Enforces architectural patterns:
-- **Resource dependency isolation** - Resources depend on service interfaces only
-- **Implementation hiding** - No dependencies on "Default*" implementations
-- **Package organization** - Exception mappers in exceptions package
-- **Naming conventions** - Resources end with "Resource", services with "Service"
-- **REST patterns** - Resources must have `@Path` annotation
+In `dw5-app` and `spring4-app`, this test enforces these architectural patterns:
+- Resource dependency isolation: Resources depend only on service interfaces.
+- Implementation hiding: Resources have no dependencies on "Default*" implementations.
+- Package organization: Exception mappers (and the Spring exception handler) are in the exceptions package.
+- Naming conventions: Resources end with "Resource", and services end with "Service".
+- REST patterns: Resources must have the `@Path` annotation in `dw5-app` and the `@RestController` annotation in `spring4-app`.
+- Package structure: Packages have no circular dependencies, and each layer depends only on the layers that it is allowed to use.
+
+In `healthy-metrics` and `healthy-hangar`, this test enforces these rules:
+- The module has no dependencies on container-framework packages.
+- Packages have no circular dependencies.
+- Service names end with "Service". In `healthy-hangar`, interface names end with "Service" or "Predictor".
+- In `healthy-hangar`, production code has no dependencies on the "Default*" predictors.
 
 ### Running ArchUnit Tests
 
-**Use the maven-test-runner agent for all ArchUnit test execution:**
+You must use the maven-test-runner agent for all ArchUnit test runs:
 
 ```
 "Run all architecture tests to validate the code structure"
@@ -291,7 +301,7 @@ Enforces architectural patterns:
 "Check if the ArchUnit tests pass after my refactoring"
 ```
 
-**Reference Commands** (use agent instead):
+Reference commands (use the agent instead):
 ```bash
 # Run all architecture tests - USE MAVEN-TEST-RUNNER AGENT INSTEAD
 mvn test -Dtest="com.stanlemon.architecture.*"
@@ -303,7 +313,7 @@ mvn test -Dtest="ArchitectureTest"
 
 ### Adding Custom ArchUnit Rules
 
-Create new rules in `src/test/java/com/stanlemon/architecture/`:
+If a rule applies to all modules, add it as a static method to `ArchitectureRules` or `CodingRules` in `architecture-rules/src/main/java/com/stanlemon/architecture/`. Then call it from the `ArchitectureTest` or `CodingRulesTest` class of each module. If a rule applies to one module only, add it to that module in `src/test/java/com/stanlemon/architecture/`:
 
 ```java
 @Test
@@ -321,9 +331,9 @@ void servicesShouldNotUseStaticMethods() {
 ## Security Analysis
 
 ### FindSecBugs Integration
-FindSecBugs is integrated with SpotBugs for security-focused static analysis:
+FindSecBugs runs inside SpotBugs and does the security static analysis.
 
-**Important**: For security analysis, use the `maven-spotbugs-analyzer` subagent instead of running Maven commands directly. The agent provides comprehensive bug analysis, security vulnerability detection, and actionable guidance.
+For security analysis, you must use the `maven-spotbugs-analyzer` subagent. Do not run Maven commands directly. The agent analyzes bugs, finds security vulnerabilities, and tells you what to fix.
 
 ```bash
 # Reference commands (use maven-spotbugs-analyzer agent instead)
@@ -331,169 +341,192 @@ mvn spotbugs:check              # Fail build on errors
 mvn clean compile spotbugs:spotbugs   # Generate report without failing build
 ```
 
-The `maven-spotbugs-analyzer` agent will detect new issues in your code changes in real-time, helping you catch potential bugs before they get committed. It provides:
+The `maven-spotbugs-analyzer` agent finds new issues in your code changes before you commit them. It gives you:
 
-- Detection of thread safety issues
-- Security vulnerability identification (via FindSecBugs)
-- Potential performance problems
-- Detailed explanation of each issue
+- Thread safety issues
+- Security vulnerabilities (from FindSecBugs)
+- Possible performance problems
+- An explanation of each issue
 - Suggested fixes with code examples
-- Prioritized remediation plan
+- A fix plan in priority order
 
 ### Maven Enforcer Security Rules
-The project uses Maven Enforcer Plugin to prevent vulnerable dependencies:
+The project uses the Maven Enforcer Plugin to block vulnerable dependencies:
 
-- **Log4j Security**: Bans vulnerable log4j versions (< 2.17.0)
-- **Jackson Security**: Bans vulnerable Jackson versions (< 2.12.7.1)
-- **Commons Collections**: Prevents security issues (< 3.2.2)
-- **Lombok Compatibility**: Ensures Java 21 compatibility (>= 1.18.20)
-- **Plugin Version Control**: Requires explicit plugin versions for reproducible builds
+- Log4j security: Bans vulnerable log4j versions (< 2.17.0).
+- Jackson security: Bans vulnerable Jackson versions (< 2.12.7.1).
+- Commons Collections: Bans versions with security issues (< 3.2.2).
+- Lombok compatibility: Requires a Lombok version that works with Java 21 (>= 1.18.20).
+- Plugin version control: Requires explicit plugin versions, so that builds are reproducible.
 
 ## Architecture Patterns
 
 ### Metrics Collection
-- Use atomic operations for a lone counter; when several values must agree (like the sliding-window buckets), guard them all with one lock and read the clock inside it
-- Implement circular buffers for time-series data
-- Clear stale data proactively to prevent memory leaks
+- If a value is a lone counter, use atomic operations.
+- If several values must agree (like the sliding-window buckets), guard them all with one lock. Read the clock inside that lock.
+- Use circular buffers for time-series data.
+- Clear stale data early to prevent memory leaks.
 
 ### Error Handling
-All exceptions should flow through the global exception mapper to ensure:
+All exceptions must go through the global exception handling. In `dw5-app`, this is `GlobalExceptionMapper`, plus `ConstraintViolationExceptionMapper` for validation errors. In `spring4-app`, this is `GlobalExceptionHandler`. This design gives:
 - Consistent error responses
-- Proper logging
+- Correct logging
 
-Server-error metrics come from `LatencyTrackingFilter`, which records each request's latency and 5xx status in one `recordRequest` call. Exception mappers do not touch metrics.
+Server-error metrics come from `LatencyTrackingFilter`. The filter records the latency and the 5xx status of each request in one `recordRequest` call. Exception mappers do not touch metrics.
 
 ### Health Checks
-Implement comprehensive health checks that:
-- Monitor both error rates and latency
-- Use dynamic thresholds based on traffic
-- Provide clear diagnostic messages
+Write health checks that do these things:
+- Monitor both error rates and latency.
+- Use dynamic thresholds that change with traffic.
+- Give clear diagnostic messages.
 
 ### Input Validation
-- Validate all external inputs
-- Use appropriate limits (e.g., max 10-second delays)
-- Handle edge cases gracefully
+- Make sure that all external inputs are valid.
+- Use correct limits (for example, a maximum delay of 10 seconds).
+- Handle edge cases without a crash.
 
 ### Shared Domain Modules
-Framework-agnostic modules (`healthy-metrics`, `healthy-hangar`) must stay free of framework-specific annotations. Do not add Spring stereotypes (`@Component`, `@Service`) or Dropwizard-managed lifecycle annotations to classes in these modules. Each app module wires the shared services with its own glue — `@Bean` factories in `Spring4Application`, explicit `new ...()` + `environment.jersey().register(...)` in `DwApplication` — so the same implementation can ship in both runtimes without pulling in either framework's classpath.
+The framework-agnostic modules (`healthy-metrics`, `healthy-hangar`) must stay free of framework-specific annotations. Do not add Spring stereotypes (`@Component`, `@Service`) or Dropwizard-managed lifecycle annotations to classes in these modules. Each app module wires the shared services with its own glue code. `Spring4Application` uses `@Bean` factories. `DwApplication` uses explicit `new ...()` + `environment.jersey().register(...)` calls. Thus the same implementation can ship in both runtimes, and neither framework's classpath gets into the shared modules.
 
 ## Application Structure
 
 ### Component Registration Pattern
-The application follows Dropwizard's standard component registration pattern in `DwApplication`:
+`DwApplication` uses the standard Dropwizard component registration pattern:
 
 ```java
 public void run(DwConfiguration configuration, Environment environment) {
-    // 1. Create and register managed services as singletons
+    // 1. Create the shared services once, as singletons
     final MetricsService metricsService = new DefaultMetricsService();
-    
-    // 2. Register filters (applied to all requests)
-    environment.jersey().register(new LatencyTrackingFilter(metricsService));
-    
+    final HealthEvaluator healthEvaluator = new HealthEvaluator(metricsService);
+    final LivenessEvaluator livenessEvaluator = new LivenessEvaluator(metricsService);
+    final AerodynamicsPredictor aerodynamicsPredictor = new DefaultAerodynamicsPredictor();
+    final HangarService hangarService = new DefaultHangarService();
+
+    // 2. Register the latency filter as a servlet filter (REQUEST dispatch only)
+    environment
+        .servlets()
+        .addFilter("latency-tracking", new LatencyTrackingFilter(metricsService))
+        .addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), true, "/*");
+
     // 3. Register resources with dependency injection
     environment.jersey().register(new MetricsResource(metricsService));
-    
+    environment.jersey().register(new ReadinessResource(healthEvaluator));
+    environment.jersey().register(new LivenessResource(livenessEvaluator));
+    environment.jersey().register(new TestErrorsResource());
+    environment.jersey().register(new SlowResource());
+    environment.jersey().register(new HangarResource(hangarService, aerodynamicsPredictor));
+
     // 4. Register exception mappers for global error handling
+    environment.jersey().register(new ConstraintViolationExceptionMapper());
     environment.jersey().register(new GlobalExceptionMapper());
-    
+
     // 5. Register health checks
-    environment.healthChecks().register("application", 
-        new ApplicationHealthCheck(metricsService));
+    environment.healthChecks().register("application", new ApplicationHealthCheck(healthEvaluator));
 }
 ```
 
 ### Package Structure
 ```
-com.stanlemon.healthy.dw5app/
-├── exceptions/          # Exception mappers and custom exceptions
-├── filters/            # JAX-RS filters (e.g., latency tracking)
-├── health/             # Dropwizard health checks
-├── metrics/            # Metrics collection and services
-├── resources/          # JAX-RS REST endpoints
-├── DwApplication.java  # Main application class
+com.stanlemon.healthy.dw5app/          # dw5-app module
+├── exceptions/          # Exception mappers
+├── filters/             # Servlet filter for latency tracking
+├── health/              # Dropwizard health checks
+├── resources/           # JAX-RS REST endpoints
+├── DwApplication.java   # Main application class
 └── DwConfiguration.java # Configuration class
+
+com.stanlemon.healthy.spring4app/      # spring4-app module
+├── exceptions/          # GlobalExceptionHandler (@RestControllerAdvice)
+├── filters/             # OncePerRequestFilter for latency tracking
+├── health/              # Spring Boot health indicator
+├── resources/           # REST controllers
+└── Spring4Application.java # Main application class and @Bean factories
+
+com.stanlemon.healthy.metrics/         # healthy-metrics module: metrics collection, health evaluation
+com.stanlemon.healthy.exceptions/      # healthy-metrics module: shared custom exceptions
+com.stanlemon.healthy.hangar/          # healthy-hangar module: paper plane domain services
 ```
 
 ### Dependency Injection Pattern
-- **Services**: Created as singletons in the application class
-- **Resources**: Receive service dependencies through constructor injection
-- **Shared State**: Managed through service interfaces (`MetricsService`)
-- **Global Components**: Filters receive service references; exception mappers need none
+- Services: The application class creates them as singletons.
+- Resources: They get their service dependencies through constructor injection.
+- Shared state: Service interfaces (`MetricsService`) manage it.
+- Global components: Filters get service references. Exception mappers need none.
 
 ### Service Interface Pattern
-All business logic is accessed through interfaces:
-- `MetricsService` interface with `DefaultMetricsService` implementation
-- Resources depend only on interfaces, not concrete implementations
-- ArchUnit tests enforce this separation to maintain loose coupling
+All business logic is behind interfaces:
+- The `MetricsService` interface has the `DefaultMetricsService` implementation.
+- Resources depend only on interfaces, not on concrete implementations.
+- ArchUnit tests enforce this separation, so the coupling stays loose.
 
 ## Common Issues to Watch For
 
 ### Data Conversion
-- **Enum value matching**: Ensure enum values exactly match between adapters and enums
-- **Case sensitivity**: Be careful with string comparisons for enum lookups
-- **Round-trip conversion**: Always test both directions when converting data formats
+- Enum value matching: Make sure that the enum values in adapters and enums match exactly.
+- Case sensitivity: Be careful with string comparisons for enum lookups.
+- Round-trip conversion: When you convert data formats, always test both directions.
 
 ### Constructor Behavior
-- **Null handling variance**: Constructor null-handling varies by class
-- Check existing implementations before assuming behavior
+- Null handling variance: Constructor null handling is different in each class.
+- Before you assume a behavior, read the existing implementations.
 
 ### External Services
-- **Mock setup**: Ensure proper mock setup for external services
-- Use argument captors for complex verifications
+- Mock setup: Make sure that the mock setup for external services is correct.
+- To assert complex mock interactions, use argument captors.
 
 ### Generated Code
-- Do not modify generated code directly
-- Create proper adapter layers between generated and hand-written code
-- Handle null values and unexpected states from generated classes
+- Do not modify generated code directly.
+- Create adapter layers between generated and hand-written code.
+- Handle null values and unexpected states from generated classes.
 
 ## Development Workflow
 
-Follow this workflow when making changes to the codebase:
+When you change the codebase, follow this workflow:
 
-1. **Plan changes** using the TodoWrite tool to track multi-step tasks
-2. **Make code changes** following the existing patterns and naming conventions
-3. **Run Spotless** using the maven-spotless-formatter agent to ensure code is properly formatted
-4. **Run SpotBugs** using the maven-spotbugs-analyzer agent to check for bugs and vulnerabilities
-   - **CRITICAL: Always run SpotBugs after significant code changes**
-   - This catches potential issues in real-time before they get committed
-   - Prevents introducing thread safety, security, or logic bugs into the codebase
-5. **Run Tests** using the maven-test-runner agent to verify your changes work correctly
-6. **Commit** only after all three checks (formatting, bugs, tests) have passed
+1. Plan the changes. For multi-step tasks, track the steps in the task list of your agent tool.
+2. Make the code changes. Follow the existing patterns and naming conventions.
+3. Run Spotless with the maven-spotless-formatter agent, to make sure that the code is formatted correctly.
+4. Run SpotBugs with the maven-spotbugs-analyzer agent, to find bugs and vulnerabilities.
+   - CRITICAL: After significant code changes, always run SpotBugs.
+   - SpotBugs finds possible issues before you commit them.
+   - It prevents thread safety, security, and logic bugs in the codebase.
+5. Run the tests with the maven-test-runner agent, to make sure that your changes work correctly.
+6. Commit only after all three steps (formatting, bugs, tests) pass.
 
-This workflow ensures that every change maintains code quality standards and doesn't introduce regressions. The real-time feedback loop between coding and quality checks is essential for maintaining codebase integrity.
+With this workflow, each change keeps the code quality standards and adds no regressions. The fast feedback loop between coding and the quality tools keeps the codebase in good condition.
 
 ## Additional Guidance
 
-When working on this repository:
+When you work on this repository, follow these rules:
 
-1. **Always read existing test files** before creating new tests
-2. **Use the TodoWrite tool** to track multi-step tasks
-3. **Use the maven-test-runner agent** for all Maven test execution instead of running commands directly
-4. **Follow existing code patterns**
-5. **Add comments** for anything not obvious to a fourth grader
-6. **Follow existing naming conventions**
-7. **Run maven-spotless-formatter agent** after every code change to ensure proper formatting
-8. **Run maven-spotbugs-analyzer agent** regularly to catch potential bugs early
+1. Before you write new tests, always read the existing test files.
+2. Track multi-step tasks in the task list of your agent tool.
+3. For all Maven test runs, use the maven-test-runner agent. Do not run the commands directly.
+4. Follow the existing code patterns.
+5. Add comments for anything that is not obvious to a fourth grader.
+6. Follow the existing naming conventions.
+7. After each code change, run the maven-spotless-formatter agent to make sure that the formatting is correct.
+8. Run the maven-spotbugs-analyzer agent regularly to find possible bugs early.
 
 ### Subagent Usage Guidelines
-- **maven-test-runner**: Use for all test execution, validation, and coverage analysis
-- **maven-spotbugs-analyzer**: Use for real-time static code analysis to find bugs and security vulnerabilities
-  - Run after every significant code change
-  - Essential for catching issues before they're committed
-  - Provides detailed explanations and fix recommendations
-- **maven-spotless-formatter**: Use for code formatting and style enforcement
-- **TodoWrite**: Use for tracking progress on multi-step development tasks
-- Request agents using natural language describing what you want to accomplish
+- maven-test-runner: Use it for all test runs and for coverage analysis.
+- maven-spotbugs-analyzer: Use it for static code analysis that finds bugs and security vulnerabilities.
+  - Run it after each significant code change.
+  - It finds issues before you commit them.
+  - It gives detailed explanations and fix recommendations.
+- maven-spotless-formatter: Use it for code formatting and style enforcement.
+- Task list: Use the task list of your agent tool to track progress on multi-step development tasks.
+- To request an agent, describe in natural language what you want it to do.
 
 ### Creating Custom Claude Code Subagents
 
-Subagents are a feature **exclusive to Claude Code** that automates specialized tasks with task-specific prompts. These instructions are specifically for creating Claude Code subagents and will not work with other LLM coding tools.
+Subagents are a Claude Code feature. A subagent does a specialized task with a prompt for that task. These instructions apply only to Claude Code subagents. They do not work with other LLM coding tools.
 
-To create a new Claude Code subagent:
+To create a new Claude Code subagent, do these steps:
 
-1. Create a Markdown file in the `.claude/agents/` directory with the following naming convention:
-   - Use `maven-` prefix for Maven-related tools
-   - Use a descriptive name that indicates the subagent's function
+1. Create a Markdown file in the `.claude/agents/` directory. Use this naming convention:
+   - Use the `maven-` prefix for Maven-related tools.
+   - Use a descriptive name that tells what the subagent does.
    - Example: `maven-spotbugs-analyzer.md`
 
 2. Add Claude Code-specific frontmatter at the top of the file:
@@ -506,44 +539,43 @@ To create a new Claude Code subagent:
    ---
    ```
 
-3. Structure the Claude Code subagent content with:
-   - Clear title and introduction explaining the subagent's purpose
-   - Command section showing the exact commands to run
-   - Process section detailing the steps to analyze output
-   - Report format section specifying how results should be presented
-   - Include troubleshooting guidance for common errors
+3. Give the Claude Code subagent content these parts:
+   - A clear title and an introduction that tells the purpose of the subagent
+   - A command section that shows the exact commands to run
+   - A process section that gives the steps to analyze the output
+   - A report format section that tells how to present the results
+   - Troubleshooting guidance for common errors
 
-4. Include example usage in the description to help Claude understand when to invoke the subagent:
+4. Put example usage in the description. When Claude decides whether to invoke the subagent, it uses these examples:
    ```
    <example>Context: User wants to... user: "..." assistant: "I'll use the maven-subagent-name..."</example>
    ```
 
-Once created, the subagent will be available only in Claude Code through the slash command `/maven-subagent-name`. These subagents leverage Claude's capabilities to provide specialized functionality that goes beyond simple command execution.
+After you create the subagent, it is available only in Claude Code, through the slash command `/maven-subagent-name`. These subagents use Claude to do more than run a command.
 
 ## Dependencies and Libraries
 
 ### Preferred Testing Libraries
-- **AssertJ**: For fluent assertions (`isZero()`, `containsEntry()`)
-- **Awaitility**: For async/timing-based tests
-- **JUnit 6**: For modern testing features
-- **CountDownLatch**: For thread synchronization in tests
-- **REST Assured**: For API integration testing and HTTP endpoint validation
-- **WireMock**: For mocking external HTTP services and dependencies
+- AssertJ: For fluent assertions (`isZero()`, `containsEntry()`)
+- Awaitility: For async and timing-based tests
+- JUnit 6: For modern testing features
+- CountDownLatch: For thread synchronization in tests
+- REST Assured: For API integration tests and HTTP endpoint tests
 
 ### Dependency Management
-- **Use Latest Versions**: Always prefer the latest stable versions
-- **Keep Dependencies Current**: Regularly update existing dependencies
-- **Security Updates**: Prioritize security patches and vulnerability fixes
-- **Version Consistency**: Ensure compatible versions across related dependencies
-- **Check CVEs**: Verify new dependencies don't introduce known vulnerabilities
+- Latest versions: Always use the latest stable versions.
+- Current dependencies: Update the existing dependencies regularly.
+- Security updates: Give security patches and vulnerability fixes first priority.
+- Version consistency: Make sure that related dependencies have compatible versions.
+- CVEs: Make sure that new dependencies add no known vulnerabilities.
 
 ## API Design Patterns
 
 ### Resource Design
-- **RESTful URLs**: Use noun-based paths (`/users`, `/metrics`, not `/getUsers`)
-- **HTTP Status Codes**: Use appropriate codes (200, 201, 400, 404, 500)
-- **Path Parameters**: Validate all path parameters for format and existence
-- **Query Parameters**: Provide sensible defaults and validate ranges
+- RESTful URLs: Use noun-based paths (`/users`, `/metrics`, not `/getUsers`).
+- HTTP status codes: Use the correct codes (200, 201, 400, 404, 500).
+- Path parameters: Make sure that each path parameter has a valid format and exists.
+- Query parameters: Give sensible defaults. Make sure that each value is in its valid range.
 
 ### Request/Response Patterns
 ```java
@@ -585,10 +617,10 @@ log.warn("High latency detected - endpoint: {}, latency: {}ms, threshold: {}ms",
 ```
 
 ### Log Levels
-- **ERROR**: System errors, exceptions that require immediate attention
-- **WARN**: Potential issues, threshold breaches, recoverable errors
-- **INFO**: Important business events, startup/shutdown, configuration changes
-- **DEBUG**: Detailed flow information for troubleshooting (not in production)
+- ERROR: System errors, and exceptions that need attention immediately
+- WARN: Possible issues, threshold breaches, and recoverable errors
+- INFO: Important business events, startup and shutdown, and configuration changes
+- DEBUG: Detailed flow information for troubleshooting (not in production)
 
 ### MDC (Mapped Diagnostic Context)
 ```java
@@ -656,19 +688,21 @@ try (Connection conn = dataSource.getConnection()) {
 ```
 
 ### Caching Strategies
-- Cache frequently accessed, rarely changing data
-- Use appropriate TTL values
-- Monitor cache hit rates
-- Implement cache warming for critical data
+- Cache data that the code reads often and that changes rarely.
+- Use correct TTL values.
+- Monitor the cache hit rates.
+- For critical data, fill the cache before the first request (cache warming).
 
 ## Configuration Management
 
 ### Convention Over Configuration
-- **Practical Defaults**: All configuration should have sensible defaults that work out-of-the-box
-- **Minimal Required Config**: Only require explicit configuration for truly critical settings
-- **Environment-Aware Defaults**: Use different defaults based on detected environment when appropriate
+- Practical defaults: Each configuration value must have a sensible default that works without changes.
+- Minimal required configuration: Require explicit configuration only for critical values.
+- Environment-aware defaults: If the environment needs different defaults, select them from the detected environment.
 
 ### Environment-Specific Configuration
+The examples below show the pattern. This repository has no `config-dev.yml`, `config-prod.yml`, or database. `dw5-app` uses `config.yml`, and `spring4-app` uses `application.yml`.
+
 ```yaml
 # config-dev.yml - Override only what differs from defaults
 server:
@@ -717,16 +751,18 @@ public class DatabaseConfiguration {
 ```
 
 ### Configuration Hierarchy
-1. **Application Defaults** - Built into code, work for development
-2. **Environment Config Files** - Override defaults per environment
-3. **Environment Variables** - Secrets and deployment-specific values
-4. **System Properties** - Runtime overrides (rare, for debugging)
+1. Application defaults: In the code. They work for development.
+2. Environment configuration files: They override the defaults for each environment.
+3. Environment variables: Secrets and deployment-specific values.
+4. System properties: Runtime overrides (rare, for debugging).
 
 ### Critical Configuration Requirements
-Only require explicit configuration when:
-- **Security sensitive** (passwords, API keys, certificates)
-- **Environment dependent** (database URLs, external service endpoints)
-- **Business critical** (feature toggles that affect revenue/compliance)## Documentation Standards
+If a value is in one of these groups, require explicit configuration for it:
+- Security sensitive (passwords, API keys, certificates)
+- Environment dependent (database URLs, external service endpoints)
+- Business critical (feature toggles that affect revenue or compliance)
+
+## Documentation Standards
 
 ### JavaDoc Requirements
 ```java
@@ -744,23 +780,23 @@ public void recordRequest(long latencyMs, boolean serverError) {
 ```
 
 ### API Documentation
-- Use OpenAPI/Swagger annotations for REST endpoints
-- Document all request/response schemas
-- Include example requests and responses
-- Document error codes and their meanings
+- Use OpenAPI/Swagger annotations for REST endpoints.
+- Document all request and response schemas.
+- Give example requests and responses.
+- Document the error codes and their meanings.
 
 ### README Maintenance
-- Keep endpoint documentation current
-- Update build/run instructions
-- Document environment setup requirements
-- Include troubleshooting guides
+- Keep the endpoint documentation current.
+- Update the build and run instructions.
+- Document the environment setup requirements.
+- Give troubleshooting guides.
 
 ## Git Workflow
 
 ### Pull Request Requirements
-- **Descriptive title** following commit message format
-- **Clear description** of changes and motivation
-- **Test coverage** for new functionality
-- **Documentation updates** if API changes
-- **Code review approval** before merging
-- **All checks passing** (tests, linting, security scans)
+- A descriptive title in the commit message format
+- A clear description of the changes and the reason for them
+- Test coverage for new features
+- If the API changes, documentation updates
+- Code review approval before the merge
+- All CI jobs pass (tests, linting, security scans)
