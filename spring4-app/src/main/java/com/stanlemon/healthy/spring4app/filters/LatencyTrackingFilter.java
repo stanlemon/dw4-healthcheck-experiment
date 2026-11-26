@@ -47,26 +47,14 @@ public class LatencyTrackingFilter extends OncePerRequestFilter {
       // with tiny response bodies; counting them in the 60-second average drags it toward zero
       // and masks real latency regressions.
       if (!isHealthProbe(request.getRequestURI())) {
-        metricsService.recordRequest(latencyMs, isServerError(response, threw));
+        metricsService.recordRequest(
+            latencyMs,
+            MetricsService.isServerError(response.getStatus(), threw, response.isCommitted()));
       }
 
       // Request paths are untrusted, so omit them to keep each debug event on one line.
       log.debug("Request took {}ms to process", latencyMs);
     }
-  }
-
-  /**
-   * A request is a server error if the client got a 5xx status, or if the chain threw before any
-   * status was sent (the container then answers 500). A throw after the response was committed
-   * means the status already went out, usually because the client hung up mid-body, so the sent
-   * status decides.
-   */
-  private static boolean isServerError(HttpServletResponse response, boolean threw) {
-    if (threw && !response.isCommitted()) {
-      return true;
-    }
-    int status = response.getStatus();
-    return status >= 500 && status < 600;
   }
 
   private static boolean isHealthProbe(String uri) {
