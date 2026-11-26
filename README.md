@@ -6,7 +6,7 @@ The project shows that the core metrics and health logic can live in a shared li
 
 ## How It Works
 
-Every HTTP request goes through a latency-tracking filter. Latency is the time that a request takes. When the request finishes, the filter makes one call to a shared `MetricsService`. That call records the duration of the request and whether the response had a 5xx (server error) status.
+Every HTTP request goes through a latency-tracking filter. Latency is the time that a request takes. When the request finishes, the filter makes one call to a shared `MetricsService`. The filter does not record health-probe requests (`/health/*`, `/healthcheck`, and `/actuator/*`). That call records the duration of the request and whether the response had a 5xx (server error) status.
 
 The service keeps its counters in a sliding window. A sliding window holds only the most recent 60 seconds. The window has one bucket per second, and each bucket holds the counts for its second. The health check reads one consistent snapshot of the window. A snapshot is a copy of all counts at one instant. The health check compares the error rate and the average latency with fixed thresholds, which are the limits for a healthy service.
 
@@ -89,7 +89,7 @@ Dropwizard 5 serializes JSON with Jackson 2 (`com.fasterxml.jackson`). Spring Bo
 
 ### What Gets Tracked
 
-The `LatencyTrackingFilter` counts errors, which are 5xx responses, in a 60-second sliding window. The same filter records the duration of every request in milliseconds. The service gives the average of these durations over the same 60-second window.
+The `LatencyTrackingFilter` counts errors, which are 5xx responses, in a 60-second sliding window. The same filter records the duration of each request in milliseconds. It does not record health-probe requests. The service gives the average of these durations over the same 60-second window.
 
 ### Metrics Endpoint
 
@@ -255,7 +255,7 @@ The two required jobs also replaced a duplicate Renovate validation job.
 
 ### Why `DwConfiguration` Is Empty
 
-Dropwizard requires a typed `Configuration` subclass, even for an app with no custom configuration. The defaults in `DefaultMetricsService` hold all the thresholds. A production app can read the thresholds from this configuration class.
+Dropwizard requires a typed `Configuration` subclass, even for an app with no custom configuration. The thresholds are constants in `DefaultMetricsService`. To make them configurable, a production app needs a `DefaultMetricsService` constructor that takes the thresholds, and fields in this configuration class to supply them.
 
 ### Thread Safety
 

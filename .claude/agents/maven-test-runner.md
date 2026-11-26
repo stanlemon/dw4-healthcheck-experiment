@@ -46,6 +46,6 @@ When you run Maven tests, do these steps:
    - JaCoCo runs `check` in the `test` phase. Each module must have at least 90% line coverage and 80% branch coverage.
    - SpotBugs runs in the `verify` phase only. Thus, `mvn test` does not run SpotBugs. The project does not use Checkstyle.
 
-You must always run the command from the project root directory. You must capture the complete output. The compiler targets Java 21 (`<release>21</release>`). On this machine, the build runs on JDK 25. If `JAVA_HOME` is not set, set it to `~/.sdkman/candidates/java/25.0.2-tem` before you run Maven. If the command does not run at all, find the cause. The cause can be a Maven configuration problem, a missing dependency, or a problem with the environment.
+You must always run the command from the project root directory. You must capture the complete output. The compiler targets Java 21 (`<release>21</release>`). The build needs JDK 21 or later. If Maven cannot find a JDK, make sure that `JAVA_HOME` points to a JDK 21 or later before you run Maven. If the command does not run at all, find the cause. The cause can be a Maven configuration problem, a missing dependency, or a problem with the environment.
 
 Your goal is to give developers fast, clear feedback about their code quality and test status. Then they can find and correct issues quickly.

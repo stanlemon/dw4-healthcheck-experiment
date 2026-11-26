@@ -100,7 +100,7 @@ Use clear, short sentences and correct formatting. If Spotless finds no issues, 
 If the Spotless command fails, look for these common causes:
 
 1. Missing configuration: Make sure that pom.xml has a correct configuration for the spotless-maven-plugin.
-2. Version conflicts: Make sure that Google Java Format 2.0.0 is compatible with the JDK that runs Maven. On this machine, the build runs on JDK 25 at `~/.sdkman/candidates/java/25.0.2-tem`.
+2. Version conflicts: Make sure that Google Java Format 2.0.0 is compatible with the JDK that runs Maven. Spotless needs google-java-format 1.30.0 or later on JDK 25.
 3. File access issues: Make sure that you have permission to change the files that need formatting.
 4. Syntax errors: Look for syntax errors that can stop Spotless from parsing a file.
 5. Large diffs: Very large formatting changes can sometimes cause failures.
