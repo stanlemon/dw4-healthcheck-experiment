@@ -15,6 +15,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 @DisplayName("DefaultMetricsService")
 class DefaultMetricsServiceTest {
@@ -107,56 +109,41 @@ class DefaultMetricsServiceTest {
   @DisplayName("Thresholds")
   class Thresholds {
 
-    private boolean errorBreachFor(int errors, int requests) {
-      DefaultMetricsService fresh = new DefaultMetricsService(clock);
+    @ParameterizedTest(name = "{0} errors out of {1} requests -> breached {2}")
+    @CsvSource({
+      // Fewer than 10 requests is too little traffic to judge.
+      "9, 9, false",
+      // 10-99 requests: breach above a 50% error rate.
+      "10, 20, false",
+      "11, 20, true",
+      // 100+ requests: breach above a 10% error rate.
+      "10, 100, false",
+      "11, 100, true"
+    })
+    @DisplayName("Should breach the error threshold above the rate for the traffic level")
+    void errorThreshold_WhenGivenTraffic_ShouldBreachAboveRate(
+        int errors, int requests, boolean expected) {
       for (int i = 0; i < requests; i++) {
-        fresh.recordRequest(1, i < errors);
+        service.recordRequest(1, i < errors);
       }
-      return fresh.snapshot().isErrorThresholdBreached();
+
+      assertThat(service.snapshot().isErrorThresholdBreached()).isEqualTo(expected);
     }
 
-    @Test
-    @DisplayName("Should never breach when fewer than ten requests")
-    void errorThreshold_WhenFewerThanTenRequests_ShouldNeverBreach() {
-      assertThat(errorBreachFor(9, 9)).isFalse();
-    }
+    @ParameterizedTest(name = "{0} requests at {1}ms -> breached {2}")
+    @CsvSource({
+      // Fewer than 5 requests is too little traffic to judge.
+      "4, 500, false",
+      // Breach only above 100ms, not at it.
+      "5, 100, false",
+      "5, 101, true"
+    })
+    @DisplayName("Should breach the latency threshold only above 100ms with enough requests")
+    void latencyThreshold_WhenGivenTraffic_ShouldBreachAboveThreshold(
+        int requests, long latencyMs, boolean expected) {
+      record(requests, latencyMs, false);
 
-    @Test
-    @DisplayName("Should breach above half of requests when moderate traffic")
-    void errorThreshold_WhenModerateTraffic_ShouldBreachAboveHalfOfRequests() {
-      assertThat(errorBreachFor(10, 20)).as("exactly half").isFalse();
-      assertThat(errorBreachFor(11, 20)).as("more than half").isTrue();
-    }
-
-    @Test
-    @DisplayName("Should breach above ten percent when high traffic")
-    void errorThreshold_WhenHighTraffic_ShouldBreachAboveTenPercent() {
-      assertThat(errorBreachFor(10, 100)).as("exactly 10%").isFalse();
-      assertThat(errorBreachFor(11, 100)).as("11%").isTrue();
-    }
-
-    @Test
-    @DisplayName("Should not breach when fewer than five requests")
-    void latencyThreshold_WhenFewerThanFiveRequests_ShouldNotBreach() {
-      record(4, 500, false);
-
-      assertThat(service.snapshot().isLatencyThresholdBreached()).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should not breach when average exactly at threshold")
-    void latencyThreshold_WhenAverageExactlyAtThreshold_ShouldNotBreach() {
-      record(5, 100, false);
-
-      assertThat(service.snapshot().isLatencyThresholdBreached()).isFalse();
-    }
-
-    @Test
-    @DisplayName("Should breach when average above threshold")
-    void latencyThreshold_WhenAverageAboveThreshold_ShouldBreach() {
-      record(5, 101, false);
-
-      assertThat(service.snapshot().isLatencyThresholdBreached()).isTrue();
+      assertThat(service.snapshot().isLatencyThresholdBreached()).isEqualTo(expected);
     }
   }
 

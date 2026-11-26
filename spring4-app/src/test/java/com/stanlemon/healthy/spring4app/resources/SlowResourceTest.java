@@ -13,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.ResponseEntity;
 
 @DisplayName("Slow Resource Tests")
@@ -55,25 +57,23 @@ class SlowResourceTest {
       assertThat(response.getBody().getDelayMs()).isZero();
     }
 
-    @Test
-    @DisplayName("Should return 400 error when delay is negative")
-    void slowWithDelay_WhenNegativeDelay_ShouldReturn400Error() {
-      ResponseEntity<SlowResource.SlowResponse> response = resource.slowWithDelay(-100);
+    // 10000 itself is allowed, but testing it would sleep for 10 seconds, so the upper boundary is
+    // checked from the rejected side only.
+    @ParameterizedTest(name = "{0}ms -> 400")
+    @CsvSource(
+        delimiter = '|',
+        value = {
+          "-1     | Delay cannot be negative",
+          "-100   | Delay cannot be negative",
+          "10001  | Delay too long. Maximum allowed is 10000ms",
+          "15000  | Delay too long. Maximum allowed is 10000ms"
+        })
+    @DisplayName("Should return 400 without sleeping when delay is out of range")
+    void slowWithDelay_WhenDelayOutOfRange_ShouldReturn400(int delayMs, String message) {
+      ResponseEntity<SlowResource.SlowResponse> response = resource.slowWithDelay(delayMs);
 
       assertThat(response.getStatusCode().value()).isEqualTo(400);
-      assertThat(response.getBody()).isNotNull();
-      assertThat(response.getBody().getMessage()).isEqualTo("Delay cannot be negative");
-    }
-
-    @Test
-    @DisplayName("Should return 400 error when delay is excessive")
-    void slowWithDelay_WhenExcessiveDelay_ShouldReturn400Error() {
-      ResponseEntity<SlowResource.SlowResponse> response = resource.slowWithDelay(15000);
-
-      assertThat(response.getStatusCode().value()).isEqualTo(400);
-      assertThat(response.getBody()).isNotNull();
-      assertThat(response.getBody().getMessage())
-          .isEqualTo("Delay too long. Maximum allowed is 10000ms");
+      assertThat(response.getBody()).isEqualTo(new SlowResource.SlowResponse(message, delayMs, 0));
     }
   }
 
