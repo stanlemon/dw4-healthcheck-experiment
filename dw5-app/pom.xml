@@ -135,7 +135,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <configuration>
                     <mainClass>${mainClass}</mainClass>
-                    <commandlineArgs>server config.yml</commandlineArgs>
+                    <commandlineArgs>server ${project.basedir}/config.yml</commandlineArgs>
                 </configuration>
             </plugin>
 
