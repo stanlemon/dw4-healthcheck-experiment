@@ -165,7 +165,7 @@ Always use the maven-test-runner agent to run tests. Do not run Maven commands d
 - An analysis of the test results
 - A list of the failing tests, with guidance on what to fix
 - Performance data and suggestions
-- The results of quality tools that run during the test phase, such as SpotBugs
+- The results of the quality tools that run up to the test phase: Maven Enforcer, the Spotless check, and the JaCoCo check. SpotBugs runs only in the `verify` phase.
 - The same test feedback format across the development workflow
 
 ## Code Quality
@@ -271,7 +271,7 @@ This test enforces general coding standards in every module:
 - No generic exceptions: Do not throw `Exception`, `RuntimeException`, or other generic exception types.
 - No java.util.logging: Use SLF4J/Logback logging.
 - No System.out/System.err: Do not write console output in production code.
-- No Thread.sleep(): This rule prevents flaky tests. The SlowResource demo is the only exception.
+- No Thread.sleep() in production code: The architecture tests do not examine test classes. In `dw5-app` and `spring4-app`, the SlowResource demo is the only exception.
 - No public fields: Keep fields encapsulated.
 - No JUnit assertions: Use AssertJ, because it is easier to read.
 
@@ -280,7 +280,7 @@ In `dw5-app` and `spring4-app`, this test enforces these architectural patterns:
 - Resource dependency isolation: Resources depend only on service interfaces.
 - Implementation hiding: Resources have no dependencies on "Default*" implementations.
 - Package organization: Exception mappers (and the Spring exception handler) are in the exceptions package.
-- Naming conventions: Resources end with "Resource", and services end with "Service".
+- Naming conventions: Classes in the resources package end with "Resource".
 - REST patterns: Resources must have the `@Path` annotation in `dw5-app` and the `@RestController` annotation in `spring4-app`.
 - Package structure: Packages have no circular dependencies, and each layer depends only on the layers that it is allowed to use.
 
@@ -313,17 +313,21 @@ mvn test -Dtest="ArchitectureTest"
 
 ### Adding Custom ArchUnit Rules
 
-If a rule applies to all modules, add it as a static method to `ArchitectureRules` or `CodingRules` in `architecture-rules/src/main/java/com/stanlemon/architecture/`. Then call it from the `ArchitectureTest` or `CodingRulesTest` class of each module. If a rule applies to one module only, add it to that module in `src/test/java/com/stanlemon/architecture/`:
+If an architecture rule applies to many modules, add it as a static factory method to `ArchitectureRules` in `architecture-rules/src/main/java/com/stanlemon/architecture/`. Then call it from the `ArchitectureTest` class of each module that needs it. If a coding rule applies to all modules, add it to `CodingRules`, and add it to the list in `CodingRulesRunner.checkAllCodingStandards`. Each `CodingRulesTest` calls only that runner. If a rule applies to one module only, add it to the `ArchitectureTest` of that module in `src/test/java/com/stanlemon/architecture/`. See [ARCHUNIT.md](ARCHUNIT.md) for the full steps.
 
 ```java
 @Test
-@DisplayName("Services should not use static methods")
-void servicesShouldNotUseStaticMethods() {
-    ArchRule rule = noClasses()
-        .that().resideInAPackage("..metrics..")
-        .should().haveMethodsThat().areStatic()
-        .because("Services should use dependency injection");
-    
+@DisplayName("Resources should not use static methods")
+void resourcesShouldNotUseStaticMethods() {
+    ArchRule rule =
+        methods()
+            .that()
+            .areDeclaredInClassesThat()
+            .resideInAPackage("..resources..")
+            .should()
+            .notBeStatic()
+            .because("Resources should use dependency injection");
+
     rule.check(importedClasses);
 }
 ```
