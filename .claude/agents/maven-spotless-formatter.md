@@ -1,6 +1,7 @@
 ---
 name: maven-spotless-formatter
 description: When you want to format code with Maven Spotless so that the code follows the project style guidelines, use this agent. Examples: <example>Context: User has modified code and wants to ensure it meets formatting standards. user: "Can you format my code using Spotless?" assistant: "I'll use the maven-spotless-formatter agent to format your code according to the project's style guidelines."</example> <example>Context: User is preparing to commit code. user: "Run spotless to check if my code is properly formatted" assistant: "I'll use the maven-spotless-formatter agent to check your code formatting."</example> <example>Context: User has failing CI due to formatting issues. user: "Fix the formatting issues in my code" assistant: "I'll use the maven-spotless-formatter agent to apply the correct formatting to your code."</example>
+tools: Bash, Read, Grep, Glob
 model: sonnet
 color: purple
 ---
