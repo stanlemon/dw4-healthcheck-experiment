@@ -14,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * Tests for SlowResource endpoints.
@@ -70,53 +72,26 @@ class SlowResourceTest {
           .contains("0ms delay");
     }
 
-    @Test
-    @DisplayName("Should return 400 error when delay is negative")
-    void slowWithDelay_WhenNegativeDelay_ShouldReturn400Error() {
-      Response response = resource.slowWithDelay(-100);
+    // 10000 itself is allowed, but testing it would sleep for 10 seconds, so the upper boundary is
+    // checked from the rejected side only.
+    @ParameterizedTest(name = "{0}ms -> 400")
+    @CsvSource(
+        delimiter = '|',
+        value = {
+          "-1     | Delay cannot be negative",
+          "-100   | Delay cannot be negative",
+          "10001  | Delay too long. Maximum allowed is 10000ms",
+          "15000  | Delay too long. Maximum allowed is 10000ms"
+        })
+    @DisplayName("Should return 400 without sleeping when delay is out of range")
+    void slowWithDelay_WhenDelayOutOfRange_ShouldReturn400(int delayMs, String message) {
+      Response response = resource.slowWithDelay(delayMs);
 
       assertThat(response.getStatus()).isEqualTo(400);
-
       SlowResource.SlowResponse slowResponse = (SlowResource.SlowResponse) response.getEntity();
-      assertThat(slowResponse.getDelayMs()).isEqualTo(-100);
+      assertThat(slowResponse.getDelayMs()).isEqualTo(delayMs);
       assertThat(slowResponse.getActualMs()).isZero();
-      assertThat(slowResponse.getMessage()).isEqualTo("Delay cannot be negative");
-    }
-
-    @Test
-    @DisplayName("Should return 400 error when delay is excessive")
-    void slowWithDelay_WhenExcessiveDelay_ShouldReturn400Error() {
-      Response response = resource.slowWithDelay(15000);
-
-      assertThat(response.getStatus()).isEqualTo(400);
-
-      SlowResource.SlowResponse slowResponse = (SlowResource.SlowResponse) response.getEntity();
-      assertThat(slowResponse.getDelayMs()).isEqualTo(15000);
-      assertThat(slowResponse.getActualMs()).isZero();
-      assertThat(slowResponse.getMessage()).isEqualTo("Delay too long. Maximum allowed is 10000ms");
-    }
-  }
-
-  @Nested
-  @DisplayName("Boundary tests")
-  class BoundaryTests {
-
-    @Test
-    @DisplayName("Should return 400 when delay is exactly 10001ms (just over limit)")
-    void slowWithDelay_WhenExactlyOverLimit_ShouldReturn400() {
-      Response response = resource.slowWithDelay(10001);
-
-      assertThat(response.getStatus()).isEqualTo(400);
-    }
-
-    @Test
-    @DisplayName("Should reject delay one above the 10000ms limit")
-    void slowWithDelay_WhenOneAboveLimit_ShouldReturn400() {
-      // Verify the 10000ms cap is enforced from the other side — 10001 is rejected with a 400.
-      // We don't assert on the happy-path boundary (slowWithDelay(10000)) because it would
-      // actually Thread.sleep for 10 seconds in the test suite.
-      Response response = resource.slowWithDelay(10001);
-      assertThat(response.getStatus()).isEqualTo(400);
+      assertThat(slowResponse.getMessage()).isEqualTo(message);
     }
   }
 

@@ -4,41 +4,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @DisplayName("Verdict")
 class VerdictTest {
 
-  @Test
+  @ParameterizedTest
+  @EnumSource(Verdict.class)
   @DisplayName("fromWireValue round-trips every constant")
-  void fromWireValue_RoundTripsEveryConstant() {
-    for (Verdict v : Verdict.values()) {
-      assertThat(Verdict.fromWireValue(v.getWireValue())).isEqualTo(v);
-    }
+  void fromWireValue_RoundTripsEveryConstant(Verdict verdict) {
+    assertThat(Verdict.fromWireValue(verdict.getWireValue())).isEqualTo(verdict);
   }
 
-  @Test
-  @DisplayName("fromWireValue rejects unknown strings without echoing input")
-  void fromWireValue_RejectsUnknownWithoutEchoing() {
-    String badInput = "made up";
-    assertThatThrownBy(() -> Verdict.fromWireValue(badInput))
+  @ParameterizedTest(name = "[{0}]")
+  @NullSource
+  @ValueSource(strings = {"made up", "HANGAR QUEEN"})
+  @DisplayName("fromWireValue rejects null, unknown, and uppercase values without echoing input")
+  void fromWireValue_WhenInvalid_ShouldThrowWithFixedMessage(String input) {
+    // An exact message also proves the input is not echoed back.
+    assertThatThrownBy(() -> Verdict.fromWireValue(input))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Invalid verdict")
-        .hasMessageNotContaining(badInput);
-  }
-
-  @Test
-  @DisplayName("fromWireValue with null throws IllegalArgumentException")
-  void fromWireValue_WhenNull_ShouldThrowIllegalArgumentException() {
-    assertThatThrownBy(() -> Verdict.fromWireValue(null))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Invalid verdict");
-  }
-
-  @Test
-  @DisplayName("fromWireValue rejects uppercase variant")
-  void fromWireValue_WhenUpperCase_ShouldThrowIllegalArgumentException() {
-    assertThatThrownBy(() -> Verdict.fromWireValue("HANGAR QUEEN"))
-        .isInstanceOf(IllegalArgumentException.class);
+        .hasMessage("Invalid verdict");
   }
 }

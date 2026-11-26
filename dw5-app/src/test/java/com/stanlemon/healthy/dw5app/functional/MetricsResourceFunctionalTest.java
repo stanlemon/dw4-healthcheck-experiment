@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @ExtendWith(DropwizardExtensionsSupport.class)
@@ -250,43 +251,24 @@ class MetricsResourceFunctionalTest {
       assertThat(after.avgLatencyLast60Seconds()).isBetween(1.0, 2000.0);
     }
 
-    @Test
-    @DisplayName("Too large delay should be rejected with 400 Bad Request")
-    void tooLargeDelay_WhenRequested_ShouldBeRejectedWith400() {
-      int tooLargeDelay = 10001;
-
+    @ParameterizedTest(name = "{0}ms -> 400")
+    @CsvSource(
+        delimiter = '|',
+        value = {"10001 | Delay too long", "-100 | Delay cannot be negative"})
+    @DisplayName("Out-of-range delay should be rejected with 400 Bad Request")
+    void outOfRangeDelay_WhenRequested_ShouldBeRejectedWith400(int delayMs, String message) {
       SlowResponseDTO response =
           given()
               .when()
-              .get(baseUrl + "/slow/" + tooLargeDelay)
+              .get(baseUrl + "/slow/" + delayMs)
               .then()
               .statusCode(400)
               .contentType(ContentType.JSON)
               .extract()
               .as(SlowResponseDTO.class);
 
-      assertThat(response.getMessage()).contains("Delay too long");
-      assertThat(response.getDelayMs()).isEqualTo(tooLargeDelay);
-      assertThat(response.getActualMs()).isZero();
-    }
-
-    @Test
-    @DisplayName("Negative delay should be rejected with 400 Bad Request")
-    void negativeDelay_WhenRequested_ShouldBeRejectedWith400() {
-      int negativeDelay = -100;
-
-      SlowResponseDTO response =
-          given()
-              .when()
-              .get(baseUrl + "/slow/" + negativeDelay)
-              .then()
-              .statusCode(400)
-              .contentType(ContentType.JSON)
-              .extract()
-              .as(SlowResponseDTO.class);
-
-      assertThat(response.getMessage()).contains("Delay cannot be negative");
-      assertThat(response.getDelayMs()).isEqualTo(negativeDelay);
+      assertThat(response.getMessage()).contains(message);
+      assertThat(response.getDelayMs()).isEqualTo(delayMs);
       assertThat(response.getActualMs()).isZero();
     }
   }

@@ -16,10 +16,14 @@ import io.restassured.response.Response;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @ExtendWith(DropwizardExtensionsSupport.class)
 @DisplayName("HangarResource Functional Tests")
@@ -219,40 +223,23 @@ class HangarResourceFunctionalTest {
         .statusCode(400);
   }
 
-  @Test
-  @DisplayName("GET /hangar/planes/{id} with oversized id returns 400")
-  void get_WhenIdExceedsMaxLength_ShouldReject() {
-    String oversizedId = "a".repeat(65);
-
-    int status =
-        given().when().get(baseUrl + "/hangar/planes/" + oversizedId).then().extract().statusCode();
-
-    assertThat(status).isEqualTo(400);
+  static Stream<Arguments> invalidIds() {
+    return Stream.of(
+        // One character over the 64-character limit.
+        Arguments.of("a".repeat(65), 400),
+        Arguments.of("id@with!chars", 400),
+        // The HTTP server normalizes `../secret` before dispatch, so the request never reaches the
+        // handler as an id. A 404 from the router is the correct rejection; nothing dangerous
+        // makes it past routing into our resource.
+        Arguments.of("../secret", 404));
   }
 
-  @Test
-  @DisplayName("GET /hangar/planes/{id} with path traversal characters is routed away")
-  void get_WhenIdContainsPathTraversal_ShouldReject() {
-    // The HTTP server normalizes `../secret` before dispatch, so the request never reaches the
-    // handler as an id. A 404 from the router is the correct rejection; nothing dangerous makes
-    // it past routing into our resource.
-    int status =
-        given().when().get(baseUrl + "/hangar/planes/" + "../secret").then().extract().statusCode();
+  @ParameterizedTest(name = "[{0}] -> {1}")
+  @MethodSource("invalidIds")
+  @DisplayName("GET /hangar/planes/{id} with an invalid id is rejected")
+  void get_WhenIdIsInvalid_ShouldReject(String id, int expectedStatus) {
+    int status = given().when().get(baseUrl + "/hangar/planes/" + id).then().extract().statusCode();
 
-    assertThat(status).isEqualTo(404);
-  }
-
-  @Test
-  @DisplayName("GET /hangar/planes/{id} with special characters returns 400")
-  void get_WhenIdContainsSpecialCharacters_ShouldReject() {
-    int status =
-        given()
-            .when()
-            .get(baseUrl + "/hangar/planes/" + "id@with!chars")
-            .then()
-            .extract()
-            .statusCode();
-
-    assertThat(status).isEqualTo(400);
+    assertThat(status).isEqualTo(expectedStatus);
   }
 }

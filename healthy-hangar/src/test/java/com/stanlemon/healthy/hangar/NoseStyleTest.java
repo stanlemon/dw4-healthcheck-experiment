@@ -5,16 +5,19 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @DisplayName("NoseStyle")
 class NoseStyleTest {
 
-  @Test
+  @ParameterizedTest
+  @EnumSource(NoseStyle.class)
   @DisplayName("fromWireValue round-trips every constant")
-  void fromWireValue_RoundTripsEveryConstant() {
-    for (NoseStyle style : NoseStyle.values()) {
-      assertThat(NoseStyle.fromWireValue(style.getWireValue())).isEqualTo(style);
-    }
+  void fromWireValue_RoundTripsEveryConstant(NoseStyle style) {
+    assertThat(NoseStyle.fromWireValue(style.getWireValue())).isEqualTo(style);
   }
 
   @Test
@@ -25,28 +28,14 @@ class NoseStyleTest {
     assertThat(NoseStyle.FOLDED.getWireValue()).isEqualTo("folded");
   }
 
-  @Test
-  @DisplayName("fromWireValue rejects unknown strings without echoing input")
-  void fromWireValue_RejectsUnknownWithoutEchoing() {
-    String badInput = "CRUMPLED";
-    assertThatThrownBy(() -> NoseStyle.fromWireValue(badInput))
+  @ParameterizedTest(name = "[{0}]")
+  @NullSource
+  @ValueSource(strings = {"CRUMPLED", "POINTED"})
+  @DisplayName("fromWireValue rejects null, unknown, and uppercase values without echoing input")
+  void fromWireValue_WhenInvalid_ShouldThrowWithFixedMessage(String input) {
+    // An exact message also proves the input is not echoed back.
+    assertThatThrownBy(() -> NoseStyle.fromWireValue(input))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Invalid nose style")
-        .hasMessageNotContaining(badInput);
-  }
-
-  @Test
-  @DisplayName("fromWireValue with null throws IllegalArgumentException")
-  void fromWireValue_WhenNull_ShouldThrowIllegalArgumentException() {
-    assertThatThrownBy(() -> NoseStyle.fromWireValue(null))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("Invalid nose style");
-  }
-
-  @Test
-  @DisplayName("fromWireValue rejects uppercase variant")
-  void fromWireValue_WhenUpperCase_ShouldThrowIllegalArgumentException() {
-    assertThatThrownBy(() -> NoseStyle.fromWireValue("POINTED"))
-        .isInstanceOf(IllegalArgumentException.class);
+        .hasMessage("Invalid nose style");
   }
 }
