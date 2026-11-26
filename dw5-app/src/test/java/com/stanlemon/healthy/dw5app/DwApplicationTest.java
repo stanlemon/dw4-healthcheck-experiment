@@ -6,6 +6,8 @@ import io.dropwizard.testing.ConfigOverride;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import jakarta.ws.rs.core.Response;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,14 +22,28 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @DisplayName("DwApplication")
 class DwApplicationTest {
 
-  // Surefire runs with the module directory as the working directory, so this is
-  // dw5-app/config.yml.
   private static final DropwizardAppExtension<DwConfiguration> APP =
       new DropwizardAppExtension<>(
           DwApplication.class,
-          "config.yml",
+          shippedConfigPath(),
           ConfigOverride.config("server.applicationConnectors[0].port", "0"),
           ConfigOverride.config("server.adminConnectors[0].port", "0"));
+
+  /**
+   * Finds dw5-app/config.yml from where the test classes were compiled
+   * (dw5-app/target/test-classes), so the test does not depend on the working directory. An IDE can
+   * run it from the repo root.
+   */
+  private static String shippedConfigPath() {
+    try {
+      Path testClasses =
+          Path.of(
+              DwApplicationTest.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+      return testClasses.resolve("../../config.yml").normalize().toString();
+    } catch (URISyntaxException e) {
+      throw new IllegalStateException("Cannot find the dw5-app module directory", e);
+    }
+  }
 
   @Test
   @DisplayName("Should start and serve requests with the shipped config.yml")
