@@ -1,6 +1,7 @@
 ---
 name: maven-spotbugs-analyzer
 description: When you want to run SpotBugs static code analysis on the project, use this agent. The agent finds possible bugs, security vulnerabilities, and code quality issues. Examples: <example>Context: User wants to verify code quality before committing. user: "Can you run SpotBugs to check if there are any code issues?" assistant: "I'll use the maven-spotbugs-analyzer agent to run static analysis on your code."</example> <example>Context: User is concerned about security vulnerabilities. user: "Check if there are any security issues in the codebase" assistant: "I'll use the maven-spotbugs-analyzer agent to run FindSecBugs analysis."</example> <example>Context: User wants to improve code quality. user: "Help me identify potential bugs in my implementation" assistant: "I'll use the maven-spotbugs-analyzer agent to find potential issues in your code."</example>
+tools: Bash, Read, Grep, Glob
 model: sonnet
 color: green
 ---

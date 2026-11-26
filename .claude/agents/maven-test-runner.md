@@ -1,6 +1,7 @@
 ---
 name: maven-test-runner
 description: When the user wants to run Maven tests or the test suite, use this agent. Also use it to find out whether the tests pass, or to test code changes and make sure that they work. Examples: <example>Context: User has made code changes and wants to verify everything still works. user: "I just updated the MetricsService implementation, can you run the tests to make sure I didn't break anything?" assistant: "I'll use the maven-test-runner agent to execute the test suite and verify your changes."</example> <example>Context: User wants to run tests after implementing a new feature. user: "Run mvn test" assistant: "I'll use the maven-test-runner agent to execute the Maven test suite."</example> <example>Context: User is debugging a failing build. user: "The CI is failing, let me check if the tests pass locally" assistant: "I'll use the maven-test-runner agent to run the tests and see what's happening."</example>
+tools: Bash, Read, Grep, Glob
 model: sonnet
 color: blue
 ---

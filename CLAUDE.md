@@ -534,6 +534,7 @@ To create a new Claude Code subagent, do these steps:
    ---
    name: maven-subagent-name
    description: Use this agent when... [include usage examples]
+   tools: Bash, Read, Grep, Glob  # Only the tools the subagent needs
    model: sonnet
    color: green  # Choose a color that distinguishes this subagent
    ---
