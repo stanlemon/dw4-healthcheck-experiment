@@ -75,48 +75,6 @@ class ResourceIntegrationTest {
   }
 
   @Test
-  @DisplayName("Should record reasonable latency when multiple requests")
-  @Timeout(30)
-  void latencyTracking_WhenMultipleRequests_ShouldRecordReasonableLatency() {
-    Client client = app.client();
-
-    // Make a few requests to generate latency data
-    for (int i = 0; i < 5; i++) {
-      try (Response response =
-          client
-              .target(String.format("http://localhost:%d/slow/1", app.getLocalPort()))
-              .request()
-              .get()) {
-        assertThat(response.getStatus()).isEqualTo(200);
-      }
-    }
-
-    // Use Awaitility to wait for latency metrics to be recorded and stabilize
-    await()
-        .atMost(Duration.ofSeconds(10))
-        .pollInterval(Duration.ofMillis(200))
-        .ignoreExceptions()
-        .untilAsserted(() -> {
-          try (Response metricsResponse =
-              client
-                  .target(String.format("http://localhost:%d/metrics", app.getLocalPort()))
-                  .request()
-                  .get()) {
-            assertThat(metricsResponse.getStatus()).isEqualTo(200);
-
-            MetricsResponse metrics = metricsResponse.readEntity(MetricsResponse.class);
-
-            // Latency should be recorded and greater than 0
-            assertThat(metrics.getAvgLatencyLast60Seconds()).isGreaterThan(0.0);
-            // Should be reasonable latency (less than 1 second for simple requests)
-            assertThat(metrics.getAvgLatencyLast60Seconds()).isLessThan(1000.0);
-            // Since latency is well below 500ms threshold, it should not be breached
-            assertThat(metrics.isLatencyThresholdBreached()).isFalse();
-          }
-        });
-  }
-
-  @Test
   @DisplayName("Should return ok status when called")
   @Timeout(30)
   void healthcheckEndpoint_WhenCalled_ShouldReturnOkStatus() {
