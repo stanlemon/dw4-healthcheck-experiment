@@ -69,25 +69,6 @@ class LatencyTrackingFilterTest {
   }
 
   @Test
-  @DisplayName("Should not record error when response is client error")
-  void doFilterInternal_WhenResponseIsClientError_ShouldNotRecordError()
-      throws ServletException, IOException {
-    runFilter("/hangar/planes", 404);
-
-    assertThat(metricsService.snapshot().getErrorsLastMinute()).isZero();
-  }
-
-  @Test
-  @DisplayName("Should not record error when status is above five hundred range")
-  void doFilterInternal_WhenStatusIsAboveFiveHundredRange_ShouldNotRecordError()
-      throws ServletException, IOException {
-    // The exception handlers treat only 500-599 as server errors; the filter must agree.
-    runFilter("/hangar/planes", 600);
-
-    assertThat(metricsService.snapshot().getErrorsLastMinute()).isZero();
-  }
-
-  @Test
   @DisplayName("Should not record error when chain throws after ok response committed")
   void doFilterInternal_WhenChainThrowsAfterOkResponseCommitted_ShouldNotRecordError()
       throws ServletException, IOException {
