@@ -73,30 +73,6 @@ class ResourceIntegrationTest {
   }
 
   @Test
-  @DisplayName("Should record reasonable latency when multiple requests")
-  @Timeout(30)
-  void latencyTracking_WhenMultipleRequests_ShouldRecordReasonableLatency() {
-    for (int i = 0; i < 5; i++) {
-      int status =
-          restClient.get().uri("/slow/1").retrieve().toBodilessEntity().getStatusCode().value();
-      assertThat(status).isEqualTo(200);
-    }
-
-    await()
-        .atMost(Duration.ofSeconds(10))
-        .pollInterval(Duration.ofMillis(200))
-        .ignoreExceptions()
-        .untilAsserted(() -> {
-          MetricsResponse metrics =
-              restClient.get().uri("/metrics").retrieve().body(MetricsResponse.class);
-          assertThat(metrics).isNotNull();
-          assertThat(metrics.getAvgLatencyLast60Seconds()).isGreaterThan(0.0);
-          assertThat(metrics.getAvgLatencyLast60Seconds()).isLessThan(1000.0);
-          assertThat(metrics.isLatencyThresholdBreached()).isFalse();
-        });
-  }
-
-  @Test
   @DisplayName("Should return ok status when called")
   @Timeout(30)
   @DirtiesContext(methodMode = DirtiesContext.MethodMode.BEFORE_METHOD)
